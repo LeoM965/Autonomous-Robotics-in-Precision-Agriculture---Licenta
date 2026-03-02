@@ -13,15 +13,17 @@ namespace Weather.Components
         public List<ClimateProfile> climates;
         public List<WeatherProfile> weatherProfiles;
 
-        [Header("Standard References")]
+        [Header("References")]
         public Light directionalLight;
         public PrecipitationManager precipitation;
 
-        private WeatherSimulator _simulator;
-        private AtmosphereRenderer _renderer;
-        
-        public WeatherType CurrentWeather => _simulator.CurrentWeather;
-        public float CurrentTemperature => _simulator.CurrentTemperature;
+        private WeatherSimulator simulator;
+        private AtmosphereRenderer renderer;
+        private float lastSimHours = -1f;
+
+        public WeatherType CurrentWeather => simulator.CurrentWeather;
+        public float CurrentTemperature => simulator.CurrentTemperature;
+        public WeatherImpact CurrentImpact => simulator.CurrentImpact;
         public ClimateProfile ActiveClimate { get; private set; }
 
         private void Awake()
@@ -29,61 +31,74 @@ namespace Weather.Components
             if (Instance == null) Instance = this;
             else { Destroy(gameObject); return; }
 
-            _simulator = new WeatherSimulator();
-            _renderer = new AtmosphereRenderer(directionalLight);
+            simulator = new WeatherSimulator();
+            renderer = new AtmosphereRenderer(directionalLight);
         }
 
         private void Start()
         {
             if (TimeManager.Instance != null)
             {
-                TimeManager.Instance.OnDayChanged += (day) => UpdateClimate();
-                TimeManager.Instance.OnHourChanged += (hour) => _simulator.RerollWeather(hour);
+                TimeManager.Instance.OnDayChanged += (_) => UpdateClimate();
+                TimeManager.Instance.OnHourChanged += (hour) => simulator.RerollWeather(hour);
             }
 
             UpdateClimate();
-            _simulator.RerollWeather(TimeManager.Instance != null ? TimeManager.Instance.timeOfDay : 12f, true);
+            float startTime = TimeManager.Instance != null ? TimeManager.Instance.timeOfDay : 12f;
+            simulator.RerollWeather(startTime);
         }
 
         private void Update()
         {
-            float time = TimeManager.Instance != null ? TimeManager.Instance.timeOfDay : 12f;
+            UpdateVisuals();
+            ProcessSoilMoisture();
+        }
 
-            WeatherProfile activeProfile = GetProfile(_simulator.CurrentWeather);
-            _renderer.Render(activeProfile, Time.deltaTime);
-            
+        private void UpdateVisuals()
+        {
+            WeatherProfile profile = GetProfile(simulator.CurrentWeather);
+            if (profile == null) return;
+
+            renderer.Render(profile, Time.deltaTime);
+
             if (precipitation != null)
-                precipitation.UpdateEffects(_simulator.CurrentWeather, 1.0f);
+                precipitation.UpdateEffects(simulator.CurrentWeather, 1.0f);
         }
 
         private void UpdateClimate()
         {
             if (TimeManager.Instance == null) return;
-            
             Season s = TimeManager.Instance.GetCurrentSeason();
             ClimateProfile profile = climates.Find(c => c.seasonType == s);
-            
-            if (profile != null) 
+            if (profile != null)
             {
-                _simulator.SetClimate(profile);
+                simulator.SetClimate(profile);
                 ActiveClimate = profile;
             }
         }
 
-        public float GetMovementPenalty()
+        private void ProcessSoilMoisture()
         {
-            float penalty = ActiveClimate != null ? ActiveClimate.movementSpeedMultiplier : 1.0f;
-            
-            if (CurrentWeather == WeatherType.Stormy) penalty *= 0.5f;
-            if (CurrentWeather == WeatherType.Snowy) penalty *= 0.6f;
-            if (CurrentWeather == WeatherType.Foggy) penalty *= 0.9f;
-                
-            return penalty;
+            if (TimeManager.Instance == null || ActiveClimate == null) return;
+
+            float currentSimHours = (TimeManager.Instance.currentDay - 1) * 24f + TimeManager.Instance.timeOfDay;
+            if (lastSimHours < 0f) { lastSimHours = currentSimHours; return; }
+
+            float deltaHours = currentSimHours - lastSimHours;
+            if (deltaHours <= 0f) return;
+
+            lastSimHours = currentSimHours;
+            SoilMoistureService.UpdateMoisture(ParcelCache.Parcels, simulator.CurrentImpact, ActiveClimate, deltaHours);
         }
 
-        private WeatherProfile GetProfile(WeatherType type)
+        public float GetMovementPenalty()
         {
-            return weatherProfiles.Find(p => p.type == type);
+            float seasonalBase = ActiveClimate != null ? ActiveClimate.movementMultiplier : 1.0f;
+            return seasonalBase * simulator.CurrentImpact.movementSpeed;
         }
+
+        public float GetCropGrowthMultiplier() => simulator.CurrentImpact.cropGrowth;
+
+        private WeatherProfile GetProfile(WeatherType type) => weatherProfiles.Find(p => p.type == type);
     }
 }

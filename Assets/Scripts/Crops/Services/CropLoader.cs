@@ -1,34 +1,31 @@
 using UnityEngine;
+
 public static class CropLoader
 {
     private static CropDatabase database;
 
-        public static CropDatabase Load()
-        {
-            if (database != null) return database;
+    public static CropDatabase Load()
+    {
+        if (database != null) return database;
 
-            TextAsset json = Resources.Load<TextAsset>("CropData");
-            if (json == null)
-            {
-                return null;
-            }
-            database = JsonUtility.FromJson<CropDatabase>(json.text);
-            return database;
-        }
+        TextAsset json = Resources.Load<TextAsset>("CropData");
+        if (json == null) return null;
+        
+        database = JsonUtility.FromJson<CropDatabase>(json.text);
+        return database;
+    }
 
-        public static GameObject LoadPrefab(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return null;
+    public static GameObject LoadPrefab(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return null;
 
-            string filename = System.IO.Path.GetFileNameWithoutExtension(path);
-            GameObject prefab = Resources.Load<GameObject>("CropPrefabs/" + filename);
-            if (prefab != null) return prefab;
+        string filename = System.IO.Path.GetFileNameWithoutExtension(path);
+        GameObject prefab = Resources.Load<GameObject>("CropPrefabs/" + filename);
+        if (prefab != null) return prefab;
 
-            prefab = Resources.Load<GameObject>(path.Replace(".prefab", ""));
-            if (prefab == null)
-            {
-                Debug.LogWarning($"[CropLoader] Failed to load prefab. Tried 'CropPrefabs/{filename}' and '{path}'.");
-            }
-            return prefab;
-        }
+        prefab = Resources.Load<GameObject>(path.Replace(".prefab", ""));
+        if (prefab == null)
+            Debug.LogWarning($"[CropLoader] Failed to load prefab. Tried 'CropPrefabs/{filename}' and '{path}'.");
+        return prefab;
+    }
 }

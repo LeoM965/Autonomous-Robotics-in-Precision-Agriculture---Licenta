@@ -1,5 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
+using AI.Analytics;
+using AI.Models.Decisions;
+using AI.Core;
 
 public class RobotInfoPanel : MonoBehaviour
 {

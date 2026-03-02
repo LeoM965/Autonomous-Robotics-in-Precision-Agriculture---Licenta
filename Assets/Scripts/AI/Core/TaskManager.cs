@@ -1,141 +1,124 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Sensors.Components;
-using Sensors.Models;
-using Sensors.Services;
+using AI.Core.Scanners;
+using AI.DataStructures;
 
-public class TaskManager : MonoBehaviour
+namespace AI.Core
 {
-    public static TaskManager Instance { get; private set; }
-    [SerializeField] private float scanInterval = 5f;
-    private Dictionary<int, MinHeap<RobotTask>> _zoneHeaps = new Dictionary<int, MinHeap<RobotTask>>();
-    private FenceZone[] _zones;
-    private float _scanTimer;
-    public bool HasTasks
+    public class TaskManager : MonoBehaviour
     {
-        get { return GetTotalTaskCount() > 0; }
-    }
-    private void Awake()
-    {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
-    }
-    private void Start()
-    {
-        FenceGenerator fenceGen = FindFirstObjectByType<FenceGenerator>();
-        if (fenceGen != null && fenceGen.zones != null)
-        {
-            _zones = fenceGen.zones;
-            for (int i = 0; i < _zones.Length; i++)
-                _zoneHeaps[i] = new MinHeap<RobotTask>();
-        }
-    }
-    private void Update()
-    {
-        _scanTimer -= Time.deltaTime;
-        if (_scanTimer <= 0f)
-        {
-            ScanParcels();
-            ScanHarvestableParcels();
-            _scanTimer = scanInterval;
-        }
-    }
-    private void ScanParcels()
-    {
-        if (ParcelCache.Instance == null) return;
+        public static TaskManager Instance { get; private set; }
+
+        [SerializeField] private float scanInterval = 5f;
         
-        foreach (var parcel in ParcelCache.Instance.ParcelsIterator)
+        private readonly Dictionary<int, MinHeap<RobotTask>> zoneHeaps = new Dictionary<int, MinHeap<RobotTask>>();
+        private readonly List<ITaskScanner> scanners = new List<ITaskScanner>();
+        private FenceZone[] zones;
+        private float scanTimer;
+
+        public bool HasTasks => GetTotalTaskCount() > 0;
+
+        private void Awake()
         {
-            if (parcel == null || parcel.composition == null || parcel.isScheduledForTask)
-                continue;
-            
-            SoilAnalysis analysis = parcel.LatestAnalysis;
-            if (analysis.HasAlerts)
+            if (Instance == null) Instance = this;
+            else Destroy(gameObject);
+        }
+
+        private void Start()
+        {
+            InitializeZones();
+            InitializeScanners();
+        }
+
+        private void InitializeZones()
+        {
+            FenceGenerator fenceGen = FindFirstObjectByType<FenceGenerator>();
+            if (fenceGen != null && fenceGen.zones != null)
             {
-                if (parcel.zoneIndex == -1)
-                {
-                    FenceZone zone = BoundsHelper.FindZoneContaining(parcel.transform.position, _zones);
-                    if (zone != null) parcel.zoneIndex = System.Array.IndexOf(_zones, zone);
-                }
-                
-                int zoneIdx = parcel.zoneIndex;
-                if (zoneIdx >= 0 && _zoneHeaps.ContainsKey(zoneIdx))
-                {
-                    TaskType type = GetTaskType(analysis);
-                    _zoneHeaps[zoneIdx].Enqueue(new RobotTask(parcel.transform, type, analysis.qualityScore), analysis.qualityScore);
-                    parcel.isScheduledForTask = true;
-                }
+                zones = fenceGen.zones;
+                for (int i = 0; i < zones.Length; i++)
+                    zoneHeaps[i] = new MinHeap<RobotTask>();
             }
         }
-    }
-    private TaskType GetTaskType(SoilAnalysis analysis)
-    {
-        if (analysis.requiresIrrigation)
-            return TaskType.Irrigate;
-        if (analysis.requiresFertilization)
-            return TaskType.Fertilize;
-        if (analysis.requiresLiming)
-            return TaskType.Lime;
-        return TaskType.Scout;
-    }
-    private void ScanHarvestableParcels()
-    {
-        if (ParcelCache.Instance == null) return;
-        foreach (var parcel in ParcelCache.Instance.ParcelsIterator)
+
+        private void InitializeScanners()
         {
-            if (parcel == null || parcel.isScheduledForTask || parcel.activeCrops.Count == 0) continue;
-            
-            int matureCount = 0;
-            foreach (var crop in parcel.activeCrops)
-            {
-                if (crop != null && crop.IsFullyGrown) matureCount++;
-            }
-            
-            if (matureCount == 0) continue;
-            
-            if (parcel.zoneIndex == -1)
-            {
-                FenceZone zone = BoundsHelper.FindZoneContaining(parcel.transform.position, _zones);
-                if (zone != null) parcel.zoneIndex = System.Array.IndexOf(_zones, zone);
-            }
-            
-            int zoneIdx = parcel.zoneIndex;
-            if (zoneIdx < 0 || !_zoneHeaps.ContainsKey(zoneIdx)) continue;
-            
-            float priority = matureCount * 10f;
-            _zoneHeaps[zoneIdx].Enqueue(new RobotTask(parcel.transform, TaskType.Harvest, priority), priority);
-            parcel.isScheduledForTask = true;
+            if (zones == null) return;
+            scanners.Add(new SoilScanner(zones));
+            scanners.Add(new HarvestScanner(zones));
         }
-    }
-    public RobotTask GetNextTask(int zoneIndex)
-    {
-        if (!_zoneHeaps.ContainsKey(zoneIndex))
-            return null;
-        MinHeap<RobotTask> heap = _zoneHeaps[zoneIndex];
-        if (heap.IsEmpty)
-            return null;
-        
-        RobotTask task = heap.Dequeue();
-        var parcel = task.Target.GetComponent<EnvironmentalSensor>();
-        if (parcel != null)
-            parcel.isScheduledForTask = false;
+
+        private void Update()
+        {
+            scanTimer -= Time.deltaTime;
+            if (scanTimer <= 0f)
+            {
+                ExecuteScanning();
+                scanTimer = scanInterval;
+            }
+        }
+
+        private void ExecuteScanning()
+        {
+            List<RobotTask> discoveredTasks = new List<RobotTask>();
             
-        return task;
-    }
-    public RobotTask GetNextTask(Vector3 position)
-    {
-        FenceZone zone = BoundsHelper.FindZoneContaining(position, _zones);
-        if (zone == null) return null;
-        int zoneIdx = System.Array.IndexOf(_zones, zone);
-        return GetNextTask(zoneIdx);
-    }
-    private int GetTotalTaskCount()
-    {
-        int total = 0;
-        foreach (MinHeap<RobotTask> heap in _zoneHeaps.Values)
-            total += heap.Count;
-        return total;
+            foreach (var scanner in scanners)
+            {
+                scanner.Scan(discoveredTasks);
+            }
+
+            foreach (var task in discoveredTasks)
+            {
+                EnqueueTask(task);
+            }
+        }
+
+        private void EnqueueTask(RobotTask task)
+        {
+            int zoneIdx = GetTaskZoneIndex(task);
+            if (zoneIdx >= 0 && zoneHeaps.ContainsKey(zoneIdx))
+            {
+                zoneHeaps[zoneIdx].Enqueue(task, task.Priority);
+            }
+        }
+
+        private int GetTaskZoneIndex(RobotTask task)
+        {
+            var parcel = task.Target.GetComponent<EnvironmentalSensor>();
+            return parcel != null ? parcel.zoneIndex : -1;
+        }
+
+        public RobotTask GetNextTask(int zoneIndex)
+        {
+            if (!zoneHeaps.TryGetValue(zoneIndex, out var heap) || heap.IsEmpty)
+                return null;
+
+            RobotTask task = heap.Dequeue();
+            ResetParcelScheduling(task);
+            return task;
+        }
+
+        private void ResetParcelScheduling(RobotTask task)
+        {
+            var parcel = task.Target.GetComponent<EnvironmentalSensor>();
+            if (parcel != null) parcel.isScheduledForTask = false;
+        }
+
+        public RobotTask GetNextTask(Vector3 position)
+        {
+            FenceZone zone = BoundsHelper.FindZoneContaining(position, zones);
+            if (zone == null) return null;
+            return GetNextTask(System.Array.IndexOf(zones, zone));
+        }
+
+        private int GetTotalTaskCount()
+        {
+            int total = 0;
+            foreach (var heap in zoneHeaps.Values) total += heap.Count;
+            return total;
+        }
+
+        public void RegisterScanner(ITaskScanner scanner) => scanners.Add(scanner);
     }
 }

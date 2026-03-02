@@ -1,60 +1,62 @@
 using UnityEngine;
 using Weather.Models;
-using System.Collections.Generic;
+using System;
 
 namespace Weather.Services
 {
     public class WeatherSimulator
     {
-        private ClimateProfile _activeClimate;
-        
+        private ClimateProfile activeClimate;
+        private bool initialized;
+
         public WeatherType CurrentWeather { get; private set; }
         public float CurrentTemperature { get; private set; }
+        public WeatherImpact CurrentImpact { get; private set; }
 
-        public void SetClimate(ClimateProfile profile)
+        public void SetClimate(ClimateProfile profile) => activeClimate = profile;
+
+        public void RerollWeather(float timeOfDay)
         {
-            _activeClimate = profile;
-        }
+            if (activeClimate == null) return;
 
-        public void RerollWeather(float timeOfDay, bool force = false)
-        {
-            if (_activeClimate == null) return;
-
-            // Simple weighted random selection
-            float total = _activeClimate.sunnyChance + _activeClimate.rainyChance + 
-                          _activeClimate.stormyChance + _activeClimate.snowyChance + 
-                          _activeClimate.foggyChance;
-            
-            float roll = Random.Range(0, total);
-            
-            if (roll < _activeClimate.sunnyChance) CurrentWeather = WeatherType.Sunny;
-            else if (roll < _activeClimate.sunnyChance + _activeClimate.rainyChance) CurrentWeather = WeatherType.Rainy;
-            else if (roll < _activeClimate.sunnyChance + _activeClimate.rainyChance + _activeClimate.stormyChance) CurrentWeather = WeatherType.Stormy;
-            else if (roll < _activeClimate.sunnyChance + _activeClimate.rainyChance + _activeClimate.stormyChance + _activeClimate.snowyChance) CurrentWeather = WeatherType.Snowy;
-            else CurrentWeather = WeatherType.Foggy;
+            if (!initialized || UnityEngine.Random.value > activeClimate.persistenceFactor)
+            {
+                CurrentWeather = RollNewWeather();
+                CurrentImpact = WeatherImpact.Get(CurrentWeather);
+                initialized = true;
+            }
 
             UpdateTemperature(timeOfDay);
         }
 
-        public void UpdateTemperature(float timeOfDay)
+        private WeatherType RollNewWeather()
         {
-            if (_activeClimate == null) return;
-            
-            float baseTemp = (_activeClimate.minTemp + _activeClimate.maxTemp) / 2f;
-            // Peak at ~14:00, coolest at ~04:00
-            float timeFactor = -Mathf.Cos(((timeOfDay - 2f) / 24f) * Mathf.PI * 2) * ((_activeClimate.maxTemp - _activeClimate.minTemp) / 2f);
-            
-            // Random jitter based on climate variability
-            float jitter = Random.Range(-_activeClimate.temperatureVariability, _activeClimate.temperatureVariability);
+            float total = activeClimate.GetTotalWeight();
+            if (total <= 0) return WeatherType.Sunny;
 
-            // Weather impact offset (randomized)
-            float weatherOffset = 0f;
-            if (CurrentWeather == WeatherType.Rainy || CurrentWeather == WeatherType.Stormy) 
-                weatherOffset = Random.Range(-4.52f, -1.88f);
-            if (CurrentWeather == WeatherType.Snowy) 
-                weatherOffset = Random.Range(-10.25f, -6.15f);
+            float roll = UnityEngine.Random.Range(0f, total);
+            float cumulative = 0f;
+
+            foreach (WeatherType type in Enum.GetValues(typeof(WeatherType)))
+            {
+                cumulative += activeClimate.GetWeight(type);
+                if (roll < cumulative) return type;
+            }
+
+            return WeatherType.Sunny;
+        }
+
+        private void UpdateTemperature(float timeOfDay)
+        {
+            float baseTemp = (activeClimate.minTemp + activeClimate.maxTemp) * 0.5f;
+            float amplitude = (activeClimate.maxTemp - activeClimate.minTemp) * 0.5f;
+            float diurnalOffset = -Mathf.Cos(((timeOfDay - 2f) / 24f) * Mathf.PI * 2f) * amplitude;
+            float weatherOffset = UnityEngine.Random.Range(CurrentImpact.temperatureMin, CurrentImpact.temperatureMax);
             
-            CurrentTemperature = baseTemp + timeFactor + weatherOffset + jitter;
+            float jitter = UnityEngine.Random.Range(-activeClimate.temperatureVariability, 
+                                          activeClimate.temperatureVariability) * activeClimate.jitterStrength;
+
+            CurrentTemperature = baseTemp + diurnalOffset + weatherOffset + jitter;
         }
     }
 }

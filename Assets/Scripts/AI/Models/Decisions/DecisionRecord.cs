@@ -1,19 +1,23 @@
 using System.Collections.Generic;
+using AI.Models.Decisions;
 
-[System.Serializable]
-public class DecisionRecord
+namespace AI.Analytics
 {
-    public string decisionType;
-    public string chosenOption;
-    public float chosenScore;
-    public string parcelName;
-    public float timestamp;
-    public List<DecisionAlternative> alternatives;
-    public DecisionFactors factors;
-    
-    public DecisionRecord()
+    [System.Serializable]
+    public class DecisionRecord
     {
-        alternatives = new List<DecisionAlternative>();
-        factors = new DecisionFactors();
+        public string decisionType;
+        public string chosenOption;
+        public float chosenScore;
+        public string parcelName;
+        public float timestamp;
+        public List<DecisionAlternative> alternatives;
+        public DecisionFactors factors;
+        
+        public DecisionRecord()
+        {
+            alternatives = new List<DecisionAlternative>();
+            factors = new DecisionFactors();
+        }
     }
 }

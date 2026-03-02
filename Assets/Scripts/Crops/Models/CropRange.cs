@@ -8,11 +8,6 @@ public class CropRange
     public float max;
     public float optimal;
 
-    public bool Contains(float value)
-    {
-        return value >= min && value <= max;
-    }
-
     public float GetScore(float value)
     {
         if (value < min || value > max)

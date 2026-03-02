@@ -19,9 +19,28 @@ public class AgroBotFlight : MonoBehaviour
     private int _currentParcelIndex;
     private float _waitTimer;
 
+    private Vector3 _lastPosition;
+
+    private void OnEnable()
+    {
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.RegisterRobot();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.UnregisterRobot();
+        }
+    }
+
     private void Start()
     {
         if (flightBody == null) flightBody = transform;
+        _lastPosition = flightBody.position;
         StartCoroutine(InitializationRoutine());
     }
 
@@ -84,6 +103,14 @@ public class AgroBotFlight : MonoBehaviour
         if (_state == FlightState.Initializing) return;
 
         UpdateHoverPhysics();
+
+        // Track distance for simulation time passage
+        float distMoved = Vector3.Distance(flightBody.position, _lastPosition);
+        if (distMoved > 0.001f && TimeManager.Instance != null)
+        {
+            TimeManager.Instance.AddDistanceTraveled(distMoved);
+        }
+        _lastPosition = flightBody.position;
 
         if (_state == FlightState.Navigating) ExecuteNavigation();
         else ExecuteHoverWait();

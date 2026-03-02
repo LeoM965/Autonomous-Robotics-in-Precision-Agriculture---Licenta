@@ -5,12 +5,13 @@ public class CropManager : MonoBehaviour
 {
     public static CropManager Instance { get; private set; }
 
-    private readonly List<CropGrowth> _activeCrops = new List<CropGrowth>(4096);
-    private readonly Dictionary<CropGrowth, int> _cropIndices = new Dictionary<CropGrowth, int>();
-    
     [Header("Optimization")]
     [SerializeField] private int updatesPerFrame = 512;
-    private int _lastUpdateIndex;
+    
+    private readonly List<CropGrowth> activeCrops = new List<CropGrowth>(4096);
+    private readonly Dictionary<CropGrowth, int> cropIndices = new Dictionary<CropGrowth, int>();
+    private int lastUpdateIndex;
+    private float lastSimHours = -1f;
 
     private void Awake()
     {
@@ -19,10 +20,36 @@ public class CropManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else
+        else Destroy(gameObject);
+    }
+
+    private void OnEnable()
+    {
+        CropSelector.CropSelected += OnCropSelected;
+    }
+
+    private void OnDisable()
+    {
+        CropSelector.CropSelected -= OnCropSelected;
+    }
+
+    private void OnCropSelected(Transform robot, CropData crop, float score, 
+        List<AI.Models.Decisions.DecisionAlternative> alternatives, 
+        Sensors.Models.SoilComposition soil, string parcelName)
+    {
+        if (AI.Analytics.DecisionTracker.Instance == null) return;
+
+        var record = new AI.Analytics.DecisionRecord
         {
-            Destroy(gameObject);
-        }
+            decisionType = "Selectie Cultura",
+            chosenOption = crop != null ? crop.name : "Niciuna",
+            chosenScore = score,
+            alternatives = alternatives,
+            factors = crop?.requirements?.BuildFactors(soil) ?? new AI.Models.Decisions.DecisionFactors(),
+            parcelName = parcelName
+        };
+
+        AI.Analytics.DecisionTracker.Instance.RecordDecision(robot, record);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -37,48 +64,56 @@ public class CropManager : MonoBehaviour
 
     public void RegisterCrop(CropGrowth crop)
     {
-        if (crop == null || _cropIndices.ContainsKey(crop)) return;
-        
-        _cropIndices[crop] = _activeCrops.Count;
-        _activeCrops.Add(crop);
+        if (crop == null || cropIndices.ContainsKey(crop)) return;
+        cropIndices[crop] = activeCrops.Count;
+        activeCrops.Add(crop);
     }
 
     public void UnregisterCrop(CropGrowth crop)
     {
-        if (crop == null || !_cropIndices.TryGetValue(crop, out int index)) return;
+        if (crop == null || !cropIndices.TryGetValue(crop, out int index)) return;
 
-        int lastIndex = _activeCrops.Count - 1;
+        int lastIndex = activeCrops.Count - 1;
         if (index < lastIndex)
         {
-            CropGrowth lastCrop = _activeCrops[lastIndex];
-            _activeCrops[index] = lastCrop;
-            _cropIndices[lastCrop] = index;
+            CropGrowth lastCrop = activeCrops[lastIndex];
+            activeCrops[index] = lastCrop;
+            cropIndices[lastCrop] = index;
         }
 
-        _activeCrops.RemoveAt(lastIndex);
-        _cropIndices.Remove(crop);
+        activeCrops.RemoveAt(lastIndex);
+        cropIndices.Remove(crop);
         
-        if (_lastUpdateIndex >= _activeCrops.Count) 
-            _lastUpdateIndex = 0;
+        if (lastUpdateIndex >= activeCrops.Count) 
+            lastUpdateIndex = 0;
     }
 
     private void Update()
     {
-        int count = _activeCrops.Count;
-        if (count == 0) return;
+        int count = activeCrops.Count;
+        if (count == 0 || TimeManager.Instance == null) return;
 
-        float deltaTime = Time.deltaTime;
+        // Track simulated time from TimeManager (in hours)
+        float currentSimHours = (TimeManager.Instance.currentDay - 1) * 24f + TimeManager.Instance.timeOfDay;
+        
+        if (lastSimHours < 0f)
+        {
+            lastSimHours = currentSimHours;
+            return;
+        }
+
+        float deltaHours = currentSimHours - lastSimHours;
+        if (deltaHours <= 0f) { lastSimHours = currentSimHours; return; }
+        
+        lastSimHours = currentSimHours;
+
         int slice = Mathf.Min(count, updatesPerFrame);
         
         for (int i = 0; i < slice; i++)
         {
-            _lastUpdateIndex = (_lastUpdateIndex + 1) % count;
-            var crop = _activeCrops[_lastUpdateIndex];
-            
-            if (crop != null)
-            {
-                crop.ManualUpdate(deltaTime);
-            }
+            lastUpdateIndex = (lastUpdateIndex + 1) % count;
+            var crop = activeCrops[lastUpdateIndex];
+            if (crop != null) crop.ManualUpdate(deltaHours);
         }
     }
 }

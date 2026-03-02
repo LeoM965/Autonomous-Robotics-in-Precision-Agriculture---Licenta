@@ -38,7 +38,6 @@ public class PlantingExecutor
             
         if (plantsPlaced == 0 && parcel != null && crop != null)
         {
-            parcel.plantedVarietyId = crop.id;
             parcel.plantedVarietyName = crop.name;
         }
 
@@ -48,7 +47,7 @@ public class PlantingExecutor
             var growth = plantObject.GetComponent<CropGrowth>();
             if (growth != null)
             {
-                growth.Init(crop.growthTimeSeconds);
+                growth.Init(crop.GrowthHours);
                 parcel.activeCrops.Add(growth);
                 plantsPlaced++;
             }

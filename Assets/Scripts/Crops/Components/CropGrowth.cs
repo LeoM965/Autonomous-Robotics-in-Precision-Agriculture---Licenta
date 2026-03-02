@@ -2,7 +2,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(CropVisualScaling))]
 [RequireComponent(typeof(CropHarvestVisuals))]
-public class CropGrowth : MonoBehaviour
+public class CropGrowth : MonoBehaviour, IGrowable
 {
     [Header("Configuration")]
     public CropSettings settings;
@@ -14,9 +14,14 @@ public class CropGrowth : MonoBehaviour
     [SerializeField] private CropVisualScaling scaler;
     [SerializeField] private CropHarvestVisuals harvestFX;
 
+    public bool IsFullyGrown => state.stage == CropStage.Mature;
+    public bool IsBeingHarvested => state.isBeingHarvested;
+    public CropStage CurrentStage => state.stage;
+    public float Progress => state.progress;
+
     private void Awake()
     {
-        state.baseScale = (transform.localScale == Vector3.zero) ? Vector3.one : transform.localScale;
+        state.baseScale = transform.localScale;
         
         if (!scaler) scaler = GetComponent<CropVisualScaling>();
         if (!harvestFX) harvestFX = GetComponent<CropHarvestVisuals>();
@@ -62,7 +67,11 @@ public class CropGrowth : MonoBehaviour
     {
         if (state.isBeingHarvested || state.progress >= 1f) return;
 
-        state.elapsed += deltaTime;
+        float weatherMultiplier = Weather.Components.WeatherSystem.Instance != null
+            ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier()
+            : 1f;
+
+        state.elapsed += deltaTime * weatherMultiplier;
         state.progress = Mathf.Clamp01(state.elapsed / state.growthTime);
 
         CropStage newStage = scaler.DetermineStage(state.progress);
@@ -94,9 +103,4 @@ public class CropGrowth : MonoBehaviour
         if (CropPool.Instance != null) CropPool.Instance.Return(gameObject);
         else Destroy(gameObject);
     }
-
-    public bool IsFullyGrown => state.stage == CropStage.Mature;
-    public bool IsBeingHarvested => state.isBeingHarvested;
-    public CropStage CurrentStage => state.stage;
-    public float Progress => state.progress;
 }

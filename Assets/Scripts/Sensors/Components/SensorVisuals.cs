@@ -6,28 +6,27 @@ namespace Sensors.Components
     public class SensorVisuals : MonoBehaviour
     {
         [Header("Status Colors")]
-        public Color excellentColor = new Color(0.1f, 0.9f, 0.2f);
-        public Color optimalColor = new Color(0.2f, 0.7f, 0.3f);
-        public Color suboptimalColor = new Color(0.9f, 0.8f, 0.2f);
-        public Color deficientColor = new Color(0.9f, 0.4f, 0.1f);
-        public Color criticalColor = new Color(0.9f, 0.1f, 0.1f);
+        [SerializeField] private Color excellentColor = new Color(0.1f, 0.9f, 0.2f);
+        [SerializeField] private Color optimalColor = new Color(0.2f, 0.7f, 0.3f);
+        [SerializeField] private Color suboptimalColor = new Color(0.9f, 0.8f, 0.2f);
+        [SerializeField] private Color deficientColor = new Color(0.9f, 0.4f, 0.1f);
+        [SerializeField] private Color criticalColor = new Color(0.9f, 0.1f, 0.1f);
 
-        private MeshRenderer[] _renderers;
-        private MaterialPropertyBlock _propBlock;
+        private MeshRenderer[] renderers;
+        private MaterialPropertyBlock propBlock;
         private static readonly int ColorProp = Shader.PropertyToID("_Color");
 
         private void Awake()
         {
-            _renderers = GetComponentsInChildren<MeshRenderer>(true);
-            _propBlock = new MaterialPropertyBlock();
+            renderers = GetComponentsInChildren<MeshRenderer>(true);
+            propBlock = new MaterialPropertyBlock();
         }
 
         public void Refresh(SoilAnalysis analysis)
         {
-            if (_renderers == null) return;
-            
+            if (renderers == null) return;
             Color targetColor = GetStatusColor(analysis.health);
-            ApplyToLabels(targetColor);
+            ApplyColor(targetColor);
         }
 
         private Color GetStatusColor(SoilHealthStatus health) => health switch
@@ -40,17 +39,14 @@ namespace Sensors.Components
             _ => Color.white
         };
 
-        private void ApplyToLabels(Color color)
+        private void ApplyColor(Color color)
         {
-            if (_renderers == null) return;
-            
-            _propBlock.SetColor(ColorProp, color);
-            for (int i = 0; i < _renderers.Length; i++)
+            if (renderers == null) return;
+            propBlock.SetColor(ColorProp, color);
+            for (int i = 0; i < renderers.Length; i++)
             {
-                if (_renderers[i] != null)
-                {
-                    _renderers[i].SetPropertyBlock(_propBlock);
-                }
+                if (renderers[i] != null)
+                    renderers[i].SetPropertyBlock(propBlock);
             }
         }
     }

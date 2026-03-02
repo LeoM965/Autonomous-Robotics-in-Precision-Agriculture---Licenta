@@ -1,103 +1,97 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
+using AI.Models.Decisions;
 
-public class DecisionTracker : MonoBehaviour
+namespace AI.Analytics
 {
-    public static DecisionTracker Instance { get; private set; }
-
-    private Dictionary<Transform, DecisionRecord> lastDecisions = new Dictionary<Transform, DecisionRecord>();
-    private Dictionary<Transform, List<DecisionRecord>> decisionHistory = new Dictionary<Transform, List<DecisionRecord>>();
-    private Dictionary<Transform, float> totalScores = new Dictionary<Transform, float>();
-    private readonly List<Transform> toRemove = new List<Transform>();
-
-    [SerializeField] private int maxHistoryPerRobot = 50;
-    [SerializeField] private float cleanupInterval = 10f;
-    private float nextCleanupTime;
-
-    private void Awake()
+    public class DecisionTracker : MonoBehaviour
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
-    }
+        public static DecisionTracker Instance { get; private set; }
 
-    private void Update()
-    {
-        if (Time.time >= nextCleanupTime)
+        [SerializeField] private int maxHistoryPerRobot = 50;
+        [SerializeField] private float cleanupInterval = 10f;
+
+        private readonly Dictionary<Transform, DecisionRecord> lastDecisions = new Dictionary<Transform, DecisionRecord>();
+        private readonly Dictionary<Transform, List<DecisionRecord>> decisionHistory = new Dictionary<Transform, List<DecisionRecord>>();
+        private readonly Dictionary<Transform, float> totalScores = new Dictionary<Transform, float>();
+        private float nextCleanupTime;
+
+        private void Awake()
         {
-            CleanupDestroyedRobots();
-            nextCleanupTime = Time.time + cleanupInterval;
-        }
-    }
-
-    public void RecordDecision(Transform robot, DecisionRecord record)
-    {
-        if (robot == null || record == null)
-            return;
-
-        record.timestamp = Time.time;
-        lastDecisions[robot] = record;
-
-        if (!decisionHistory.ContainsKey(robot))
-        {
-            decisionHistory[robot] = new List<DecisionRecord>();
-            totalScores[robot] = 0f;
+            if (Instance == null) Instance = this;
+            else Destroy(gameObject);
         }
 
-        List<DecisionRecord> history = decisionHistory[robot];
-        history.Add(record);
-        totalScores[robot] += record.chosenScore;
-
-        if (history.Count > maxHistoryPerRobot)
+        private void Update()
         {
-            totalScores[robot] -= history[0].chosenScore;
-            history.RemoveAt(0);
-        }
-    }
-
-    public DecisionRecord GetLastDecision(Transform robot)
-    {
-        DecisionRecord record;
-        if (lastDecisions.TryGetValue(robot, out record))
-            return record;
-        return null;
-    }
-
-    public int GetTotalDecisions(Transform robot)
-    {
-        List<DecisionRecord> history;
-        if (decisionHistory.TryGetValue(robot, out history))
-            return history.Count;
-        return 0;
-    }
-
-    public float GetAverageScore(Transform robot)
-    {
-        List<DecisionRecord> history;
-        float total;
-        if (!decisionHistory.TryGetValue(robot, out history) || history.Count == 0)
-            return 0f;
-        if (!totalScores.TryGetValue(robot, out total))
-            return 0f;
-        return total / history.Count;
-    }
-
-    private void CleanupDestroyedRobots()
-    {
-        toRemove.Clear();
-
-        foreach (var key in lastDecisions.Keys)
-        {
-            if (key == null)
-                toRemove.Add(key);
+            if (Time.time >= nextCleanupTime)
+            {
+                CleanupDestroyedRobots();
+                nextCleanupTime = Time.time + cleanupInterval;
+            }
         }
 
-        for (int i = 0; i < toRemove.Count; i++)
+        public void RecordDecision(Transform robot, DecisionRecord record)
         {
-            lastDecisions.Remove(toRemove[i]);
-            decisionHistory.Remove(toRemove[i]);
-            totalScores.Remove(toRemove[i]);
+            if (robot == null || record == null) return;
+
+            record.timestamp = Time.time;
+            lastDecisions[robot] = record;
+
+            EnsureHistoryExists(robot);
+            UpdateHistory(robot, record);
+        }
+
+        private void EnsureHistoryExists(Transform robot)
+        {
+            if (!decisionHistory.ContainsKey(robot))
+            {
+                decisionHistory[robot] = new List<DecisionRecord>();
+                totalScores[robot] = 0f;
+            }
+        }
+
+        private void UpdateHistory(Transform robot, DecisionRecord record)
+        {
+            List<DecisionRecord> history = decisionHistory[robot];
+            history.Add(record);
+            totalScores[robot] += record.chosenScore;
+
+            if (history.Count > maxHistoryPerRobot)
+            {
+                totalScores[robot] -= history[0].chosenScore;
+                history.RemoveAt(0);
+            }
+        }
+
+        public DecisionRecord GetLastDecision(Transform robot)
+        {
+            return lastDecisions.TryGetValue(robot, out var record) ? record : null;
+        }
+
+        public int GetTotalDecisions(Transform robot)
+        {
+            return decisionHistory.TryGetValue(robot, out var history) ? history.Count : 0;
+        }
+
+        public float GetAverageScore(Transform robot)
+        {
+            if (!decisionHistory.TryGetValue(robot, out var history) || history.Count == 0)
+                return 0f;
+            
+            return totalScores[robot] / history.Count;
+        }
+
+        private void CleanupDestroyedRobots()
+        {
+            var deadRobots = lastDecisions.Keys.Where(k => k == null).ToList();
+            foreach (var robot in deadRobots)
+            {
+                lastDecisions.Remove(robot);
+                decisionHistory.Remove(robot);
+                totalScores.Remove(robot);
+            }
         }
     }
 }

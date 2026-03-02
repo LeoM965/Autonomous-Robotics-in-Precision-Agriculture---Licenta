@@ -32,7 +32,7 @@ public class TreeSpawner : MonoBehaviour
             buildings = new Transform[0];
         }
         Debug.Log($"TreeSpawner: Found {buildings.Length} buildings to avoid");
-        root = SpawnerHelper.CreateRoot(transform, "Trees", true);
+        root = SpawnHelper.CreateRoot(transform, "Trees", true);
         var pos = terrain.transform.position;
         var size = terrain.terrainData.size;
         float x1 = pos.x + edgeMargin, x2 = pos.x + size.x - edgeMargin;
@@ -78,7 +78,7 @@ public class TreeSpawner : MonoBehaviour
         tree.isStatic = true;
     }
     [ContextMenu("Clear")]
-    public void Clear() { SpawnerHelper.ClearRoot(transform, "Trees"); root = null; }
+    public void Clear() { SpawnHelper.ClearRoot(transform, "Trees"); root = null; }
     [ContextMenu("Regenerate")]
     public void Regenerate() { Clear(); Start(); }
 }

@@ -40,7 +40,8 @@ public class RobotStats
     {
         if (name.StartsWith("AgroBot")) return "AgroBot";
         if (name.StartsWith("AgBot")) return "AgBot";
-        if (name.StartsWith("FarmBot")) return "FarmBot";
+        if (name.Contains("HarvestBot")) return "HarvestBot";
+        if (name.Contains("Hybrid")) return "AgBot"; // Using AgBot stats for hybrid
         return name;
     }
 }

@@ -30,7 +30,7 @@ public class BuildingSpawner : MonoBehaviour
             }
         }
         
-        root = SpawnerHelper.CreateRoot(transform, "Buildings", true);
+        root = SpawnHelper.CreateRoot(transform, "Buildings", true);
         PaintTerrainArea painter = FindFirstObjectByType<PaintTerrainArea>();
         if (painter?.zones == null) return;
         
@@ -86,7 +86,7 @@ public class BuildingSpawner : MonoBehaviour
     [ContextMenu("Clear")]
     public void Clear()
     {
-        SpawnerHelper.ClearRoot(transform, "Buildings");
+        SpawnHelper.ClearRoot(transform, "Buildings");
         root = null;
         buildings.Clear();
     }

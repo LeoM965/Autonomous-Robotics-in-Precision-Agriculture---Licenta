@@ -1,8 +1,11 @@
-public enum TaskType
+namespace AI.Core
 {
-    Scout,
-    Irrigate,
-    Fertilize,
-    Lime,
-    Harvest
+    public enum TaskType
+    {
+        Scout,
+        Irrigate,
+        Fertilize,
+        Lime,
+        Harvest
+    }
 }

@@ -3,12 +3,8 @@ using System.Collections.Generic;
 
 public class RobotCamera : MonoBehaviour
 {
-    [Header("Components")]
+    [Header("Configuration")]
     public CameraSettings settings;
-    public CameraInputHandler input;
-    public CameraMotor motor;
-    public CameraCollisionHandler collision;
-    public CameraDisplay display;
     
     [Header("Targets")]
     public Transform target;
@@ -17,34 +13,26 @@ public class RobotCamera : MonoBehaviour
     [Header("Collision")]
     [SerializeField] private LayerMask collisionMask;
     
-    [Header("State")]
+    [Header("Debug")]
     [SerializeField] private CameraState state = new CameraState();
     [SerializeField] private bool showHUD = true;
     
     private CameraMode mode = CameraMode.Follow;
     private int targetIndex;
+    private CameraDisplay display;
 
-    private void Start() => Initialize();
-
-    private void Initialize()
+    private void Start()
     {
-        if (!input) input = gameObject.AddComponent<CameraInputHandler>();
-        if (!motor) motor = gameObject.AddComponent<CameraMotor>();
-        if (!collision) collision = gameObject.AddComponent<CameraCollisionHandler>();
-        if (!display) display = gameObject.AddComponent<CameraDisplay>();
-        
         if (settings == null)
         {
-            Debug.LogError("<b>[CameraSystem]</b> CameraSettings NU este asignat! Click Dreapta în Project -> Create -> Robotics -> Camera Settings, apoi trage fișierul creat în Inspector peste RobotCamera.");
+            Debug.LogError("<b>[CameraSystem]</b> CameraSettings NU este asignat!");
             return;
         }
-
-        input.settings = settings;
         
-        if (state == null) state = new CameraState();
+        display = gameObject.AddComponent<CameraDisplay>();
         state.currentDistance = settings.distance;
 
-        if (target == null && targets != null && targets.Count > 0) target = targets[0];
+        if (target == null && targets.Count > 0) target = targets[0];
         if (target != null) state.smoothPosition = target.position + settings.upOffset;
     }
 
@@ -53,10 +41,10 @@ public class RobotCamera : MonoBehaviour
         if (!target || !settings) return;
         
         float dt = Time.fixedDeltaTime;
-        state.smoothPosition = motor.UpdateSmoothPosition(state.smoothPosition, target.position + settings.upOffset, settings.smoothSpeed, dt);
-        state.smoothAngle = Mathf.LerpAngle(state.smoothAngle, target.eulerAngles.y, dt * 3f);
+        state.smoothPosition = Vector3.Lerp(state.smoothPosition, target.position + settings.upOffset, dt * settings.smoothSpeed * 2f);
         
-        UpdateDesiredPosition();
+        state.desiredPosition = CameraHelper.GetModePosition(mode, state.smoothPosition, state.angleX, state.angleY, state.currentDistance, target, settings);
+        state.desiredPosition = CameraHelper.AdjustForCollision(state.desiredPosition, state.smoothPosition, collisionMask);
     }
 
     private void LateUpdate()
@@ -64,47 +52,46 @@ public class RobotCamera : MonoBehaviour
         if (!target || !settings) return;
         
         ProcessInput();
-        motor.ApplyMovement(transform, state.desiredPosition, state.smoothPosition, mode, settings.smoothSpeed, Time.deltaTime);
-        if (mode == CameraMode.FPS) transform.rotation = Quaternion.Slerp(transform.rotation, target.rotation, Time.deltaTime * 12f);
+        
+        if (mode == CameraMode.FPS)
+        {
+            transform.position = Vector3.Lerp(transform.position, state.desiredPosition, Time.deltaTime * settings.fpsPositionSmooth);
+            transform.rotation = Quaternion.Slerp(transform.rotation, target.rotation, Time.deltaTime * settings.fpsRotationSmooth);
+        }
+        else
+        {
+            transform.position = Vector3.SmoothDamp(transform.position, state.desiredPosition, ref state.velocity, settings.smoothDampTime);
+            transform.rotation = CameraHelper.SmoothLookAt(transform, state.smoothPosition, settings.smoothSpeed * 1.5f, Time.deltaTime);
+        }
     }
 
     private void ProcessInput()
     {
-        if (input.GetToggleModeDown()) mode = (CameraMode)(((int)mode + 1) % 4);
+        if (Input.GetKeyDown(settings.toggleModeKey))
+            mode = (CameraMode)(((int)mode + 1) % 4);
         
-        if (input.GetSwitchTargetDown() && targets.Count > 1)
+        if (Input.GetKeyDown(settings.switchTargetKey) && targets.Count > 1)
         {
             targetIndex = (targetIndex + 1) % targets.Count;
             target = targets[targetIndex];
         }
 
-        if (input.GetResetDown()) ResetState();
+        if (Input.GetKeyDown(settings.resetKey))
+        {
+            state.angleX = 20f;
+            state.angleY = 0f;
+            state.currentDistance = settings.distance;
+            mode = CameraMode.Follow;
+        }
 
-        float scroll = input.GetZoomScroll();
+        float scroll = Input.mouseScrollDelta.y;
         if (Mathf.Abs(scroll) > 0.1f)
             state.currentDistance = CameraHelper.GetNextZoom(state.currentDistance, settings.zoomPresets, scroll > 0);
 
-        if (input.GetOrbitPressed() && mode != CameraMode.FPS)
+        if (Input.GetMouseButton(1) && mode != CameraMode.FPS)
         {
-            state.angleY += input.GetMouseX() * settings.sensitivity;
-            state.angleX = CameraHelper.ClampAngle(state.angleX - input.GetMouseY() * settings.sensitivity);
-        }
-    }
-
-    private void ResetState()
-    {
-        state.angleX = 20f;
-        state.angleY = 0f;
-        state.currentDistance = settings.distance;
-        mode = CameraMode.Follow;
-    }
-
-    private void UpdateDesiredPosition()
-    {
-        if (mode == CameraMode.Follow || mode == CameraMode.Orbital || mode == CameraMode.FPS || mode == CameraMode.TopView)
-        {
-            state.desiredPosition = CameraLogic.GetModePosition(mode, state.smoothPosition, state.angleX, state.angleY, state.currentDistance, target, settings);
-            state.desiredPosition = collision.AdjustForCollision(state.desiredPosition, state.smoothPosition, collisionMask);
+            state.angleY += Input.GetAxis("Mouse X") * settings.sensitivity;
+            state.angleX = CameraHelper.ClampAngle(state.angleX - Input.GetAxis("Mouse Y") * settings.sensitivity, settings.minAngleX, settings.maxAngleX);
         }
     }
 

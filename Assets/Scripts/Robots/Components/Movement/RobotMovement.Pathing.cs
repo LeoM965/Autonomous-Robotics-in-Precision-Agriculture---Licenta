@@ -1,11 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using AI.Navigation;
 
 public partial class RobotMovement
 {
     Vector3 FollowPath(Vector3 pos, float dt)
     {
-        stuckPushDir = MovementHelper.UpdateStuckDetection(
+        stuckPushDir = RobotHelper.UpdateStuckDetection(
             pos, lastFixedPos, path, pathIndex,
             ref stuckTimer, ref stuckPushDir,
             finalTarget, RequestPath, transform, dt);

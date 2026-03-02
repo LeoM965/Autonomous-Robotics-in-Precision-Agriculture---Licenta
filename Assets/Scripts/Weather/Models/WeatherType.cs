@@ -6,7 +6,6 @@ namespace Weather.Models
         Rainy,
         Stormy,
         Snowy,
-        Cloudy,
         Foggy
     }
 }

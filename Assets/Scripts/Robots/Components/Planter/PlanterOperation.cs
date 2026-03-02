@@ -84,7 +84,7 @@ public class PlanterOperation
 
     private void SetupCropForParcel(EnvironmentalSensor parcel)
     {
-        CropData selectedCrop = CropSelector.SelectBestCropWithTracking(cropDB, parcel.composition, transform, parcel.name);
+        CropData selectedCrop = CropSelector.SelectBestCrop(cropDB, parcel.composition, transform, parcel.name);
         if (selectedCrop == null) return;
         
         GameObject prefab = CropLoader.LoadPrefab(selectedCrop.prefabPath);

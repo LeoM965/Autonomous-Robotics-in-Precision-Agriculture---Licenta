@@ -34,7 +34,7 @@ public class IrrigationSpawner : MonoBehaviour
             yield break;
         
         if (root == null)
-            root = SpawnerHelper.CreateRoot(transform, "Irrigation");
+            root = SpawnHelper.CreateRoot(transform, "Irrigation");
         
         yield return new WaitForSeconds(0.5f);
         
@@ -107,14 +107,14 @@ public class IrrigationSpawner : MonoBehaviour
             root = null;
         }
         
-        SpawnerHelper.ClearRoot(transform, "Irrigation");
+        SpawnHelper.ClearRoot(transform, "Irrigation");
     }
     
     [ContextMenu("Regenerate")]
     public void Regenerate()
     {
         Clear();
-        root = SpawnerHelper.CreateRoot(transform, "Irrigation");
+        root = SpawnHelper.CreateRoot(transform, "Irrigation");
         Spawn();
     }
 }

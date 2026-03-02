@@ -1,24 +1,21 @@
 using UnityEngine;
-public class RobotTask
+
+namespace AI.Core
 {
-    public Transform Target { get; private set; }
-    public TaskType Type { get; private set; }
-    public float Priority { get; private set; }
-    public RobotTask(Transform target, TaskType type = TaskType.Scout, float priority = 0)
+    public class RobotTask
     {
-        Target = target;
-        Type = type;
-        Priority = priority;
-    }
-    public override bool Equals(object obj)
-    {
-        RobotTask other = obj as RobotTask;
-        if (other == null) return false;
-        return Target == other.Target;
-    }
-    public override int GetHashCode()
-    {
-        if (Target == null) return 0;
-        return Target.GetHashCode();
+        public Transform Target { get; }
+        public TaskType Type { get; }
+        public float Priority { get; }
+
+        public RobotTask(Transform target, TaskType type = TaskType.Scout, float priority = 0)
+        {
+            Target = target;
+            Type = type;
+            Priority = priority;
+        }
+
+        public override bool Equals(object obj) => obj is RobotTask other && Target == other.Target;
+        public override int GetHashCode() => Target != null ? Target.GetHashCode() : 0;
     }
 }

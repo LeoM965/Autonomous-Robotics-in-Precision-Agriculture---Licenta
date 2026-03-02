@@ -28,10 +28,10 @@ public class ParcelSpawner : MonoBehaviour
         if (terrain == null || parcelPrefab == null) return;
         Clear();
         terrainData = terrain.terrainData;
-        alphaW = terrainData.alphamapWidth;
+        alphaW = terrainData.alphamapWidth; //pixeli de textura
         alphaH = terrainData.alphamapHeight;
         CacheSkipLayers();
-        root = SpawnerHelper.CreateRoot(transform, "Parcels");
+        root = SpawnHelper.CreateRoot(transform, "Parcels");
         SpawnParcels();
         StaticBatchingUtility.Combine(root);
         if (FindFirstObjectByType<ParcelCache>() == null)
@@ -132,12 +132,12 @@ public class ParcelSpawner : MonoBehaviour
     void SpawnSign(Transform parcel, string label)
     {
         Vector3 labelPos = new Vector3(0, 3f, 0);
-        SpawnerHelper.CreateTextLabel(parcel, label, labelPos);
+        SpawnHelper.CreateTextLabel(parcel, label, labelPos);
     }
     [ContextMenu("Clear")]
     public void Clear()
     {
-        SpawnerHelper.ClearRoot(transform, "Parcels");
+        SpawnHelper.ClearRoot(transform, "Parcels");
         root = null;
         zoneIndex = 0;
         parcelInZone = 0;

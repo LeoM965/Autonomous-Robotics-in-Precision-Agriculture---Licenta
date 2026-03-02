@@ -1,14 +1,17 @@
-[System.Serializable]
-public class DecisionAlternative
+namespace AI.Models.Decisions
 {
-    public string name;
-    public float score;
-    public bool isChosen;
-    
-    public DecisionAlternative(string name, float score, bool isChosen = false)
+    [System.Serializable]
+    public class DecisionAlternative
     {
-        this.name = name;
-        this.score = score;
-        this.isChosen = isChosen;
+        public string name;
+        public float score;
+        public bool isChosen;
+        
+        public DecisionAlternative(string name, float score, bool isChosen = false)
+        {
+            this.name = name;
+            this.score = score;
+            this.isChosen = isChosen;
+        }
     }
 }

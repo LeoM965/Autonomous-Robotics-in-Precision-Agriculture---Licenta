@@ -17,7 +17,7 @@ public partial class RobotMovement
 
         Vector3 moveDirection = FollowPath(pos, dt);
 
-        Vector3 avoidance = MovementHelper.GetObstacleAvoidance(transform, pos, avoidRadius);
+        Vector3 avoidance = RobotHelper.GetObstacleAvoidance(transform, pos, avoidRadius);
         if (avoidance != Vector3.zero)
             moveDirection = (moveDirection + avoidance).normalized;
 
@@ -45,7 +45,7 @@ public partial class RobotMovement
         pos = BoundsHelper.ClampPosition(pos, movementBounds);
 
         Vector3 normal;
-        float targetH = MovementHelper.GetHeight(terrain, transform, pos, out normal) + groundOffset;
+        float targetH = RobotHelper.GetHeight(terrain, transform, pos, out normal) + groundOffset;
 
         float heightDiff = Mathf.Abs(targetH - currentHeight);
         if (heightDiff > 0.5f)
@@ -56,7 +56,7 @@ public partial class RobotMovement
         groundNormal = Vector3.Lerp(groundNormal, normal, dt * 5f);
         transform.position = pos;
 
-        MovementHelper.UpdateTilt(ref currentAngle, targetAngle, rotationSpeed, groundNormal,
+        RobotHelper.UpdateTilt(ref currentAngle, targetAngle, rotationSpeed, groundNormal,
             maxTilt, tiltSpeed, ref currentPitch, ref currentRoll, transform, dt);
     }
 }

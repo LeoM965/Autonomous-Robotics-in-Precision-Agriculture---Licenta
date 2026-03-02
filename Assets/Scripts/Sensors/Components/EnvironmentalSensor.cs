@@ -9,46 +9,62 @@ namespace Sensors.Components
     [RequireComponent(typeof(SensorVisuals))]
     public class EnvironmentalSensor : MonoBehaviour
     {
+        [Header("Configuration")]
+        [SerializeField] private SoilSettings settings;
+
         [Header("AgroPhysics Data")]
         public SoilComposition composition;
         public AgroSoilType detectedType;
         
         [Header("Crop Context")]
         public HashSet<CropGrowth> activeCrops = new HashSet<CropGrowth>();
-        public string plantedVarietyId;
         public string plantedVarietyName;
 
         [Header("Cache & Management")]
         public int zoneIndex = -1;
         public bool isScheduledForTask;
 
-        private TerrainAnalyzer _analyzer;
-        private SensorVisuals _visuals;
-        private SoilAnalysis _latestAnalysis;
+        private TerrainAnalyzer analyzer;
+        private SensorVisuals visuals;
+        private SoilAnalysis latestAnalysis;
 
-        public SoilAnalysis LatestAnalysis => _latestAnalysis;
+        public SoilAnalysis LatestAnalysis => latestAnalysis;
+
+        public SoilSettings Settings
+        {
+            get
+            {
+                if (settings == null)
+                    settings = Resources.Load<SoilSettings>("SoilSettings");
+                return settings;
+            }
+        }
 
         private void Awake()
         {
-            _analyzer = GetComponent<TerrainAnalyzer>();
-            _visuals = GetComponent<SensorVisuals>();
-
+            analyzer = GetComponent<TerrainAnalyzer>();
+            visuals = GetComponent<SensorVisuals>();
             InitializeSoil();
+        }
+
+        private void OnValidate()
+        {
+            if (settings == null) settings = Resources.Load<SoilSettings>("SoilSettings");
         }
 
         private void InitializeSoil()
         {
-            detectedType = _analyzer.AnalyzeTerrain(transform.position);
-            composition = SoilCompositionGenerator.Generate(detectedType);
+            detectedType = analyzer.AnalyzeTerrain(transform.position);
+            composition = SoilCompositionGenerator.Generate(detectedType, Settings);
             Analyze();
         }
 
-
         public void Analyze()
         {
-            if (composition == null) return;
-            _latestAnalysis = SoilAnalysisService.Analyze(composition);
-            _visuals.Refresh(_latestAnalysis);
+            if (composition == null || Settings == null) return;
+            
+            latestAnalysis = SoilAnalysisService.Analyze(composition, Settings);
+            if (visuals != null) visuals.Refresh(latestAnalysis);
         }
 
         private void OnEnable()
@@ -65,14 +81,8 @@ namespace Sensors.Components
 
         public void RemoveCrop(CropGrowth crop)
         {
-            if (activeCrops.Remove(crop))
-            {
-                if (activeCrops.Count == 0)
-                {
-                    plantedVarietyId = null;
-                    plantedVarietyName = null;
-                }
-            }
+            if (activeCrops.Remove(crop) && activeCrops.Count == 0)
+                plantedVarietyName = null;
         }
     }
 }
