@@ -25,9 +25,12 @@ public class MapColors : ScriptableObject
 
     public Color GetRobotColor(string robotName)
     {
-        if (robotName.Contains("AgBot")) return agBotColor;
-        if (robotName.Contains("HarvestBot")) return harvestBotColor;
-        if (robotName.Contains("AgroBot")) return agroBotColor;
+        if (string.IsNullOrEmpty(robotName)) return defaultRobotColor;
+        
+        if (robotName.StartsWith("HarvestBot")) return harvestBotColor;
+        if (robotName.StartsWith("AgroBot")) return agroBotColor;
+        if (robotName.StartsWith("AgBot")) return agBotColor;
+        
         return defaultRobotColor;
     }
 }
