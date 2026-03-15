@@ -17,15 +17,20 @@ public abstract class RobotOperator : MonoBehaviour
     public OperatorState CurrentState => state;
     protected float idleTimer;
 
-    protected virtual void Start()
+    protected virtual void Awake()
     {
         movement = GetComponent<RobotMovement>();
         energy = GetComponent<RobotEnergy>();
         energyManager = new RobotEnergyManager(transform, energy, movement);
     }
 
+    protected virtual void Start()
+    {
+    }
+
     protected virtual void Update()
     {
+        if (energyManager == null) return;
         energyManager.Update();
         UpdateOperation();
 
@@ -69,7 +74,7 @@ public abstract class RobotOperator : MonoBehaviour
         }
 
         float dist = Vector3.Distance(transform.position, nextParcel.transform.position);
-        if (!energyManager.CheckBattery(dist, 60f)) 
+        if (energyManager != null && !energyManager.CheckBattery(dist, 60f)) 
         { 
             state = OperatorState.Charging; 
             return; 

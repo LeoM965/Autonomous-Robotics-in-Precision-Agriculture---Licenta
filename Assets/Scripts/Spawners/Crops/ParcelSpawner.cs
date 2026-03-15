@@ -118,6 +118,7 @@ public class ParcelSpawner : MonoBehaviour
         float y = TerrainHelper.GetHeight(new Vector3(x, 0, z));
         var p = Instantiate(parcelPrefab, new Vector3(x, y, z), Quaternion.identity, root.transform);
         p.name = $"Parcel_{label}";
+        p.tag = "Parcel";
         p.transform.localScale = Vector3.one * scale;
         p.isStatic = true;
         foreach (var col in p.GetComponentsInChildren<Collider>())

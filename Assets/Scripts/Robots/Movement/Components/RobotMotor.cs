@@ -24,11 +24,12 @@ namespace Robots.Components.Movement
         private bool isStopped;
         private RobotPathfinder pathfinder;
 
-        // Grounding & tilt state
         private float currentHeight;
         private float currentPitch;
         private float currentRoll;
         private Vector3 groundNormal = Vector3.up;
+        private float heightCheckTimer;
+        private const float HEIGHT_CHECK_INTERVAL = 0.1f;
 
         public void Initialize(Terrain t, Rect bounds, float offset)
         {
@@ -48,10 +49,7 @@ namespace Robots.Components.Movement
             isStopped = true;
         }
 
-        public void Resume()
-        {
-            isStopped = false;
-        }
+        public void Resume() => isStopped = false;
 
         private void FixedUpdate()
         {
@@ -70,7 +68,6 @@ namespace Robots.Components.Movement
             Vector3 moveDirection = pathfinder.GetMoveDirection(pos, dt, out newTargetAngle);
             targetAngle = newTargetAngle;
 
-            // Inline avoidance (was RobotAvoidance component)
             Vector3 avoidanceDir = RobotHelper.GetObstacleAvoidance(transform, pos, avoidRadius);
             if (avoidanceDir != Vector3.zero)
                 moveDirection = (moveDirection + avoidanceDir).normalized;
@@ -88,13 +85,9 @@ namespace Robots.Components.Movement
 
             velocity = Vector3.Lerp(velocity, moveDirection * speed * speedMultiplier * weatherPenalty, dt * 5f);
             pos += velocity * dt;
-
             pos = BoundsHelper.ClampPosition(pos, movementBounds);
 
-            // Inline surface adaption (was RobotSurfaceAdaptor component)
             ApplySurface(ref pos, targetAngle, dt);
-            
-            // Sync currentAngle for local logic
             currentAngle = transform.eulerAngles.y;
         }
 
@@ -102,17 +95,21 @@ namespace Robots.Components.Movement
         {
             if (terrain == null) return;
 
-            Vector3 normal;
-            float targetH = RobotHelper.GetHeight(terrain, transform, pos, out normal) + groundOffset;
+            bool shouldCheck = velocity.sqrMagnitude > 0.25f;
+            heightCheckTimer += dt;
 
-            float heightDiff = Mathf.Abs(targetH - currentHeight);
-            if (heightDiff > 0.5f)
-                currentHeight = targetH;
-            else
-                currentHeight = Mathf.Lerp(currentHeight, targetH, dt * heightSpeed);
-            
+            if (shouldCheck || heightCheckTimer >= HEIGHT_CHECK_INTERVAL)
+            {
+                heightCheckTimer = 0f;
+                Vector3 normal;
+                float targetH = RobotHelper.GetHeight(terrain, transform, pos, out normal) + groundOffset;
+
+                float heightDiff = Mathf.Abs(targetH - currentHeight);
+                currentHeight = heightDiff > 0.5f ? targetH : Mathf.Lerp(currentHeight, targetH, dt * heightSpeed);
+                groundNormal = Vector3.Lerp(groundNormal, normal, dt * 5f);
+            }
+
             pos.y = currentHeight;
-            groundNormal = Vector3.Lerp(groundNormal, normal, dt * 5f);
             transform.position = pos;
 
             RobotHelper.UpdateTilt(ref currentAngle, surfaceTargetAngle, rotationSpeed, groundNormal,

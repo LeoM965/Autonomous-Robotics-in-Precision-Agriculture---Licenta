@@ -64,7 +64,8 @@ namespace Economics.Managers
 
         private void Update()
         {
-            CleanUpDestroyedRobots();
+            if (Time.frameCount % 60 == 0)
+                CleanUpDestroyedRobots();
         }
 
         public void RecordStatus(Transform robot, float kWh, float distMeters, float deltaHours)

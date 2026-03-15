@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Sensors.Components;
 
 namespace AI.Navigation
 {
@@ -75,7 +74,7 @@ namespace AI.Navigation
             for (int i = 0; i < count; i++)
             {
                 if (blockCheckBuffer[i].CompareTag("Fence")) return true;
-                if (blockCheckBuffer[i].GetComponent<EnvironmentalSensor>() != null) return true;
+                if (blockCheckBuffer[i].CompareTag("Parcel")) return true;
             }
             return false;
         }
@@ -115,9 +114,8 @@ namespace AI.Navigation
 
         private bool IsNeighbourValid(PathNode node, int dx, int dy)
         {
-            if (dx == 0 || dy == 0) return true; // Straight neighbours
+            if (dx == 0 || dy == 0) return true;
             
-            // Diagonal check: both adjacent non-diagonal nodes must be walkable
             PathNode adjX = GetNode(node.x + dx, node.y);
             PathNode adjY = GetNode(node.x, node.y + dy);
             return adjX != null && adjX.walkable && adjY != null && adjY.walkable;
@@ -138,12 +136,6 @@ namespace AI.Navigation
                 }
             }
             return null;
-        }
-        
-        public void ResetAllNodes()
-        {
-            if (grid == null) return;
-            foreach (PathNode n in grid) n.Reset();
         }
         
         public float GetTerrainHeight(Vector3 pos) => terrain != null ? terrain.SampleHeight(pos) : 0;

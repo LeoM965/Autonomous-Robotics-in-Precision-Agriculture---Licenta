@@ -9,6 +9,7 @@ namespace AI.Navigation
         public bool walkable;
         public PathNode parent;
         public float g, h;
+        public int lastSearchId = -1;
         public float f => g + h;
         
         public Vector3 WorldPosition => new Vector3(worldX, 0, worldZ);

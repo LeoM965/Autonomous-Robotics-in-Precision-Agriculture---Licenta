@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using AI.Models.Decisions;
 
 namespace AI.Analytics
@@ -15,6 +14,7 @@ namespace AI.Analytics
         private readonly Dictionary<Transform, DecisionRecord> lastDecisions = new Dictionary<Transform, DecisionRecord>();
         private readonly Dictionary<Transform, List<DecisionRecord>> decisionHistory = new Dictionary<Transform, List<DecisionRecord>>();
         private readonly Dictionary<Transform, float> totalScores = new Dictionary<Transform, float>();
+        private readonly List<Transform> toRemove = new List<Transform>();
         private float nextCleanupTime;
 
         private void Awake()
@@ -39,21 +39,12 @@ namespace AI.Analytics
             record.timestamp = Time.time;
             lastDecisions[robot] = record;
 
-            EnsureHistoryExists(robot);
-            UpdateHistory(robot, record);
-        }
-
-        private void EnsureHistoryExists(Transform robot)
-        {
             if (!decisionHistory.ContainsKey(robot))
             {
                 decisionHistory[robot] = new List<DecisionRecord>();
                 totalScores[robot] = 0f;
             }
-        }
 
-        private void UpdateHistory(Transform robot, DecisionRecord record)
-        {
             List<DecisionRecord> history = decisionHistory[robot];
             history.Add(record);
             totalScores[robot] += record.chosenScore;
@@ -85,8 +76,10 @@ namespace AI.Analytics
 
         private void CleanupDestroyedRobots()
         {
-            var deadRobots = lastDecisions.Keys.Where(k => k == null).ToList();
-            foreach (var robot in deadRobots)
+            toRemove.Clear();
+            foreach (var robot in lastDecisions.Keys)
+                if (robot == null) toRemove.Add(robot);
+            foreach (var robot in toRemove)
             {
                 lastDecisions.Remove(robot);
                 decisionHistory.Remove(robot);

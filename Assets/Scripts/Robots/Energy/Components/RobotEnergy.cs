@@ -13,6 +13,9 @@ public class RobotEnergy : MonoBehaviour
     private Vector3 lastPosition;
     private bool isWorking;
     private bool isCharging;
+    private float accumulatedEnergy;
+    private float accumulatedDist;
+    private float accumulatedSimHours;
 
     public float BatteryPercent => battery.Percentage;
     public float CurrentBattery => battery.currentKWh;
@@ -59,20 +62,25 @@ public class RobotEnergy : MonoBehaviour
         float multiplier = SimulationSpeedController.Instance != null ? SimulationSpeedController.Instance.FairnessMultiplier : 1f;
         float effectiveDT = Time.deltaTime * multiplier;
 
-        if (isWorking)
-            consumed += battery.consumptionWorkSec * effectiveDT;
-        else
-            consumed += battery.consumptionStandbySec * effectiveDT;
+        consumed += (isWorking ? battery.consumptionWorkSec : battery.consumptionStandbySec) * effectiveDT;
 
         if (consumed > 0)
         {
             Consume(consumed);
             
-            // Raportam la Economics DOAR daca robotul se misca sau lucreaza
-            if (isActive && RobotEconomicsManager.Instance != null)
+            if (isActive)
             {
-                float simHoursDelta = effectiveDT / 3600f; // Fair delta based on amplified real-time
-                RobotEconomicsManager.Instance.RecordStatus(transform, consumed, dist, simHoursDelta);
+                accumulatedEnergy += consumed;
+                accumulatedDist += dist;
+                accumulatedSimHours += effectiveDT / 3600f;
+                
+                if (Time.frameCount % 10 == 0 && RobotEconomicsManager.Instance != null)
+                {
+                    RobotEconomicsManager.Instance.RecordStatus(transform, accumulatedEnergy, accumulatedDist, accumulatedSimHours);
+                    accumulatedEnergy = 0f;
+                    accumulatedDist = 0f;
+                    accumulatedSimHours = 0f;
+                }
             }
         }
     }

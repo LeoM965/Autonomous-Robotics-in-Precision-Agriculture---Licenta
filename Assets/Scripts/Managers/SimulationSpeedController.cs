@@ -70,9 +70,7 @@ public class SimulationSpeedController : MonoBehaviour
             scale *= boostMultiplier;
 
         Time.timeScale = scale;
-
-        float fixedStep = scale > 1f ? 0.02f * Mathf.Lerp(1f, scale, 0.4f) : 0.02f;
-        Time.fixedDeltaTime = Mathf.Min(fixedStep, 0.1f);
+        Time.fixedDeltaTime = Mathf.Clamp(0.02f * scale, 0.02f, 0.08f);
     }
 
     private IEnumerator SkipDayGradual()
@@ -103,19 +101,5 @@ public class SimulationSpeedController : MonoBehaviour
             TimeManager.Instance.AdvanceTime(totalHours - hoursAdvanced);
 
         isSkipping = false;
-    }
-
-    private void Update()
-    {
-        if (isSkipping) return;
-
-        for (int i = 0; i < speeds.Length; i++)
-        {
-            if (Input.GetKeyDown(KeyCode.Alpha1 + i - 1))
-                SetSpeed(i);
-        }
-
-        if (Input.GetKeyDown(KeyCode.P)) SetSpeed(0);
-        if (Input.GetKeyDown(KeyCode.B)) ToggleBoost();
     }
 }

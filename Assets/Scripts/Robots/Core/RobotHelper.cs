@@ -5,42 +5,38 @@ public static class RobotHelper
 {
     private static readonly RaycastHit[] rayHits = new RaycastHit[16];
     private static readonly Collider[] overlapResults = new Collider[16];
+    private static int physicsLayerMask = -1;
+
+    private static int GetPhysicsLayerMask()
+    {
+        if (physicsLayerMask == -1)
+            physicsLayerMask = ~LayerMask.GetMask("Ignore Raycast", "UI");
+        return physicsLayerMask;
+    }
 
     public static float CalculateGroundOffset(Transform robot)
     {
         Renderer renderer = robot.GetComponentInChildren<Renderer>();
-        if (renderer != null)
-            return robot.position.y - renderer.bounds.min.y;
-        return 0.3f;
+        return renderer != null ? robot.position.y - renderer.bounds.min.y : 0.3f;
     }
 
     public static void UpdateWheelRotation(Transform[] wheels, Vector3[] originalAngles, float rotation)
     {
-        if (wheels == null || originalAngles == null)
-            return;
+        if (wheels == null || originalAngles == null) return;
         for (int i = 0; i < wheels.Length; i++)
         {
             if (wheels[i] != null)
-            {
-                wheels[i].localRotation = Quaternion.Euler(
-                    rotation,
-                    originalAngles[i].y,
-                    originalAngles[i].z
-                );
-            }
+                wheels[i].localRotation = Quaternion.Euler(rotation, originalAngles[i].y, originalAngles[i].z);
         }
     }
 
     public static Vector3 GetObstacleAvoidance(Transform transform, Vector3 pos, float avoidRadius)
     {
         RaycastHit hit;
-        if (!Physics.Raycast(pos + Vector3.up * 0.5f, transform.forward, out hit, avoidRadius, ~0, QueryTriggerInteraction.Ignore))
+        if (!Physics.Raycast(pos + Vector3.up * 0.5f, transform.forward, out hit, avoidRadius, GetPhysicsLayerMask(), QueryTriggerInteraction.Ignore))
             return Vector3.zero;
         
-        if (hit.transform.IsChildOf(transform))
-            return Vector3.zero;
-
-        if (hit.transform.GetComponent<Sensors.Components.EnvironmentalSensor>() != null)
+        if (hit.transform.IsChildOf(transform) || hit.transform.CompareTag("Parcel"))
             return Vector3.zero;
         
         float strength = 1f - (hit.distance / avoidRadius);
@@ -52,8 +48,9 @@ public static class RobotHelper
         normal = Vector3.up;
         float terrainH = terrain != null ? terrain.SampleHeight(pos) + terrain.transform.position.y : 0f;
         float height = terrainH;
+        int mask = GetPhysicsLayerMask();
         
-        int hitCount = Physics.RaycastNonAlloc(new Vector3(pos.x, height + 50f, pos.z), Vector3.down, rayHits, 100f, ~0, QueryTriggerInteraction.Collide);
+        int hitCount = Physics.RaycastNonAlloc(new Vector3(pos.x, height + 50f, pos.z), Vector3.down, rayHits, 100f, mask, QueryTriggerInteraction.Collide);
         for (int i = 0; i < hitCount; i++)
         {
             RaycastHit hit = rayHits[i];
@@ -66,12 +63,12 @@ public static class RobotHelper
             }
         }
         
-        int overlapCount = Physics.OverlapSphereNonAlloc(pos, 2f, overlapResults, ~0, QueryTriggerInteraction.Collide);
+        int overlapCount = Physics.OverlapSphereNonAlloc(pos, 2f, overlapResults, mask, QueryTriggerInteraction.Collide);
         for (int i = 0; i < overlapCount; i++)
         {
             Collider col = overlapResults[i];
             if (col.transform.IsChildOf(robotTransform)) continue;
-            if (col.GetComponent<Sensors.Components.EnvironmentalSensor>() == null && col.GetComponentInParent<Sensors.Components.EnvironmentalSensor>() == null) continue;
+            if (!col.CompareTag("Parcel")) continue;
             Bounds b = col.bounds;
             float margin = 0.5f;
             if (pos.x >= b.min.x - margin && pos.x <= b.max.x + margin &&

@@ -8,6 +8,7 @@ namespace AI.Navigation
     {
         public static Pathfinder Instance { get; private set; }
         private PathGrid grid;
+        private int currentSearchId;
         
         private readonly MinHeap<PathNode> openHeap = new MinHeap<PathNode>();
         private readonly HashSet<PathNode> inOpenSet = new HashSet<PathNode>();
@@ -48,6 +49,7 @@ namespace AI.Navigation
         {
             PrepareSearch();
             
+            EnsureNodeReady(startNode);
             startNode.g = 0;
             startNode.h = PathHelper.Heuristic(startNode, endNode);
             AddToOpenSet(startNode);
@@ -71,10 +73,19 @@ namespace AI.Navigation
 
         private void PrepareSearch()
         {
-            grid.ResetAllNodes();
+            currentSearchId++;
             openHeap.Clear();
             inOpenSet.Clear();
             closedSet.Clear();
+        }
+
+        private void EnsureNodeReady(PathNode node)
+        {
+            if (node.lastSearchId != currentSearchId)
+            {
+                node.Reset();
+                node.lastSearchId = currentSearchId;
+            }
         }
 
         private void AddToOpenSet(PathNode node)
@@ -90,6 +101,7 @@ namespace AI.Navigation
             {
                 if (!nb.walkable || closedSet.Contains(nb)) continue;
                 
+                EnsureNodeReady(nb);
                 float moveCost = (nb.x != current.x && nb.y != current.y) ? 1.414f : 1f;
                 float newG = current.g + moveCost * grid.CellSize;
                 
