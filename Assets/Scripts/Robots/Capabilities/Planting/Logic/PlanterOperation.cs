@@ -44,7 +44,7 @@ public class PlanterOperation
             return;
         }
         
-        plantPositions = PlantingPositionGenerator.Generate(col.bounds, config);
+        // Positions are already generated inside SetupCropForParcel
         if (energy != null) energy.SetWorking(true);
         isPlanting = true;
         plantIndex = 0;
@@ -62,7 +62,8 @@ public class PlanterOperation
         
         Vector3 target = plantPositions[plantIndex];
         Vector3 pos = transform.position;
-        float dist = Vector2.Distance(new Vector2(pos.x, pos.z), new Vector2(target.x, target.z));
+        float dx = pos.x - target.x, dz = pos.z - target.z;
+        float dist = Mathf.Sqrt(dx * dx + dz * dz);
         
         if (dist < config.plantDistance)
         {
@@ -100,7 +101,18 @@ public class PlanterOperation
         }
 
         if (crop == null) return;
-        executor.SetTarget(parcel, crop, CropLoader.LoadPrefab(crop.prefabPath), idx);
+
+        if (!Settings.SimulationSettings.IsInitialized || Settings.SimulationSettings.SeedCosts.Length != cropDB.crops.Length)
+            Settings.SimulationSettings.InitFromDatabase(cropDB);
+        
+        Collider col = parcel.GetComponent<Collider>();
+        if (col != null)
+        {
+             // We have to calculate plant positions here to know the total count before passing to executor
+             plantPositions = PlantingPositionGenerator.Generate(col.bounds, config);
+        }
+
+        executor.SetTarget(parcel, crop, CropLoader.LoadPrefab(crop.prefabPath), idx, plantPositions.Count);
     }
 
     private void FinishParcel()

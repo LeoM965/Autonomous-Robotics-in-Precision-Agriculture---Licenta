@@ -22,6 +22,9 @@ namespace Economics.Services
 
             if (db?.crops == null) return report;
 
+            if (!Settings.SimulationSettings.IsInitialized || Settings.SimulationSettings.SeedCosts.Length != db.crops.Length)
+                Settings.SimulationSettings.InitFromDatabase(db);
+
             float[] yieldWeights = Settings.SimulationSettings.YieldWeights;
             float[] marketPrices = Settings.SimulationSettings.MarketPrices;
 
@@ -58,7 +61,12 @@ namespace Economics.Services
             stats.ParcelCount++;
             
             if (crop.requirements != null)
-                stats.SoilFitSum += crop.requirements.CalculateTotalScore(parcel.composition);
+            {
+                stats.SoilFitSum += crop.requirements.CalculateTotalScore(parcel.composition,
+                    Settings.SimulationSettings.N_Min[idx], Settings.SimulationSettings.N_Opt[idx], Settings.SimulationSettings.N_Max[idx],
+                    Settings.SimulationSettings.P_Min[idx], Settings.SimulationSettings.P_Opt[idx], Settings.SimulationSettings.P_Max[idx],
+                    Settings.SimulationSettings.K_Min[idx], Settings.SimulationSettings.K_Opt[idx], Settings.SimulationSettings.K_Max[idx]);
+            }
 
             // Add accumulated harvested stats (persist after plants destroyed)
             stats.HarvestedRevenue += parcel.harvestedRevenue;

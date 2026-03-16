@@ -2,17 +2,12 @@ using UnityEngine;
 
 public static class CropLoader
 {
-    private static CropDatabase database;
-
     public static CropDatabase Load()
     {
-        if (database != null) return database;
-
         TextAsset json = Resources.Load<TextAsset>("CropData");
         if (json == null) return null;
         
-        database = JsonUtility.FromJson<CropDatabase>(json.text);
-        return database;
+        return JsonUtility.FromJson<CropDatabase>(json.text);
     }
 
     public static GameObject LoadPrefab(string path)

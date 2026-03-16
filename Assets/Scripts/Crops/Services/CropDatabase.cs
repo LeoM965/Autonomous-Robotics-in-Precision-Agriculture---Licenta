@@ -1,9 +1,16 @@
 using System;
 
 [Serializable]
+public class CropSettingsData
+{
+    public float minQualityToPlant = 30f;
+}
+
+[Serializable]
 public class CropDatabase
 {
     public CropData[] crops;
+    public CropSettingsData settings;
 
     public CropData Get(string name)
     {

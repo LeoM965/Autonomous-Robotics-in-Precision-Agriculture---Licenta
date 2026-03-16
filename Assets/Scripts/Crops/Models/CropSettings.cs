@@ -13,4 +13,10 @@ public class CropSettings : ScriptableObject
     [Header("Harvest Visuals")]
     public float sinkDuration = 1f;
     public float sinkDepth = 0.5f;
+
+    [Header("Nutrient Requirements")]
+    [Tooltip("Nitrogen consumed per simulated hour")]
+    public float nitrogenConsumptionRate = 5f;
+    [Tooltip("Minimum nitrogen level for 100% growth rate. Growth stops at 0.")]
+    public float nitrogenOptimalThreshold = 50f;
 }

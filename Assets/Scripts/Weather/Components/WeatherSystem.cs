@@ -20,11 +20,13 @@ namespace Weather.Components
         private WeatherSimulator simulator;
         private AtmosphereRenderer renderer;
         private float lastSimHours = -1f;
+        private float moistureTimer = 0f;
+        private const float MOISTURE_INTERVAL = 1.0f;
 
         public WeatherType? ForcedWeather => simulator?.ForcedWeather;
-        public WeatherType CurrentWeather => simulator.CurrentWeather;
-        public float CurrentTemperature => simulator.CurrentTemperature;
-        public WeatherImpact CurrentImpact => simulator.CurrentImpact;
+        public WeatherType CurrentWeather => simulator?.CurrentWeather ?? WeatherType.Sunny;
+        public float CurrentTemperature => simulator?.CurrentTemperature ?? 20f;
+        public WeatherImpact CurrentImpact => simulator?.CurrentImpact ?? new WeatherImpact();
         public ClimateProfile ActiveClimate { get; private set; }
 
         private void Awake()
@@ -40,7 +42,7 @@ namespace Weather.Components
         {
             if (TimeManager.Instance != null)
             {
-                TimeManager.Instance.OnDayChanged += (_) => UpdateClimate();
+                TimeManager.Instance.OnDayChanged += () => UpdateClimate();
                 TimeManager.Instance.OnHourChanged += (hour) => simulator.RerollWeather(hour);
             }
 
@@ -52,11 +54,18 @@ namespace Weather.Components
         private void Update()
         {
             UpdateVisuals();
-            ProcessSoilMoisture();
+            
+            moistureTimer += Time.deltaTime;
+            if (moistureTimer >= MOISTURE_INTERVAL)
+            {
+                ProcessSoilMoisture();
+                moistureTimer = 0f;
+            }
         }
 
         private void UpdateVisuals()
         {
+            if (simulator == null || weatherProfiles == null) return;
             WeatherProfile profile = GetProfile(simulator.CurrentWeather);
             if (profile == null) return;
 
@@ -71,8 +80,9 @@ namespace Weather.Components
         {
             if (TimeManager.Instance == null) return;
             Season s = TimeManager.Instance.GetCurrentSeason();
+            if (climates == null) return;
             ClimateProfile profile = climates.Find(c => c.seasonType == s);
-            if (profile != null)
+            if (profile != null && simulator != null)
             {
                 simulator.SetClimate(profile);
                 ActiveClimate = profile;
@@ -90,6 +100,7 @@ namespace Weather.Components
             if (deltaHours <= 0f) return;
 
             lastSimHours = currentSimHours;
+            if (simulator == null) return;
             SoilMoistureService.UpdateMoisture(ParcelCache.Parcels, simulator.CurrentImpact, ActiveClimate, deltaHours);
         }
 
@@ -100,13 +111,15 @@ namespace Weather.Components
             {
                 seasonalBase = ActiveClimate.movementMultiplier;
             }
+            if (simulator == null) return seasonalBase;
             return seasonalBase * simulator.CurrentImpact.movementSpeed;
         }
 
-        public float GetCropGrowthMultiplier() => simulator.CurrentImpact.cropGrowth;
+        public float GetCropGrowthMultiplier() => simulator?.CurrentImpact.cropGrowth ?? 1f;
 
         public void SetForcedWeather(WeatherType? type)
         {
+            if (simulator == null) return;
             simulator.ForcedWeather = type;
             if (TimeManager.Instance != null)
                 simulator.RerollWeather(TimeManager.Instance.timeOfDay);
@@ -114,6 +127,7 @@ namespace Weather.Components
 
         public void CycleForcedWeather()
         {
+            if (simulator == null) return;
             int currentIndex = -1;
             if (simulator.ForcedWeather.HasValue)
                 currentIndex = System.Array.IndexOf(WeatherTypes.All, simulator.ForcedWeather.Value);
@@ -125,6 +139,6 @@ namespace Weather.Components
                 SetForcedWeather(WeatherTypes.All[currentIndex]);
         }
 
-        private WeatherProfile GetProfile(WeatherType type) => weatherProfiles.Find(p => p.type == type);
+        private WeatherProfile GetProfile(WeatherType type) => weatherProfiles?.Find(p => p.type == type);
     }
 }

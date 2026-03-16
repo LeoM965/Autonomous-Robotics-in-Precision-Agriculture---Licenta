@@ -26,7 +26,8 @@ namespace Sensors.Services
         {
             float score = 0f;
             score += ScoreFactor(soil.pH, s.phIdeal, s.phTolerance) * s.phWeight;
-            score += ScoreFactor(soil.moisture, s.moistureOptimal, s.moistureTolerance) * s.moistureWeight;
+            // Asymmetric: penalty is 2.5x harsher for over-saturation than for dryness
+            score += ScoreFactor(soil.moisture, s.moistureOptimal, s.moistureTolerance, 2.5f) * s.moistureWeight;
             score += NutrientScore(soil.nitrogen, s.nCritical, s.nOptimal) * s.nitrogenWeight;
             score += NutrientScore(soil.phosphorus, s.pCritical, s.pOptimal) * s.phosphorusWeight;
             score += NutrientScore(soil.potassium, s.kCritical, s.kOptimal) * s.potassiumWeight;
@@ -34,11 +35,18 @@ namespace Sensors.Services
             return Mathf.Clamp(score, 0f, 100f);
         }
 
-        private static float ScoreFactor(float value, float optimal, float tolerance)
+        private static float ScoreFactor(float value, float optimal, float tolerance, float overTolerancePenalty = 1.0f)
         {
-            if (tolerance <= 0.001f) tolerance = 1.0f; // Prevent div by zero
-            float deviation = Mathf.Abs(value - optimal);
-            return Mathf.Clamp01(1f - deviation / (tolerance * 1.5f));
+            if (tolerance <= 0.001f) tolerance = 1.0f;
+            float deviation = value - optimal;
+            
+            // Base leniency multiplier (3.0x from previous fix)
+            float effectivizer = 3.0f;
+            
+            // If we are ABOVE the optimal (e.g. flooding), we apply the penalty multiplier
+            if (deviation > 0) effectivizer /= overTolerancePenalty;
+
+            return Mathf.Clamp01(1f - Mathf.Abs(deviation) / (tolerance * effectivizer));
         }
 
         private static float NutrientScore(float value, float low, float optimal)

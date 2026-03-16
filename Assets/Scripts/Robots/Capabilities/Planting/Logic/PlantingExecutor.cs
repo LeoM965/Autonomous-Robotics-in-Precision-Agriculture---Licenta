@@ -9,13 +9,14 @@ public class PlantingExecutor
     int cropIndex;
     int plantsPlaced;
     float totalCost;
+    int totalPlantsInParcel;
 
     public int PlantsPlaced => plantsPlaced;
     public float TotalCost => totalCost;
 
-    public void SetTarget(EnvironmentalSensor p, CropData c, GameObject pf, int idx)
+    public void SetTarget(EnvironmentalSensor p, CropData c, GameObject pf, int idx, int totalPlants = 1)
     {
-        parcel = p; crop = c; prefab = pf; cropIndex = idx;
+        parcel = p; crop = c; prefab = pf; cropIndex = idx; totalPlantsInParcel = totalPlants > 0 ? totalPlants : 1;
     }
 
     public void PlantAt(Vector3 position)
@@ -36,9 +37,28 @@ public class PlantingExecutor
         totalCost += currentCost;
 
         var growth = plant.GetComponent<CropGrowth>();
+        if (growth == null)
+        {
+            // Inject components if missing (e.g. for Onion/Radish raw models)
+            growth = plant.AddComponent<CropGrowth>();
+            var settings = Resources.Load<CropSettings>("CropSettings");
+            
+            growth.settings = settings;
+            var scaler = plant.GetComponent<CropVisualScaling>();
+            if (scaler) scaler.settings = settings;
+            var harvest = plant.GetComponent<CropHarvestVisuals>();
+            if (harvest) harvest.settings = settings;
+        }
+
         if (growth != null)
         {
-            growth.Initialize(crop.GrowthHours, currentCost);
+            float nConsumption = crop.nitrogenConsumptionRate / totalPlantsInParcel;
+            float nOptimal = crop.requirements?.nitrogen?.optimal ?? -1f;
+            growth.Initialize(crop.GrowthHours, currentCost, nConsumption, nOptimal, cropIndex);
+            
+            // Start the growth cycle by registering with the manager
+            if (CropManager.Instance != null) CropManager.Instance.RegisterCrop(growth);
+            
             parcel.activeCrops.Add(growth);
             plantsPlaced++;
         }
@@ -47,6 +67,6 @@ public class PlantingExecutor
     public void Reset()
     {
         parcel = null; crop = null; prefab = null;
-        cropIndex = -1; plantsPlaced = 0; totalCost = 0;
+        cropIndex = -1; plantsPlaced = 0; totalCost = 0; totalPlantsInParcel = 1;
     }
 }

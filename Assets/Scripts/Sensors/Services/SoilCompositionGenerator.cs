@@ -17,11 +17,11 @@ namespace Sensors.Services
 
             return new SoilComposition
             {
-                moisture = 50f,
+                moisture = 55f,
                 pH = 6.5f,
-                nitrogen = 350f,
-                phosphorus = 20f,
-                potassium = 220f
+                nitrogen = 130f,
+                phosphorus = 80f,
+                potassium = 120f
             };
         }
     }

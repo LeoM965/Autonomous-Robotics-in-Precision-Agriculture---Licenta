@@ -1,163 +1,159 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 using Sensors.Components;
 using Robots.Models;
 
-public class AgroBotFlight : MonoBehaviour
+namespace Robots.Capabilities.Flight
 {
-    [Header("Configuration")]
-    [SerializeField] private FlightSettings settings = new FlightSettings();
-    [SerializeField] private Transform flightBody;
-
-    private List<EnvironmentalSensor> trackedParcels = new List<EnvironmentalSensor>();
-    private EnvironmentalSensor currentTargetParcel;
-    private OperationRegion region;
-    private FlightState state = FlightState.Initializing;
-    
-    private Vector3 currentMoveTarget;
-    private int currentParcelIndex;
-    private float waitTimer;
-
-    private Vector3 lastPosition;
-
-    private void Start()
+    public class AgroBotFlight : MonoBehaviour
     {
-        if (flightBody == null) flightBody = transform;
-        lastPosition = flightBody.position;
-        StartCoroutine(InitializationRoutine());
-    }
+        [Header("Configuration")]
+        [SerializeField] private FlightSettings settings = new FlightSettings();
+        [SerializeField] private Transform flightBody;
 
-    private IEnumerator InitializationRoutine()
-    {
-        yield return new WaitForSeconds(1.5f);
+        private DroneMotor motor;
+        private FlightNavigation navigation;
+        private TreatmentSystem treatment;
         
-        SetupOperationRegion();
-        PopulateTrackedParcels();
+        private FlightState state = FlightState.Initializing;
+        private float treatmentTimer;
+        private Vector3 lastPosition;
+        private OperationRegion region;
 
-        if (trackedParcels.Count > 0)
+        private void Awake()
         {
-            trackedParcels.Sort((a, b) => a.LatestAnalysis.qualityScore.CompareTo(b.LatestAnalysis.qualityScore));
-            SetNextTarget();
-            state = FlightState.Navigating;
-        }
-        else StartCoroutine(InitializationRoutine());
-    }
-
-    private void SetupOperationRegion()
-    {
-        var fence = FindFirstObjectByType<FenceGenerator>();
-        if (fence != null && fence.zones != null && fence.zones.Length > 0)
-        {
-            region = OperationRegion.FromZone(GetNearestZone(fence.zones));
-        }
-        else
-        {
-            var terrain = Terrain.activeTerrain;
-            Rect bounds = Rect.zero;
-            if (terrain != null)
+            motor = gameObject.AddComponent<DroneMotor>();
+            navigation = new FlightNavigation();
+            treatment = new TreatmentSystem(transform);
+            
+            if (flightBody == null) flightBody = transform;
+            
+            // Interaction: Auto-add collider if missing
+            if (GetComponent<Collider>() == null && GetComponentInChildren<Collider>() == null)
             {
-                bounds = new Rect(0, 0, terrain.terrainData.size.x, terrain.terrainData.size.z);
+                var col = gameObject.AddComponent<BoxCollider>();
+                col.size = new Vector3(2, 1, 2);
             }
-            region = new OperationRegion(bounds);
         }
-    }
 
-    private FenceZone GetNearestZone(FenceZone[] zones)
-    {
-        float minSqrDist = float.MaxValue;
-        int bestIndex = 0;
-        Vector3 pos = transform.position;
-
-        for (int i = 0; i < zones.Length; i++)
+        private void Start()
         {
-            Vector2 center = (zones[i].startXZ + zones[i].endXZ) * 0.5f;
-            float sqrDist = (pos.x - center.x) * (pos.x - center.x) + (pos.z - center.y) * (pos.z - center.y);
-            if (sqrDist < minSqrDist) { minSqrDist = sqrDist; bestIndex = i; }
+            lastPosition = flightBody.position;
+            StartCoroutine(InitializationRoutine());
         }
-        return zones[bestIndex];
-    }
 
-    private void PopulateTrackedParcels()
-    {
-        trackedParcels = region.FilterParcels(ParcelCache.Parcels);
-        if (trackedParcels.Count == 0) trackedParcels.AddRange(ParcelCache.Parcels);
-    }
-
-    private void Update()
-    {
-        if (state == FlightState.Initializing) return;
-
-        UpdateHoverPhysics();
-
-        // Track distance for simulation time passage
-        float distMoved = Vector3.Distance(flightBody.position, lastPosition);
-        if (distMoved > 0.001f && TimeManager.Instance != null)
+        private IEnumerator InitializationRoutine()
         {
-            TimeManager.Instance.AddDistanceTraveled(distMoved);
+            yield return new WaitForSeconds(1.5f);
+            
+            SetupRegion();
+            navigation.Initialize(region);
+            motor.Initialize(flightBody, settings, region);
+
+            if (navigation.HasTargets)
+            {
+                navigation.SelectNextTarget();
+                state = FlightState.Navigating;
+            }
+            else StartCoroutine(InitializationRoutine());
         }
-        lastPosition = flightBody.position;
 
-        if (state == FlightState.Navigating) ExecuteNavigation();
-        else ExecuteHoverWait();
-    }
-
-    private void ExecuteNavigation()
-    {
-        Vector3 pos = flightBody.position;
-        Vector3 dir = currentMoveTarget - pos;
-        dir.y = 0;
-
-        if (dir.magnitude > 0.1f)
+        private void SetupRegion()
         {
-            Vector3 moveDir = dir.normalized;
-            flightBody.position += moveDir * settings.speed * Time.deltaTime;
-            flightBody.rotation = Quaternion.Slerp(flightBody.rotation, Quaternion.LookRotation(moveDir), Time.deltaTime * 3f);
+            var fence = FindFirstObjectByType<FenceGenerator>();
+            if (fence != null && fence.zones != null && fence.zones.Length > 0)
+                region = OperationRegion.FromZone(GetNearestZone(fence.zones));
+            else
+                region = new OperationRegion(new Rect(0, 0, 1000, 1000));
         }
 
-        if (dir.sqrMagnitude < settings.ArrivalThresholdSqr)
+        private FenceZone GetNearestZone(FenceZone[] zones)
         {
-            waitTimer = settings.waitTimePerParcel;
-            state = FlightState.HoveringAtTarget;
+            float minSqrDist = float.MaxValue;
+            int bestIndex = 0;
+            Vector3 pos = transform.position;
+            for (int i = 0; i < zones.Length; i++)
+            {
+                Vector2 center = (zones[i].startXZ + zones[i].endXZ) * 0.5f;
+                float sqrDist = (pos.x - center.x) * (pos.x - center.x) + (pos.z - center.y) * (pos.z - center.y);
+                if (sqrDist < minSqrDist) { minSqrDist = sqrDist; bestIndex = i; }
+            }
+            return zones[bestIndex];
         }
-    }
 
-    private void ExecuteHoverWait()
-    {
-        waitTimer -= Time.deltaTime;
-        if (waitTimer <= 0f)
+        private void Update()
         {
-            SetNextTarget();
-            state = FlightState.Navigating;
+            if (state == FlightState.Initializing || navigation == null || motor == null || settings == null) return;
+
+            TrackTelemetery();
+            
+            EnvironmentalSensor target = navigation.CurrentTarget;
+            Vector3 targetPos = (target != null && target.transform != null) ? target.transform.position : flightBody.position;
+            targetPos.y = settings.altitude;
+
+            bool isMoving = state == FlightState.Navigating;
+            motor.UpdateMovement(targetPos, isMoving);
+
+            if (state == FlightState.Navigating && motor.HasReached(targetPos))
+            {
+                treatmentTimer = settings.waitTimePerParcel;
+                state = FlightState.HoveringAtTarget;
+            }
+            else if (state == FlightState.HoveringAtTarget)
+            {
+                if (target == null)
+                {
+                    navigation.SelectNextTarget();
+                    state = FlightState.Navigating;
+                    return;
+                }
+
+                bool needsNutrients = target.nitrogen < 100f; // Fallback
+                var data = CropLoader.Load()?.Get(target.plantedVarietyName);
+                if (data?.requirements?.nitrogen != null)
+                {
+                    needsNutrients = target.nitrogen < data.requirements.nitrogen.optimal;
+                }
+
+                if (needsNutrients)
+                {
+                    treatment.ApplyTreatment(target);
+                    treatmentTimer -= Time.deltaTime;
+                }
+                else
+                {
+                    treatmentTimer = 0; // Skip if nitrogen is already sufficient
+                }
+
+                if (treatmentTimer <= 0)
+                {
+                    navigation.SelectNextTarget();
+                    state = FlightState.Navigating;
+                }
+            }
         }
-    }
 
-    private void UpdateHoverPhysics()
-    {
-        Vector3 pos = flightBody.position;
-        pos.y = settings.altitude + Mathf.Sin(Time.time * settings.AngularHoverFrequency) * settings.hoverAmplitude;
-        
-        pos.x = Mathf.Clamp(pos.x, region.Bounds.xMin - 5f, region.Bounds.xMax + 5f);
-        pos.z = Mathf.Clamp(pos.z, region.Bounds.yMin - 5f, region.Bounds.yMax + 5f);
-        
-        flightBody.position = pos;
-    }
-
-    private void SetNextTarget()
-    {
-        if (trackedParcels.Count == 0) return;
-        currentParcelIndex = (currentParcelIndex + 1) % trackedParcels.Count;
-        currentTargetParcel = trackedParcels[currentParcelIndex];
-        currentMoveTarget = currentTargetParcel.transform.position;
-        currentMoveTarget.y = settings.altitude;
-    }
-
-    public string GetStatus()
-    {
-        if (currentTargetParcel != null)
+        private void TrackTelemetery()
         {
-            return $"{currentTargetParcel.name} [{state}]";
+            if (flightBody == null) return;
+            float distMoved = Vector3.Distance(flightBody.position, lastPosition);
+            if (distMoved > 0.001f && TimeManager.Instance != null)
+                TimeManager.Instance.AddDistanceTraveled(distMoved);
+            lastPosition = flightBody.position;
         }
-        return "Idle";
+
+        public string GetStatus()
+        {
+            if (state == FlightState.Initializing || navigation == null) return "Sisteme în pornire...";
+            if (navigation.CurrentTarget == null) return "Scanare...";
+
+            string parcelName = navigation.CurrentTarget.name;
+            return state switch
+            {
+                FlightState.Navigating => $"Zbor spre {parcelName}",
+                FlightState.HoveringAtTarget => $"Tratare sol activă pe {parcelName} ({(treatmentTimer / settings.waitTimePerParcel * 100f):F0}%)",
+                _ => "Idle"
+            };
+        }
     }
 }

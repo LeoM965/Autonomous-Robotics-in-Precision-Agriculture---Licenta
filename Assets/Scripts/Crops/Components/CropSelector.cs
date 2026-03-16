@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Sensors.Models;
 using AI.Models.Decisions;
+using Settings;
 
 public static class CropSelector
 {
@@ -12,29 +13,48 @@ public static class CropSelector
     {
         if (db == null || db.crops == null || db.crops.Length == 0)
             return null;
+
+        // Ensure settings are synced with the database (especially if we added new crops)
+        if (!SimulationSettings.IsInitialized || SimulationSettings.SeedCosts.Length != db.crops.Length)
+        {
+            SimulationSettings.InitFromDatabase(db);
+        }
         
         CropData bestCrop = null;
-        float bestScore = -1f;
+        float bestScore = 0f;
         List<DecisionAlternative> alternatives = new List<DecisionAlternative>();
-        
+
         for (int i = 0; i < db.crops.Length; i++)
         {
             CropData crop = db.crops[i];
-            float score = 0f;
-            if (crop.requirements != null)
+            float suitability = 0f;
+            float temperature = Weather.Components.WeatherSystem.Instance != null 
+                ? Weather.Components.WeatherSystem.Instance.CurrentTemperature 
+                : 20f;
+
+            // Logic: If it's too cold (< 5°C) and the crop is NOT frost resistant, it shouldn't be planted.
+            bool canPlant = temperature >= 5f || crop.isFrostResistant;
+
+            if (canPlant && crop.requirements != null)
             {
-                score = crop.requirements.CalculateTotalScore(soil);
+                // Use dynamic settings from the 'S' menu (including the 40% soft buffer)
+                suitability = crop.requirements.CalculateTotalScore(soil, 
+                    SimulationSettings.N_Min[i], SimulationSettings.N_Opt[i], SimulationSettings.N_Max[i],
+                    SimulationSettings.P_Min[i], SimulationSettings.P_Opt[i], SimulationSettings.P_Max[i],
+                    SimulationSettings.K_Min[i], SimulationSettings.K_Opt[i], SimulationSettings.K_Max[i]);
             }
-            alternatives.Add(new DecisionAlternative(crop.name, score));
-            
-            if (score > bestScore)
+
+            if (suitability > bestScore)
             {
-                bestScore = score;
+                bestScore = suitability;
                 bestCrop = crop;
             }
+
+            alternatives.Add(new DecisionAlternative(crop.name, suitability));
         }
 
         MarkChosen(alternatives, bestCrop);
+        // Sort by Suitability
         alternatives.Sort((a, b) => b.score.CompareTo(a.score));
         
         CropSelected?.Invoke(robot, bestCrop, bestScore, alternatives, soil, parcelName);

@@ -33,6 +33,20 @@ public class CropRequirements
         return count > 0 ? total / count : 0f;
     }
 
+    public float CalculateTotalScore(SoilComposition soil, 
+        float nMin, float nOpt, float nMax,
+        float pMin, float pOpt, float pMax,
+        float kMin, float kOpt, float kMax)
+    {
+        float total = 0f;
+        total += CropRange.GetScore(soil.pH, pH.min, pH.max, pH.optimal) * 100f;
+        total += CropRange.GetScore(soil.moisture, humidity.min, humidity.max, humidity.optimal) * 100f;
+        total += CropRange.GetScore(soil.nitrogen, nMin, nMax, nOpt) * 100f;
+        total += CropRange.GetScore(soil.phosphorus, pMin, pMax, pOpt) * 100f;
+        total += CropRange.GetScore(soil.potassium, kMin, kMax, kOpt) * 100f;
+        return total / 5f;
+    }
+
     public AI.Models.Decisions.DecisionFactors BuildFactors(SoilComposition soil)
     {
         var factors = new AI.Models.Decisions.DecisionFactors();

@@ -11,6 +11,9 @@ namespace Weather.Services
         {
             if (deltaHours <= 0f || climate == null) return;
 
+            // Protection: ignore large time gaps (jumps/skips) to keep soil values stable
+            if (deltaHours > 1.0f) return;
+
             float evapRate = climate.evaporationRate / 24f;
             float precipRate = impact.precipitationRate;
 

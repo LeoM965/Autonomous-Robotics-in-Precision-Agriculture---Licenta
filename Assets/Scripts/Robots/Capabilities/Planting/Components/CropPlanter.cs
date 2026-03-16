@@ -18,10 +18,7 @@ public class CropPlanter : RobotOperator
     
     private void Initialize()
     {
-        FenceZone zone = ZoneHelper.GetZoneAt(transform.position);
-        parcels = ParcelHelper.GetParcelsInZone(zone, config.minSoilQuality);
-        parcelIndex = 0;
-        if (parcels.Count > 0) MoveToNextParcel();
+        ScanForEmptyParcels();
     }
 
     protected override void UpdateOperation() => operation.Update();
@@ -36,13 +33,32 @@ public class CropPlanter : RobotOperator
     protected override void OnAllParcelsComplete()
     {
         state = OperatorState.Idle;
+        idleTimer = config.rescanInterval;
         movement.ClearTarget();
-        Debug.Log($"[CropPlanter] Complete! {operation.TotalPlantsPlaced} plants, Cost: {operation.TotalCost:F2} EUR");
+        Debug.Log($"[CropPlanter] Cycle complete. Waiting {idleTimer:F1}s for next scan.");
     }
 
-    protected override void UpdateIdle() { }
+    protected override void UpdateIdle() 
+    {
+        idleTimer -= Time.deltaTime;
+        if (idleTimer <= 0f) ScanForEmptyParcels();
+    }
+
+    private void ScanForEmptyParcels()
+    {
+        FenceZone zone = ZoneHelper.GetZoneAt(transform.position);
+        parcels = ParcelHelper.GetParcelsInZone(zone, config.minSoilQuality);
+        
+        // Filter for parcels that have no active crops (were either never planted or just harvested)
+        parcels.RemoveAll(p => p.activeCrops.Count > 0);
+        
+        parcelIndex = 0;
+        if (parcels.Count > 0) MoveToNextParcel();
+        else OnAllParcelsComplete();
+    }
+
     protected override string GetWorkingStatus() => $"Planting {operation?.PlantIndex}/{operation?.TotalPositions}";
-    protected override string GetIdleStatus() => "Idle / Done";
+    protected override string GetIdleStatus() => idleTimer > 0 ? $"Scanning ({idleTimer:F0}s)" : "Scanning...";
 
     public bool IsPlanting => state == OperatorState.Working;
     public int PlantsPlaced => operation != null ? operation.TotalPlantsPlaced : 0;

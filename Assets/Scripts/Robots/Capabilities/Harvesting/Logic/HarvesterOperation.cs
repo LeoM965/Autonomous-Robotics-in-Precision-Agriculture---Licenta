@@ -9,6 +9,7 @@ public class HarvesterOperation
     private RobotEnergy energy;
     private HarvestConfig config;
     private HarvestExecutor executor;
+    private CropDatabase cropDB;
 
     private List<CropGrowth> cropsToHarvest = new List<CropGrowth>();
     private int cropIndex;
@@ -20,12 +21,13 @@ public class HarvesterOperation
     public int TotalCrops => cropsToHarvest.Count;
     public int TotalHarvested => sessionHarvestedCount + executor.HarvestedInParcel;
 
-    public HarvesterOperation(Transform t, RobotMovement m, RobotEnergy e, HarvestConfig c)
+    public HarvesterOperation(Transform t, RobotMovement m, RobotEnergy e, HarvestConfig c, CropDatabase db)
     {
         transform = t;
         movement = m;
         energy = e;
         config = c;
+        cropDB = db;
         executor = new HarvestExecutor();
     }
 
@@ -36,14 +38,14 @@ public class HarvesterOperation
 
         foreach (var crop in parcel.activeCrops)
         {
-            if (crop != null && crop.IsFullyGrown && !crop.IsBeingHarvested)
+            if (crop != null && crop.IsHarvestable)
                 cropsToHarvest.Add(crop);
         }
 
         if (cropsToHarvest.Count > 0)
         {
             if (energy != null) energy.SetWorking(true);
-            executor.SetTarget(parcel, config.harvestDelay);
+            executor.SetTarget(parcel, config.harvestDelay, cropDB);
             isHarvesting = true;
             MoveToNextCrop();
         }
@@ -65,7 +67,9 @@ public class HarvesterOperation
 
         Vector3 target = targetCrop.transform.position;
         Vector3 pos = transform.position;
-        if (Vector2.Distance(new Vector2(pos.x, pos.z), new Vector2(target.x, target.z)) < config.harvestRadius || !movement.HasTarget)
+        float dx = pos.x - target.x, dz = pos.z - target.z;
+
+        if (dx * dx + dz * dz < config.harvestRadius * config.harvestRadius || !movement.HasTarget)
         {
             movement.Stop();
             if (executor.UpdateHarvest(targetCrop, transform))

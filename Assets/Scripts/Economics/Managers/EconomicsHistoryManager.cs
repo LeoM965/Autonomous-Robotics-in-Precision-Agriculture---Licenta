@@ -34,10 +34,10 @@ namespace Economics.Managers
             }
         }
 
-        private void OnDayChanged(int newDay)
+        private void OnDayChanged()
         {
-            // Capture snapshot for the day that just ended
-            CaptureSnapshot(newDay - 1);
+            if (TimeManager.Instance != null)
+                CaptureSnapshot(TimeManager.Instance.currentDay - 1);
         }
 
         public void CaptureSnapshot(int dayIndex)

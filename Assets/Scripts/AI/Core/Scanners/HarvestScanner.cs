@@ -34,7 +34,7 @@ namespace AI.Core.Scanners
             int count = 0;
             foreach (var crop in parcel.activeCrops)
             {
-                if (crop != null && crop.IsFullyGrown) count++;
+                if (crop != null && crop.IsHarvestable) count++;
             }
             return count;
         }

@@ -9,8 +9,11 @@ namespace Sensors.Models
         [Header("Ranges (min, max)")]
         public Vector2 moisture;
         public Vector2 pH;
+        [Tooltip("Nitrogen in kg/ha")]
         public Vector2 nitrogen;
+        [Tooltip("Phosphorus in kg/ha")]
         public Vector2 phosphorus;
+        [Tooltip("Potassium in kg/ha")]
         public Vector2 potassium;
 
         public SoilComposition Generate()
@@ -29,15 +32,15 @@ namespace Sensors.Models
     [CreateAssetMenu(fileName = "SoilSettings", menuName = "Robotics/Sensors/Soil Settings")]
     public class SoilSettings : ScriptableObject
     {
-        [Header("Nutrient Optimal Values (ppm)")]
-        public float nOptimal = 480f;
-        public float pOptimal = 22f;
-        public float kOptimal = 280f;
+        [Header("Nutrient Optimal Values (kg/ha)")]
+        public float nOptimal = 130f;
+        public float pOptimal = 80f;
+        public float kOptimal = 120f;
 
-        [Header("Nutrient Critical Thresholds (ppm)")]
-        public float nCritical = 240f;
-        public float pCritical = 11f;
-        public float kCritical = 110f;
+        [Header("Nutrient Critical Thresholds (kg/ha)")]
+        public float nCritical = 70f;
+        public float pCritical = 40f;
+        public float kCritical = 60f;
 
         [Header("pH Thresholds")]
         public float phIdeal = 6.5f;

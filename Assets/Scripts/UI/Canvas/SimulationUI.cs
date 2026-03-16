@@ -7,6 +7,7 @@ namespace UI.Canvas
     public class SimulationUI : MonoBehaviour
     {
         public TextMeshProUGUI timeText;
+        public TextMeshProUGUI dateText;
         public TextMeshProUGUI seasonText;
         public TextMeshProUGUI weatherText;
         public TextMeshProUGUI tempText;
@@ -26,7 +27,20 @@ namespace UI.Canvas
         {
             if (TimeManager.Instance != null)
             {
-                if (timeText) timeText.text = TimeManager.Instance.CurrentDate.ToString("HH:mm");
+                var date = TimeManager.Instance.CurrentDate;
+                string timeStr = date.ToString("HH:mm");
+                string dateStr = $"{date.Day} {GetMonthRomanian(date.Month)} {date.Year}";
+
+                if (dateText)
+                {
+                    if (timeText) timeText.text = timeStr;
+                    dateText.text = dateStr;
+                }
+                else if (timeText)
+                {
+                    timeText.text = $"{timeStr} | {dateStr}";
+                }
+
                 if (seasonText) seasonText.text = GetSeasonRomanian(TimeManager.Instance.GetCurrentSeason());
             }
 
@@ -36,6 +50,13 @@ namespace UI.Canvas
                 if (tempText) tempText.text = $"{WeatherSystem.Instance.CurrentTemperature:F1}°C";
             }
         }
+
+        private string GetMonthRomanian(int m) => m switch
+        {
+            1 => "Ian", 2 => "Feb", 3 => "Mar", 4 => "Apr", 5 => "Mai", 6 => "Iun",
+            7 => "Iul", 8 => "Aug", 9 => "Sep", 10 => "Oct", 11 => "Noi", 12 => "Dec",
+            _ => "N/A"
+        };
 
         private string GetSeasonRomanian(Weather.Models.Season s) => s switch
         {

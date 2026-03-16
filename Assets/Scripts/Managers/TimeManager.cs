@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Globalization;
 using Weather.Models;
 
 public class TimeManager : MonoBehaviour
@@ -11,16 +12,21 @@ public class TimeManager : MonoBehaviour
     [SerializeField] private float robotRealSpeedKmh = 5f; 
     
     [Header("Current State")]
-    public int currentDay = 1;
-    public float timeOfDay = 8f; 
-    public float TotalSimulatedHours => (currentDay - 1) * 24f + timeOfDay;
+    public float totalSimulatedHours = 8f; 
+    public float TotalSimulatedHours => totalSimulatedHours;
+    public bool IsInitialized { get; private set; } = true;
+
+    public int currentDay => Mathf.FloorToInt(totalSimulatedHours / 24) + 1;
+    public float timeOfDay => totalSimulatedHours % 24;
+
+    private readonly DateTime startDate = new DateTime(2024, 1, 1);
+    public DateTime CurrentDate => startDate.AddHours(totalSimulatedHours);
     
-    public event Action<int> OnDayChanged;
+    public event Action OnDayChanged; 
     public event Action<float> OnHourChanged;
     public event Action<Season> OnSeasonChanged;
     public event Action<float> OnTimeJumped;
 
-    private int totalDaysPassed = 0;
     private float secondsPerMeter;
     private int activeRobotCount = 0;
 
@@ -31,92 +37,72 @@ public class TimeManager : MonoBehaviour
 
         float speedMps = (robotRealSpeedKmh * 1000f) / 3600f;
         secondsPerMeter = 1f / speedMps;
-        
-        Debug.Log($"[TimeManager] Calibrated: 1 meter = {secondsPerMeter:F2} simulated seconds.");
     }
 
-    public void RegisterRobot()
-    {
-        activeRobotCount++;
-    }
-
-    public void UnregisterRobot()
-    {
-        if (activeRobotCount > 0)
-            activeRobotCount--;
-    }
+    public void RegisterRobot() => activeRobotCount++;
+    public void UnregisterRobot() => activeRobotCount = Mathf.Max(0, activeRobotCount - 1);
 
     public void AddDistanceTraveled(float distanceMeters)
     {
-        int count = Mathf.Max(1, activeRobotCount);
-        float simulatedSeconds = (distanceMeters * secondsPerMeter) / count;
-        
-        float hoursPassed = simulatedSeconds / 3600f;
-        
-        AdvanceTime(hoursPassed);
+        float hours = (distanceMeters * secondsPerMeter) / Mathf.Max(1, activeRobotCount) / 3600f;
+        AdvanceTime(hours);
     }
     
     public void AddWorkTime(float simulatedSeconds)
     {
-        int count = Mathf.Max(1, activeRobotCount);
-        float hoursPassed = (simulatedSeconds / count) / 3600f;
-        AdvanceTime(hoursPassed);
+        float hours = (simulatedSeconds / Mathf.Max(1, activeRobotCount)) / 3600f;
+        AdvanceTime(hours);
     }
 
     public void AdvanceTime(float hoursToAdd)
     {
         int oldHour = Mathf.FloorToInt(timeOfDay);
+        int oldDay = currentDay;
         
-        timeOfDay += hoursToAdd;
+        totalSimulatedHours += hoursToAdd;
 
-        bool dayChanged = false;
-        
-        while (timeOfDay >= 24f)
+        if (Mathf.FloorToInt(timeOfDay) != oldHour) OnHourChanged?.Invoke(timeOfDay);
+        if (currentDay != oldDay)
         {
-            timeOfDay -= 24f;
-            currentDay++;
-            totalDaysPassed++;
-            dayChanged = true;
-        }
-
-        int newHour = Mathf.FloorToInt(timeOfDay);
-        if (newHour != oldHour)
-        {
-            OnHourChanged?.Invoke(timeOfDay);
-        }
-
-        if (dayChanged)
-        {
-            OnDayChanged?.Invoke(currentDay);
+            OnDayChanged?.Invoke();
             OnSeasonChanged?.Invoke(GetCurrentSeason());
         }
     }
 
     public void SkipDays(int days)
     {
-        if (days <= 0) return;
         AdvanceTime(days * 24f);
         OnTimeJumped?.Invoke(days * 24f);
     }
 
-    public void FireTimeJumped(float hours)
+    public void SkipToDate(int day, int month)
     {
-        OnTimeJumped?.Invoke(hours);
+        try
+        {
+            DateTime current = CurrentDate;
+            DateTime target = new DateTime(current.Year, month, day, 8, 0, 0);
+
+            if (target <= current) target = target.AddYears(1);
+
+            double hours = (target - current).TotalHours;
+            AdvanceTime((float)hours);
+            OnTimeJumped?.Invoke((float)hours);
+            Debug.Log($"[TimeManager] Jumped to {target:d MMM yyyy}");
+        }
+        catch (Exception)
+        {
+            Debug.LogError($"[TimeManager] Data invalida: Zi {day}, Luna {month}");
+        }
     }
 
     public Season GetCurrentSeason()
     {
-        int dayOfYear = totalDaysPassed % 365;
-        if (dayOfYear < 90) return Season.Spring;
-        if (dayOfYear < 180) return Season.Summer;
-        if (dayOfYear < 270) return Season.Autumn;
+        int month = CurrentDate.Month;
+        if (month >= 3 && month <= 5) return Season.Spring;
+        if (month >= 6 && month <= 8) return Season.Summer;
+        if (month >= 9 && month <= 11) return Season.Autumn;
         return Season.Winter;
     }
 
-    public string GetFormattedTime()
-    {
-        int h = Mathf.FloorToInt(timeOfDay);
-        int m = Mathf.FloorToInt((timeOfDay - h) * 60);
-        return $"Day {currentDay} - {h:00}:{m:00}";
-    }
+    public string GetFormattedTime() => CurrentDate.ToString("d MMM yyyy, HH:mm");
 }

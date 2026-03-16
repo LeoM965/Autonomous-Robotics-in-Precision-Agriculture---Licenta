@@ -11,7 +11,8 @@ public class CropHarvester : RobotOperator
     protected override void Start()
     {
         base.Start();
-        operation = new HarvesterOperation(transform, movement, energy, config);
+        var db = CropLoader.Load();
+        operation = new HarvesterOperation(transform, movement, energy, config, db);
         Invoke(nameof(ScanForMatureCrops), 5f);
     }
 
@@ -53,7 +54,7 @@ public class CropHarvester : RobotOperator
     private static bool HasHarvestableCrops(EnvironmentalSensor p)
     {
         foreach (var c in p.activeCrops)
-            if (c != null && c.IsFullyGrown && !c.IsBeingHarvested) return true;
+            if (c != null && c.IsHarvestable) return true;
         return false;
     }
 

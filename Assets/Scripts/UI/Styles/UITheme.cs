@@ -1,4 +1,5 @@
 using UnityEngine;
+using UI.Utils;
 
 [CreateAssetMenu(fileName = "UITheme", menuName = "Farm/UI Theme")]
 public class UITheme : ScriptableObject
@@ -44,6 +45,7 @@ public class UITheme : ScriptableObject
     public GUIStyle Tab => SBtn(ref tabStyle, 11, FontStyle.Normal, tabColor);
     public GUIStyle TabActive => SBtn(ref tabActiveStyle, 11, FontStyle.Bold, Color.white);
     public GUIStyle Button => SBtn(ref buttonStyle, 12, FontStyle.Bold, Color.white);
+    public GUIStyle Input => SBtn(ref labelStyle, 11, FontStyle.Normal, labelColor); // Using a button-like base for border support
 
     public Texture2D TabBg => tabBackgroundTexture ??= GenerateSolidColorTexture(tabBackground);
     public Texture2D TabActiveBg => tabActiveBackgroundTexture ??= GenerateSolidColorTexture(tabActiveBackground);

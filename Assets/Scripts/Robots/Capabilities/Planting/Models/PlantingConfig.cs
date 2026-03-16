@@ -13,4 +13,5 @@ public class PlantingConfig
 
     [Header("Quality")]
     public float minSoilQuality = 0.3f;
+    public float rescanInterval = 15f;
 }

@@ -12,11 +12,11 @@ namespace Sensors.Models
         public float pH;
         
         [Header("Nutrients (NPK)")]
-        [Tooltip("Nitrogen in ppm")]
+        [Tooltip("Nitrogen in kg/ha")]
         public float nitrogen;
-        [Tooltip("Phosphorus in ppm")]
+        [Tooltip("Phosphorus in kg/ha")]
         public float phosphorus;
-        [Tooltip("Potassium in ppm")]
+        [Tooltip("Potassium in kg/ha")]
         public float potassium;
 
         [Header("Dynamics")]

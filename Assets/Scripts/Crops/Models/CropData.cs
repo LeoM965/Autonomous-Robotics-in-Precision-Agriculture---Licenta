@@ -10,6 +10,8 @@ public class CropData
     public float yieldWeightKg;
     public float marketPricePerKg;
     public int growthDays;
+    public float nitrogenConsumptionRate;
+    public bool isFrostResistant;
 
     public float yieldValueEUR => yieldWeightKg * marketPricePerKg;
     public float GrowthHours => growthDays * 24f;

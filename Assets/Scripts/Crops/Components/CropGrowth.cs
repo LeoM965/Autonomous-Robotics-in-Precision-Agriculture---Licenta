@@ -13,9 +13,14 @@ public class CropGrowth : MonoBehaviour, ICropHandler
     [Header("Components")]
     [SerializeField] private CropVisualScaling scaler;
     [SerializeField] private CropHarvestVisuals harvestFX;
+    private Sensors.Components.EnvironmentalSensor parentSensor;
+
+    private float customNitrogenConsumption = -1f;
+    private int cropIndex = -1;
 
     public bool IsFullyGrown => state.stage == CropStage.Mature;
     public bool IsBeingHarvested => state.isBeingHarvested;
+    public bool IsHarvestable => IsFullyGrown && !IsBeingHarvested;
     public CropStage CurrentStage => state.stage;
     public float Progress => state.progress;
     public float PurchasePrice => state.purchasePrice;
@@ -47,11 +52,13 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         if (CropManager.Instance) CropManager.Instance.UnregisterCrop(this);
     }
 
-    public void Initialize(float growthTime, float seedCost)
+    public void Initialize(float growthTime, float seedCost, float nConsumption = -1f, float nOptimal = -1f, int index = -1)
     {
         if (growthTime <= 0) return;
         state.growthTime = growthTime;
         state.purchasePrice = seedCost;
+        customNitrogenConsumption = nConsumption;
+        cropIndex = index;
         ResetGrowth();
     }
 
@@ -78,11 +85,31 @@ public class CropGrowth : MonoBehaviour, ICropHandler
 
         if (deltaHours <= 0) return;
 
+        if (!parentSensor) parentSensor = GetComponentInParent<Sensors.Components.EnvironmentalSensor>();
+        float nMultiplier = 1f;
+
+        if (parentSensor)
+        {
+            // Consume Nitrogen
+            float consumeRate = customNitrogenConsumption >= 0 ? customNitrogenConsumption : settings.nitrogenConsumptionRate;
+            parentSensor.AdjustNutrients(-consumeRate * deltaHours, 0, 0);
+
+            // Calculate Growth Multiplier based on current Nitrogen
+            float optimalN = (cropIndex >= 0 && Settings.SimulationSettings.N_Opt != null && cropIndex < Settings.SimulationSettings.N_Opt.Length)
+                ? Settings.SimulationSettings.N_Opt[cropIndex]
+                : (settings != null ? settings.nitrogenOptimalThreshold : 50f);
+
+            if (optimalN > 0)
+            {
+                nMultiplier = Mathf.Clamp01(parentSensor.nitrogen / optimalN);
+            }
+        }
+
         float weatherMultiplier = Weather.Components.WeatherSystem.Instance != null
             ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier()
             : 1f;
 
-        state.elapsed += deltaHours * weatherMultiplier;
+        state.elapsed += deltaHours * weatherMultiplier * nMultiplier;
         state.progress = Mathf.Clamp01(state.elapsed / state.growthTime);
 
         CropStage newStage = scaler.DetermineStage(state.progress);

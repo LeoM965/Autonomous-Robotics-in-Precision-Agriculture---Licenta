@@ -3,30 +3,45 @@ using Sensors.Components;
 
 public class HarvestExecutor
 {
-    private EnvironmentalSensor parcel;
     private int harvestedInParcel;
     private float harvestTimer;
     private float harvestDelay;
 
+    // Cached per-parcel (set once in SetTarget, used for all crops in parcel)
+    private string varietyName;
+    private int cropIndex;
+    private float baseWeight;
+    private float marketPrice;
+
     public int HarvestedInParcel => harvestedInParcel;
 
-    public void SetTarget(EnvironmentalSensor targetParcel, float delay)
+    public void SetTarget(EnvironmentalSensor targetParcel, float delay, CropDatabase db)
     {
-        parcel = targetParcel;
         harvestDelay = delay;
         harvestedInParcel = 0;
+        varietyName = targetParcel.plantedVarietyName;
+
+        // Cache economic data once per parcel instead of per-crop
+        cropIndex = db != null ? db.GetIndex(varietyName) : -1;
+        var data = cropIndex >= 0 ? db.crops[cropIndex] : null;
+
+        var yWeights = Settings.SimulationSettings.YieldWeights;
+        var mPrices = Settings.SimulationSettings.MarketPrices;
+
+        baseWeight = (yWeights != null && cropIndex >= 0 && cropIndex < yWeights.Length)
+            ? yWeights[cropIndex] : (data?.yieldWeightKg ?? 1f);
+        marketPrice = (mPrices != null && cropIndex >= 0 && cropIndex < mPrices.Length)
+            ? mPrices[cropIndex] : (data?.marketPricePerKg ?? 1f);
     }
 
     public bool UpdateHarvest(CropGrowth crop, Transform robotTransform)
     {
-        if (crop == null || crop.IsBeingHarvested || !crop.IsFullyGrown) return true;
+        if (crop == null || !crop.IsHarvestable) return true;
 
         harvestTimer += Time.deltaTime;
         if (harvestTimer >= harvestDelay)
         {
-            // Report revenue before destroying the crop information context
             ReportRevenue(crop, robotTransform);
-
             crop.Harvest();
             harvestedInParcel++;
             harvestTimer = 0f;
@@ -40,35 +55,20 @@ public class HarvestExecutor
         if (Economics.Managers.RobotEconomicsManager.Instance == null) return;
 
         var sensor = crop.GetComponentInParent<EnvironmentalSensor>();
-        if (sensor == null || string.IsNullOrEmpty(sensor.plantedVarietyName)) return;
+        if (sensor == null) return;
 
-        var db = CropLoader.Load();
-        var data = db?.Get(sensor.plantedVarietyName);
-        if (data != null)
-        {
-            int cropIndex = db.GetIndex(sensor.plantedVarietyName);
-            float soilQuality = sensor.LatestAnalysis.qualityScore / 100f;
+        float soilQuality = sensor.LatestAnalysis.qualityScore / 100f;
+        float weight = baseWeight * soilQuality * crop.Progress;
+        float revenue = marketPrice * weight;
 
-            var yWeights = Settings.SimulationSettings.YieldWeights;
-            var mPrices = Settings.SimulationSettings.MarketPrices;
-
-            float baseWeight = (yWeights != null && cropIndex >= 0 && cropIndex < yWeights.Length)
-                ? yWeights[cropIndex] : data.yieldWeightKg;
-            float marketPrice = (mPrices != null && cropIndex >= 0 && cropIndex < mPrices.Length)
-                ? mPrices[cropIndex] : data.marketPricePerKg;
-
-            float weight = baseWeight * soilQuality * crop.Progress;
-            float revenue = marketPrice * weight;
-            float seedCost = crop.PurchasePrice;
-
-            Economics.Managers.RobotEconomicsManager.Instance.AddRobotRevenue(robot, revenue);
-            sensor.RecordHarvest(weight, revenue, seedCost);
-        }
+        Economics.Managers.RobotEconomicsManager.Instance.AddRobotRevenue(robot, revenue);
+        sensor.RecordHarvest(weight, revenue, crop.PurchasePrice);
     }
 
     public void Reset()
     {
-        parcel = null;
         harvestedInParcel = 0;
+        varietyName = null;
+        cropIndex = -1;
     }
 }

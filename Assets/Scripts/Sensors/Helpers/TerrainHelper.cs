@@ -1,4 +1,5 @@
 using UnityEngine;
+using Sensors.Components;
 public static class TerrainHelper
 {
     public static float GetHeight(Vector3 position)
@@ -11,16 +12,18 @@ public static class TerrainHelper
     public static float GetSurfaceHeight(Vector3 pos)
     {
         float terrainH = GetHeight(pos);
-        Vector3 rayStart = new Vector3(pos.x, terrainH + 10f, pos.z);
-        RaycastHit hit;
-        if (Physics.Raycast(rayStart, Vector3.down, out hit, 15f, ~0, QueryTriggerInteraction.Collide))
-            return Mathf.Max(hit.point.y, terrainH) + 0.02f;
-        return terrainH;
+        var hits = Physics.RaycastAll(new Vector3(pos.x, terrainH + 10, pos.z), Vector3.down, 15f);
+        float bestY = terrainH;
+        foreach (var hit in hits)
+        {
+            if (hit.collider.GetComponentInParent<EnvironmentalSensor>() != null)
+                bestY = Mathf.Max(bestY, hit.point.y);
+        }
+        return bestY + 0.02f;
     }
     public static Vector3 GetPosition(float x, float z, float yOffset)
     {
-        float y = GetHeight(new Vector3(x, 0, z));
-        return new Vector3(x, y + yOffset, z);
+        return new Vector3(x, GetSurfaceHeight(new Vector3(x, 0, z)) + yOffset, z);
     }
     public static bool IsInsideZone(Vector3 position, Vector2 v1, Vector2 v2)
     {

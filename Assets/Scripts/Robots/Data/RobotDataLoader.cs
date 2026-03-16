@@ -18,11 +18,11 @@ public static class RobotDataLoader
     {
         var db = Load();
         if (db?.robots == null) return null;
+
+        string searchName = robotName;
+        
         foreach (var entry in db.robots)
         {
-            string searchName = robotName;
-            if (searchName.StartsWith("AqBot")) searchName = searchName.Replace("AqBot", "AgBot");
-            
             if (searchName.StartsWith(entry.namePrefix)) return entry;
         }
         return null;

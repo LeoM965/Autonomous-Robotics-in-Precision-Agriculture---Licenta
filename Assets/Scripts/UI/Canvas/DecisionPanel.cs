@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using AI.Analytics;
 using AI.Models.Decisions;
+using Robots.Capabilities.Flight;
 
 namespace UI.Canvas
 {
@@ -97,7 +98,12 @@ namespace UI.Canvas
         protected override Transform FindTarget(Transform t)
         {
             var op = t.GetComponentInParent<RobotOperator>();
-            return op != null ? op.transform : null;
+            if (op != null) return op.transform;
+            
+            var flight = t.GetComponentInParent<AgroBotFlight>();
+            if (flight != null) return flight.transform;
+
+            return null;
         }
 
 
