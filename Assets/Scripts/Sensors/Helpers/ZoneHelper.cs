@@ -12,7 +12,7 @@ public static class ZoneHelper
             if (TerrainHelper.IsInsideZone(position, zone.startXZ, zone.endXZ))
                 return zone;
         }
-        return fence.zones[0];
+        return null; // Return null if not in any specific zone
     }
     public static bool IsInZone(Vector3 position, FenceZone zone)
     {

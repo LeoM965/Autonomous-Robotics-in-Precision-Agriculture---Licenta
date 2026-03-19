@@ -14,7 +14,7 @@ namespace Robots.Models
 
         public float Percentage => currentKWh / maxKWh;
         public bool IsCritical => currentKWh < maxKWh * 0.15f;
-        public bool IsFull => currentKWh >= maxKWh;
+        public bool IsFull => currentKWh >= maxKWh * 0.99f;
 
         public void Consume(float amount)
         {

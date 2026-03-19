@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using Robots.Models;
 using Economics.Managers;
+using Settings;
 
 public class RobotEnergy : MonoBehaviour
 {
@@ -19,29 +20,61 @@ public class RobotEnergy : MonoBehaviour
 
     public float BatteryPercent => battery.Percentage;
     public float CurrentBattery => battery.currentKWh;
+    public bool IsFull => battery.IsFull;
+    public bool IsCharging => isCharging;
+    public bool IsWorking => isWorking;
+
+    private void OnEnable()
+    {
+        SimulationSettings.OnSettingsChanged += UpdateFromStaticData;
+    }
+
+    private void OnDisable()
+    {
+        SimulationSettings.OnSettingsChanged -= UpdateFromStaticData;
+    }
 
     private void Start()
     {
         lastPosition = transform.position;
         
+        if (GetComponent<BatteryBarUI>() == null)
+            gameObject.AddComponent<BatteryBarUI>();
+
+        UpdateFromStaticData();
+        OnBatteryChanged?.Invoke(BatteryPercent);
+    }
+
+    public void UpdateFromStaticData()
+    {
         var data = RobotDataLoader.FindByName(name);
         if (data != null)
         {
             battery.maxKWh = data.batteryCapacity / 1000f;
-            battery.currentKWh = battery.maxKWh;
+            battery.currentKWh = Mathf.Min(battery.currentKWh, battery.maxKWh);
+            
             battery.consumptionMeter = data.consumptionMeter;
             battery.consumptionWorkSec = data.consumptionWorkSec;
             battery.consumptionStandbySec = data.consumptionStandbySec;
+            if (data.rechargeRate > 0) battery.rechargeRate = data.rechargeRate;
         }
-        OnBatteryChanged?.Invoke(BatteryPercent);
     }
 
     private void Update()
     {
+        float multiplier = SimulationSpeedController.Instance != null ? SimulationSpeedController.Instance.FairnessMultiplier : 1f;
+
         if (isCharging)
         {
-            battery.Recharge(Time.deltaTime);
-            if (battery.IsFull) isCharging = false;
+            battery.Recharge(Time.deltaTime * multiplier);
+            
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.AddWorkTime(Time.deltaTime);
+
+            if (battery.IsFull) 
+            {
+                isCharging = false;
+            }
             OnBatteryChanged?.Invoke(BatteryPercent);
             return;
         }
@@ -59,7 +92,6 @@ public class RobotEnergy : MonoBehaviour
                 TimeManager.Instance.AddDistanceTraveled(dist);
         }
 
-        float multiplier = SimulationSpeedController.Instance != null ? SimulationSpeedController.Instance.FairnessMultiplier : 1f;
         float effectiveDT = Time.deltaTime * multiplier;
 
         consumed += (isWorking ? battery.consumptionWorkSec : battery.consumptionStandbySec) * effectiveDT;
@@ -103,6 +135,7 @@ public class RobotEnergy : MonoBehaviour
     public void SetFullBattery()
     {
         battery.currentKWh = battery.maxKWh;
+        isCharging = false;
         OnBatteryChanged?.Invoke(BatteryPercent);
     }
 }

@@ -71,13 +71,15 @@ public class BuildingSpawner : MonoBehaviour
         foreach (Building b in Instance.buildings)
         {
             if (b.type != BuildingType.ChargingStation) continue;
-            FenceZone stationZone = ZoneHelper.GetZoneAt(b.position);
-            if (stationZone != robotZone) continue;
-            float dist = (b.position - position).sqrMagnitude;
-            if (dist < minDist)
+            
+            if (ZoneHelper.GetZoneAt(b.position) == robotZone)
             {
-                minDist = dist;
-                best = b.position;
+                float dist = (b.position - position).sqrMagnitude;
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    best = b.position;
+                }
             }
         }
         return best;

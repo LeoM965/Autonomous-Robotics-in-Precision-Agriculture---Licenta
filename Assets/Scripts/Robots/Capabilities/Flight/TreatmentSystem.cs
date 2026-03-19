@@ -15,26 +15,36 @@ namespace Robots.Capabilities.Flight
             droneTransform = drone;
         }
 
-        public void ApplyTreatment(EnvironmentalSensor target)
+        public void ProcessTreatment(EnvironmentalSensor target, ref float timer)
         {
-            if (target == null) return;
+            if (target == null) { timer = 0; return; }
+            var data = CropLoader.Load()?.Get(target.plantedVarietyName);
+            float requiredN = data?.requirements?.nitrogen?.optimal ?? 100f;
 
+            if (target.nitrogen < requiredN)
+            {
+                ApplyTreatment(target, data);
+                timer -= Time.deltaTime;
+            }
+            else
+            {
+                timer = 0;
+            }
+        }
+
+        private void ApplyTreatment(EnvironmentalSensor target, CropData data)
+        {
             float speedAmount = TREATMENT_SPEED * Time.deltaTime;
             float nToAdd = speedAmount;
             float pToAdd = speedAmount * 0.5f;
             float kToAdd = speedAmount * 0.3f;
 
-            var data = CropLoader.Load()?.Get(target.plantedVarietyName);
             if (data?.requirements?.nitrogen != null)
             {
                 var reqs = data.requirements;
-                
-                // Calculate how much is missing up to the optimal level
                 float missingN = Mathf.Max(0, reqs.nitrogen.optimal - target.nitrogen);
                 float missingP = Mathf.Max(0, reqs.phosphorus.optimal - target.phosphorus);
                 float missingK = Mathf.Max(0, reqs.potassium.optimal - target.potassium);
-
-                // Calculate total missing to get proportions
                 float totalMissing = missingN + missingP + missingK;
 
                 if (totalMissing > 0)
@@ -45,7 +55,6 @@ namespace Robots.Capabilities.Flight
                 }
             }
             
-            // Limit spraying if it reached the target
             target.AdjustNutrients(nToAdd, pToAdd, kToAdd);
             LogDecision(target);
         }
@@ -53,13 +62,11 @@ namespace Robots.Capabilities.Flight
         private void LogDecision(EnvironmentalSensor target)
         {
             if (DecisionTracker.Instance == null) return;
-
             var d = new DecisionRecord();
             d.decisionType = "Soil Treatment";
             d.chosenOption = "Pulverizing nutrients on " + target.name;
             d.parcelName = target.name;
             d.chosenScore = 100f;
-            
             d.factors = new DecisionFactors
             {
                 phScore = target.soilPH * 10f,
@@ -68,7 +75,6 @@ namespace Robots.Capabilities.Flight
                 phosphorusScore = target.phosphorus / 10f,
                 potassiumScore = target.potassium / 10f
             };
-
             DecisionTracker.Instance.RecordDecision(droneTransform, d);
         }
     }

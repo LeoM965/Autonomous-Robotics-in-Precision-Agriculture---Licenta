@@ -21,7 +21,7 @@ namespace UI.Menus.Tabs
             foreach (var crop in crops)
             {
                 activeReport.AnalysisByVariety.TryGetValue(crop.name, out var stats);
-                DrawDataRow(x, y, crop.name, stats, theme, isTotalRow: false);
+                DrawDataRowCustom(x, y, crop.name, stats, stats.NetProfit, theme, isTotalRow: false);
                 y += 17;
             }
 
@@ -38,11 +38,6 @@ namespace UI.Menus.Tabs
         {
             string[] headers = { "Cultură", "Plant", "Cost €", "Venit €", "Kg", "Profit €", "ROI %", "Fit %" };
             UIDrawUtils.DrawRow(x, y, colOffsets, headers, theme.Value, colWidth: 65f);
-        }
-
-        private void DrawDataRow(float x, float y, string label, CropStats s, UITheme theme, bool isTotalRow)
-        {
-            DrawDataRowCustom(x, y, label, s, s.NetProfit, theme, isTotalRow);
         }
 
         private void DrawDataRowCustom(float x, float y, string label, CropStats s, float profitToShow, UITheme theme, bool isTotalRow)

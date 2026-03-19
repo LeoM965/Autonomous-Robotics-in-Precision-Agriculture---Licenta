@@ -4,6 +4,7 @@ namespace Robots.Models
     {
         Initializing,
         Navigating,
-        HoveringAtTarget
+        HoveringAtTarget,
+        Charging
     }
 }

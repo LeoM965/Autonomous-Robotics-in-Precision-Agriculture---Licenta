@@ -1,73 +1,68 @@
 using UnityEngine;
+using Robots.Movement.Interfaces;
 
 public class RobotEnergyManager
 {
     private RobotEnergy energy;
-    private RobotMovement movement;
+    private IRobotMovement movement;
     private Transform transform;
     private Vector3? currentChargerTarget;
-    private float chargingTimer;
-    private bool isCharging;
+    private bool isHeadingToCharger;
 
-    public RobotEnergyManager(Transform t, RobotEnergy e, RobotMovement m)
+    public RobotEnergyManager(Transform t, RobotEnergy e, IRobotMovement m)
     {
         transform = t;
         energy = e;
         movement = m;
     }
 
-    public bool IsCharging => isCharging;
-    public float ChargingTimer => chargingTimer;
+    public bool IsHeadingToCharger => isHeadingToCharger;
 
     public bool CheckBattery(float distance, float estimatedWorkSeconds)
     {
         if (energy != null && !energy.HasEnoughEnergy(distance, estimatedWorkSeconds))
         {
-            GoToCharger();
+            StartNavigationToCharger();
             return false;
         }
         return true;
     }
 
-    private void GoToCharger()
+    private void StartNavigationToCharger()
     {
         Vector3? station = BuildingSpawner.GetNearestChargingStation(transform.position);
         if (station.HasValue)
         {
             currentChargerTarget = station.Value;
             movement.SetTarget(station.Value);
-            isCharging = true;
+            isHeadingToCharger = true;
         }
-        else isCharging = false;
+        else 
+        {
+            isHeadingToCharger = false;
+            currentChargerTarget = null;
+        }
     }
 
     public void Update()
     {
-        if (!isCharging) return;
-        if (currentChargerTarget.HasValue) CheckArrivalAtCharger();
-        else CheckChargingStatus();
+        if (isHeadingToCharger && currentChargerTarget.HasValue) 
+            CheckArrivalAtCharger();
     }
 
     private void CheckArrivalAtCharger()
     {
         if (!currentChargerTarget.HasValue) return;
-        Vector3 diff = transform.position - currentChargerTarget.Value;
-        if (diff.x * diff.x + diff.z * diff.z < 25f || !movement.HasTarget)
+
+        float sqrDist = (transform.position - currentChargerTarget.Value).sqrMagnitude;
+        bool hasReachedStation = sqrDist < 36f || movement.HasArrived || !movement.HasTarget;
+
+        if (hasReachedStation)
         {
             movement.Stop();
             if (energy != null) energy.StartCharging();
-            chargingTimer = 5.0f;
+            isHeadingToCharger = false;
             currentChargerTarget = null;
-        }
-    }
-
-    private void CheckChargingStatus()
-    {
-        chargingTimer -= Time.deltaTime;
-        if (chargingTimer <= 0f)
-        {
-            if (energy != null) energy.SetFullBattery();
-            isCharging = false;
         }
     }
 }

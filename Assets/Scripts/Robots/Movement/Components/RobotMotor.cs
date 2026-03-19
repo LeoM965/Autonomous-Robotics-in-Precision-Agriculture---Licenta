@@ -31,6 +31,16 @@ namespace Robots.Components.Movement
         private float heightCheckTimer;
         private const float HEIGHT_CHECK_INTERVAL = 0.1f;
 
+        private void OnEnable()
+        {
+            Settings.SimulationSettings.OnSettingsChanged += UpdateFromSettings;
+        }
+
+        private void OnDisable()
+        {
+            Settings.SimulationSettings.OnSettingsChanged -= UpdateFromSettings;
+        }
+
         public void Initialize(Terrain t, Rect bounds, float offset)
         {
             terrain = t;
@@ -39,8 +49,19 @@ namespace Robots.Components.Movement
             currentAngle = targetAngle = transform.eulerAngles.y;
             pathfinder = GetComponent<RobotPathfinder>();
 
+            UpdateFromSettings();
+
             if (terrain != null)
                 currentHeight = TerrainHelper.GetHeight(transform.position) + groundOffset;
+        }
+
+        private void UpdateFromSettings()
+        {
+            var data = RobotDataLoader.FindByName(name);
+            if (data != null)
+            {
+                speed = data.maxSpeed;
+            }
         }
 
         public void Stop()

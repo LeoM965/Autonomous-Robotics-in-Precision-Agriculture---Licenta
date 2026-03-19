@@ -102,9 +102,6 @@ public class PlanterOperation
 
         if (crop == null) return;
 
-        if (!Settings.SimulationSettings.IsInitialized || Settings.SimulationSettings.SeedCosts.Length != cropDB.crops.Length)
-            Settings.SimulationSettings.InitFromDatabase(cropDB);
-        
         Collider col = parcel.GetComponent<Collider>();
         if (col != null)
         {

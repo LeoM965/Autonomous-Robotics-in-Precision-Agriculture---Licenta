@@ -3,10 +3,6 @@ using Robots.Models;
 
 namespace Robots.Capabilities.Flight
 {
-    /// <summary>
-    /// KISS: Handles only the physical movement and hover effects of the drone.
-    /// SRP: Dedicated to drone "motor" responsibilities.
-    /// </summary>
     public class DroneMotor : MonoBehaviour
     {
         private Transform flightBody;
@@ -26,7 +22,6 @@ namespace Robots.Capabilities.Flight
             {
                 Vector3 dir = target - flightBody.position;
                 dir.y = 0;
-
                 if (dir.magnitude > 0.1f)
                 {
                     Vector3 moveDir = dir.normalized;
@@ -34,7 +29,6 @@ namespace Robots.Capabilities.Flight
                     flightBody.rotation = Quaternion.Slerp(flightBody.rotation, Quaternion.LookRotation(moveDir), Time.deltaTime * 3f);
                 }
             }
-
             ApplyHoverAndClamping();
         }
 
@@ -42,13 +36,11 @@ namespace Robots.Capabilities.Flight
         {
             Vector3 pos = flightBody.position;
             pos.y = settings.altitude + Mathf.Sin(Time.time * settings.AngularHoverFrequency) * settings.hoverAmplitude;
-            
             if (region != null)
             {
                 pos.x = Mathf.Clamp(pos.x, region.Bounds.xMin - 5f, region.Bounds.xMax + 5f);
                 pos.z = Mathf.Clamp(pos.z, region.Bounds.yMin - 5f, region.Bounds.yMax + 5f);
             }
-            
             flightBody.position = pos;
         }
 

@@ -38,6 +38,12 @@ public class BatteryBarUI : MonoBehaviour
         float pct = energy.BatteryPercent;
         Color barColor = pct > 0.5f ? Color.green : (pct > 0.2f ? Color.yellow : Color.red);
         
+        if (energy.IsCharging)
+        {
+            float pulse = (Mathf.Sin(Time.time * 8f) + 1f) * 0.5f;
+            barColor = Color.Lerp(barColor, Color.cyan, pulse * 0.7f);
+        }
+
         float x = screenPos.x - barSize.x / 2;
         float y = Screen.height - screenPos.y - barSize.y / 2;
 
@@ -47,6 +53,13 @@ public class BatteryBarUI : MonoBehaviour
         GUI.color = barColor;
         GUI.DrawTexture(new Rect(x, y, barSize.x * pct, barSize.y), Texture2D.whiteTexture);
         
+        if (energy.IsCharging)
+        {
+            GUIStyle textStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            GUI.color = Color.white;
+            GUI.Label(new Rect(x, y, barSize.x, barSize.y), "CHARGING");
+        }
+
         GUI.color = Color.white;
     }
 }

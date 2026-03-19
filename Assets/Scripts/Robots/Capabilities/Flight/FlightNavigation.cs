@@ -13,54 +13,59 @@ namespace Robots.Capabilities.Flight
 
         public EnvironmentalSensor CurrentTarget { get; private set; }
 
-        public void Initialize(OperationRegion region)
+        public void SetupRegion(Transform robotTransform)
         {
-            this.region = region;
-            PopulateParcels();
+            var fence = Object.FindFirstObjectByType<FenceGenerator>();
+            if (fence?.zones != null && fence.zones.Length > 0)
+            {
+                var nearestZone = FindNearestZone(robotTransform.position, fence.zones);
+                region = OperationRegion.FromZone(nearestZone);
+            }
+            else
+            {
+                region = new OperationRegion(new Rect(0, 0, 1000, 1000));
+            }
+            RefreshParcels();
         }
 
-        public void PopulateParcels()
+        private FenceZone FindNearestZone(Vector3 pos, FenceZone[] zones)
+        {
+            float minSqrDist = float.MaxValue;
+            FenceZone best = zones[0];
+            foreach (var zone in zones)
+            {
+                Vector2 center = (zone.startXZ + zone.endXZ) * 0.5f;
+                float sqrDist = (pos.x - center.x) * (pos.x - center.x) + (pos.z - center.y) * (pos.z - center.y);
+                if (sqrDist < minSqrDist)
+                {
+                    minSqrDist = sqrDist;
+                    best = zone;
+                }
+            }
+            return best;
+        }
+
+        public void RefreshParcels()
         {
             if (ParcelCache.Instance == null) return;
             trackedParcels = region.FilterParcels(ParcelCache.Parcels);
             if (trackedParcels.Count == 0) trackedParcels.AddRange(ParcelCache.Parcels);
-            
-            // Prioritize by health/quality
             trackedParcels.Sort((a, b) => a.soilQuality.CompareTo(b.soilQuality));
         }
 
         public EnvironmentalSensor SelectNextTarget()
         {
-            if (trackedParcels == null || trackedParcels.Count == 0) return null;
-
-            // Search for the first parcel that needs treatment according to thresholds
-            // We start from the next index to ensure we don't get stuck on one
-            int startIdx = (currentParcelIndex + 1) % trackedParcels.Count;
-            
-            for (int i = 0; i < trackedParcels.Count; i++)
-            {
-                int checkIdx = (startIdx + i) % trackedParcels.Count;
-                var p = trackedParcels[checkIdx];
-
-                bool needsNutrients = p.nitrogen < 100f; // Fallback
-                var data = CropLoader.Load()?.Get(p.plantedVarietyName);
-                if (data?.requirements?.nitrogen != null)
-                {
-                    needsNutrients = p.nitrogen < data.requirements.nitrogen.optimal;
-                }
-
-                if (needsNutrients)
-                {
-                    currentParcelIndex = checkIdx;
-                    CurrentTarget = p;
-                    return CurrentTarget;
-                }
-            }
-
-            // If no parcel needs urgent care, we can either hover or visit the one with lowest quality
+            if (trackedParcels.Count == 0) return null;
             currentParcelIndex = (currentParcelIndex + 1) % trackedParcels.Count;
             CurrentTarget = trackedParcels[currentParcelIndex];
             return CurrentTarget;
+        }
+
+        public EnvironmentalSensor PeekNextTarget()
+        {
+            if (trackedParcels.Count == 0) return null;
+            int nextIdx = (currentParcelIndex + 1) % trackedParcels.Count;
+            return trackedParcels[nextIdx];
         }
 
         public bool HasTargets => trackedParcels.Count > 0;

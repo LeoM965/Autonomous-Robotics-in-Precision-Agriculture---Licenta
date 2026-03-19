@@ -32,13 +32,24 @@ public abstract class RobotOperator : MonoBehaviour
     {
         if (energyManager == null) return;
         energyManager.Update();
-        UpdateOperation();
 
-        if (energyManager.IsCharging)
+        bool needsChargingAction = energyManager.IsHeadingToCharger || (energy != null && energy.IsCharging);
+
+        if (needsChargingAction)
         {
             state = OperatorState.Charging;
-            return;
         }
+        else if (state == OperatorState.Charging)
+        {
+            state = OperatorState.Idle;
+            MoveToNextParcel();
+        }
+
+        if (state != OperatorState.Charging)
+            UpdateOperation();
+
+        if (energy != null) 
+            energy.SetWorking(state == OperatorState.Working);
 
         switch (state)
         {
@@ -47,13 +58,6 @@ public abstract class RobotOperator : MonoBehaviour
                 break;
             case OperatorState.Working:
                 if (!IsWorking()) MoveToNextParcel();
-                break;
-            case OperatorState.Charging:
-                if (!energyManager.IsCharging)
-                {
-                    state = OperatorState.Idle;
-                    MoveToNextParcel();
-                }
                 break;
             case OperatorState.Idle:
                 UpdateIdle();
@@ -95,7 +99,6 @@ public abstract class RobotOperator : MonoBehaviour
         Vector3 diff = transform.position - currentParcel.transform.position;
         float arriveDistSqr = GetArriveDistance() * GetArriveDistance();
         
-        // Physically arrived OR the movement system confirms arrival at final target
         if (diff.x * diff.x + diff.z * diff.z < arriveDistSqr || movement.HasArrived)
         {
             OnArrivedAtParcel(currentParcel);
@@ -112,7 +115,10 @@ public abstract class RobotOperator : MonoBehaviour
 
     public string GetStatus()
     {
-        if (energyManager != null && energyManager.IsCharging) return "Charging";
+        if (state == OperatorState.Charging)
+        {
+            return energyManager.IsHeadingToCharger ? "Going to Charger" : "Charging";
+        }
         return state switch
         {
             OperatorState.MovingToParcel => $"Moving to {(currentParcel ? currentParcel.name : "Parcel")}",
@@ -122,7 +128,6 @@ public abstract class RobotOperator : MonoBehaviour
         };
     }
 
-    // Subclass-specific hooks
     protected abstract float GetArriveDistance();
     protected abstract bool IsWorking();
     protected abstract void UpdateOperation();

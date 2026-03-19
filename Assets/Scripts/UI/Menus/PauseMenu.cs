@@ -20,6 +20,7 @@ namespace UI.Menus
 
         private CropDatabase cachedDB;
         private EconomicReport activeReport;
+        private int cachedRobotCount;
 
         private void Awake()
         {
@@ -48,6 +49,8 @@ namespace UI.Menus
                 cachedDB = CropLoader.Load();
                 activeReport = CropEconomicsCalculator.GetAnalysis(cachedDB);
                 robotTab.CacheRobotData();
+                cachedRobotCount = Economics.Managers.RobotEconomicsManager.Instance != null 
+                    ? Economics.Managers.RobotEconomicsManager.Instance.RobotStatsMap.Count : 0;
             }
         }
 
@@ -60,7 +63,9 @@ namespace UI.Menus
         private void DrawAnalysisDashboard()
         {
             float width = 650f;
-            float height = 80f + (cachedDB.crops.Length * 17f) + 240f; 
+            float height = Mathf.Min(Screen.height * 0.85f, 80f + (cachedDB.crops.Length * 17f) + 240f);
+            if (currentTab == DashboardTab.Robots)
+                height = Mathf.Min(Screen.height * 0.85f, 130f + cachedRobotCount * 18f + 100f);
             Rect panel = new Rect((Screen.width - width) / 2, (Screen.height - height) / 2, width, height);
 
             theme.DrawPanel(panel);
@@ -71,10 +76,12 @@ namespace UI.Menus
             DrawTabs(panel.x + 20, panel.y + 15);
             y += 40;
 
+            float contentBottom = panel.yMax - 30;
+
             if (currentTab == DashboardTab.Crops)
                 cropTab.DrawTab(x, y, activeReport, cachedDB.crops, theme);
             else if (currentTab == DashboardTab.Robots)
-                robotTab.DrawTab(x, y, theme);
+                robotTab.DrawTab(x, y, theme, contentBottom);
             else
                 historyTab.DrawTab(x, y, theme);
             

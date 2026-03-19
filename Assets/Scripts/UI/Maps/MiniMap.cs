@@ -22,14 +22,29 @@ public class MiniMap : MonoBehaviour
         Invoke(nameof(LoadData), 0.5f);
     }
 
+    private void OnEnable()
+    {
+        Settings.SimulationSettings.OnSettingsChanged += LoadData;
+    }
+
+    private void OnDisable()
+    {
+        Settings.SimulationSettings.OnSettingsChanged -= LoadData;
+    }
+
     private void LoadData()
     {
+        if (data == null) return;
         MultiRobotSpawner spawner = FindFirstObjectByType<MultiRobotSpawner>();
         data.LoadRobots(spawner);
         FenceGenerator fence = FindFirstObjectByType<FenceGenerator>();
         data.LoadZones(fence);
         if (BuildingSpawner.Instance != null)
             data.LoadBuildings(BuildingSpawner.Instance);
+
+        // Reset selection if invalid
+        if (data.selectedRobotIndex >= data.robots.Count)
+            data.selectedRobotIndex = data.robots.Count > 0 ? 0 : -1;
     }
 
     private void Update()

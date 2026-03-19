@@ -9,7 +9,8 @@ namespace UI.Menus.Tabs
     public class RobotDashboardTab : BaseDashboardTab
     {
         private string filterZone = "Toate";
-        private readonly float[] robotColOffsets = { 0, 45, 115, 250, 310, 370, 435, 505, 575 };
+        private readonly float[] robotColOffsets = { 0, 40, 105, 195, 255, 305, 370, 435, 505 };
+
 
         private struct CachedRobotData
         {
@@ -24,10 +25,12 @@ namespace UI.Menus.Tabs
             public float ROI;
         }
         private List<CachedRobotData> cachedRobots = new List<CachedRobotData>();
+        private float fleetInvestment;
 
         public void CacheRobotData()
         {
             cachedRobots.Clear();
+            fleetInvestment = 0f;
             if (RobotEconomicsManager.Instance == null) return;
 
             var robotStatsMap = RobotEconomicsManager.Instance.RobotStatsMap;
@@ -56,6 +59,8 @@ namespace UI.Menus.Tabs
                     if (energy != null) batteryPct = energy.BatteryPercent * 100f;
                 }
 
+                fleetInvestment += stats.purchasePrice;
+
                 cachedRobots.Add(new CachedRobotData
                 {
                     Zone = stats.zone,
@@ -71,11 +76,20 @@ namespace UI.Menus.Tabs
             }
         }
 
-        public override void DrawTab(float x, float y, UITheme theme)
-        {
-            DrawSectionTitle(x, ref y, "TABEL ANALIZĂ FLOTĂ ROBOȚI", theme);
-            y += 5; // Adjustment for filter row
+        public override void DrawTab(float x, float y, UITheme theme) => DrawTab(x, y, theme, y + Screen.height * 0.5f);
 
+        public void DrawTab(float x, float y, UITheme theme, float contentBottom)
+        {
+            // Fleet investment summary
+            GUI.Label(new Rect(x, y, 200, 20), "Investiție Flotă:", theme.Label);
+            GUI.Label(new Rect(x + 130, y, 150, 20), $"{fleetInvestment:N0}€", theme.Value);
+            GUI.Label(new Rect(x + 310, y, 200, 20), $"({cachedRobots.Count} roboți)", theme.Label);
+            y += 25;
+
+            DrawSectionTitle(x, ref y, "TABEL ANALIZĂ FLOTĂ ROBOȚI", theme);
+            y += 5;
+
+            // Zone filter buttons
             float bx = x + 340;
             string[] zones = { "Toate", "A", "B", "C", "D" };
             foreach (var z in zones)
@@ -86,12 +100,27 @@ namespace UI.Menus.Tabs
             }
             y += 25;
 
+            // Header row
             string[] headers = { "Zone", "Model", "Activity", "Bat.", "Hours", "Dist(km)", "Cost(€)", "Venit(€)", "ROI %" };
             UIDrawUtils.DrawRow(x, y, robotColOffsets, headers, theme.Value);
-            
             y += 22;
-            UIDrawUtils.DrawHorizontalLine(x, y, 610);
+            UIDrawUtils.DrawHorizontalLine(x, y, 580);
             y += 8;
+
+            // Scrollable robot list
+            int visibleCount = 0;
+            foreach (var data in cachedRobots)
+                if (filterZone == "Toate" || data.Zone == filterZone) visibleCount++;
+
+            float rowHeight = 18f;
+            float listHeight = visibleCount * rowHeight;
+            float availableHeight = contentBottom - y - 10f;
+            if (availableHeight < 100f) availableHeight = 100f;
+            Rect scrollView = new Rect(x, y, 590, Mathf.Min(listHeight + 10, availableHeight));
+            Rect scrollContent = new Rect(0, 0, 575, listHeight);
+
+            scrollPos = GUI.BeginScrollView(scrollView, scrollPos, scrollContent);
+            float sy = 0;
 
             foreach (var data in cachedRobots)
             {
@@ -127,9 +156,10 @@ namespace UI.Menus.Tabs
                     theme.GetProfitStyle(data.ROI)
                 };
 
-                UIDrawUtils.DrawRow(x, y, robotColOffsets, values, styles);
-                y += 18;
+                UIDrawUtils.DrawRow(0, sy, robotColOffsets, values, styles);
+                sy += rowHeight;
             }
+            GUI.EndScrollView();
         }
     }
 }

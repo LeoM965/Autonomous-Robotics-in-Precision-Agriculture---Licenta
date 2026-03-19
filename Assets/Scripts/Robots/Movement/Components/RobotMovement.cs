@@ -1,12 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Robots.Components.Movement;
+using Robots.Movement.Interfaces;
 
 [RequireComponent(typeof(RobotPathfinder))]
 [RequireComponent(typeof(RobotMotor))]
 [RequireComponent(typeof(RobotWheelController))]
 [RequireComponent(typeof(RobotLifecycle))]
-public class RobotMovement : MonoBehaviour
+public class RobotMovement : MonoBehaviour, IRobotMovement
 {
     [Header("Wheels Configuration")]
     [SerializeField] private Transform[] wheels;

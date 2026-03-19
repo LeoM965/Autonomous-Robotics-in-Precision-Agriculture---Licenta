@@ -32,8 +32,18 @@ public static class CropSelector
                 ? Weather.Components.WeatherSystem.Instance.CurrentTemperature 
                 : 20f;
 
-            // Logic: If it's too cold (< 5°C) and the crop is NOT frost resistant, it shouldn't be planted.
-            bool canPlant = temperature >= 5f || crop.isFrostResistant;
+            bool isWinter = false;
+            if (TimeManager.Instance != null)
+            {
+                isWinter = TimeManager.Instance.GetCurrentSeason() == Weather.Models.Season.Winter;
+            }
+            else
+            {
+                isWinter = temperature < 5f;
+            }
+
+            // Exclusivitate sezonieră: plantele de iarnă (isFrostResistant) DOAR iarna. Restul DOAR în celelalte sezoane.
+            bool canPlant = isWinter == crop.isFrostResistant;
 
             if (canPlant && crop.requirements != null)
             {
