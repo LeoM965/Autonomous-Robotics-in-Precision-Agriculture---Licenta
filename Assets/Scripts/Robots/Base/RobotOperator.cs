@@ -110,6 +110,7 @@ public abstract class RobotOperator : MonoBehaviour
         if (currentParcel != null)
         {
             currentParcel.isScheduledForTask = false;
+            AbortOperation();
         }
     }
 
@@ -156,4 +157,5 @@ public abstract class RobotOperator : MonoBehaviour
     protected abstract void UpdateIdle();
     protected abstract string GetWorkingStatus();
     protected virtual string GetIdleStatus() => "Idle";
+    protected abstract void AbortOperation();
 }

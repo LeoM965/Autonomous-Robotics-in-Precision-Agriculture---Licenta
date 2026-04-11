@@ -127,6 +127,8 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         }
     }
 
+    public Sensors.Components.EnvironmentalSensor ParentSensor => parentSensor;
+
     public void Harvest()
     {
         if (state.isBeingHarvested) return;
@@ -142,7 +144,16 @@ public class CropGrowth : MonoBehaviour, ICropHandler
 
     public void ReturnToPool()
     {
-        GetComponentInParent<Sensors.Components.EnvironmentalSensor>()?.RemoveCrop(this);
+        if (parentSensor != null) 
+        {
+            parentSensor.RemoveCrop(this);
+            parentSensor = null;
+        }
+        else 
+        {
+            GetComponentInParent<Sensors.Components.EnvironmentalSensor>()?.RemoveCrop(this);
+        }
+
         if (CropPool.Instance != null) CropPool.Instance.Return(gameObject);
         else Destroy(gameObject);
     }

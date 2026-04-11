@@ -126,4 +126,9 @@ public class PlanterOperation
         executor.Reset();
         isPlanting = false;
     }
+
+    public void Abort()
+    {
+        FinishParcel();
+    }
 }

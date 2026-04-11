@@ -126,4 +126,9 @@ public class HarvesterOperation
         isHarvesting = false;
         currentParcel = null;
     }
+
+    public void Abort()
+    {
+        FinishParcel();
+    }
 }

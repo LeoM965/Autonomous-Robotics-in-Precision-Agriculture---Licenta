@@ -115,4 +115,12 @@ public class CropPlanter : RobotOperator
     public bool IsPlanting => state == OperatorState.Working;
     public int PlantsPlaced => operation?.TotalPlantsPlaced ?? 0;
     public float TotalSeedCost => operation?.TotalCost ?? 0;
+    
+    protected override void AbortOperation()
+    {
+        if (operation != null && operation.IsPlanting)
+        {
+            operation.Abort();
+        }
+    }
 }

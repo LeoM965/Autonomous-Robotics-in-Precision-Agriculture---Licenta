@@ -48,10 +48,39 @@ namespace Weather.Components
             simulator.RerollWeather(startTime);
         }
 
-        // Soil moisture e procesat DOAR de WeatherSoilUpdater (acelasi GameObject)
+        private float lastSimHours = -1f;
+        private float moistureTimer = 0f;
+        private const float MOISTURE_INTERVAL = 1.0f;
+
         private void Update()
         {
             UpdateVisuals();
+            
+            moistureTimer += Time.deltaTime;
+            if (moistureTimer >= MOISTURE_INTERVAL)
+            {
+                ProcessSoilMoisture();
+                moistureTimer = 0f;
+            }
+        }
+
+        private void ProcessSoilMoisture()
+        {
+            if (TimeManager.Instance == null || ActiveClimate == null || !TimeManager.Instance.IsInitialized) return;
+
+            float currentSimHours = TimeManager.Instance.TotalSimulatedHours;
+            if (lastSimHours < 0f) { lastSimHours = currentSimHours; return; }
+
+            float deltaHours = currentSimHours - lastSimHours;
+            if (deltaHours <= 0f) { lastSimHours = currentSimHours; return; }
+
+            lastSimHours = currentSimHours;
+            if (simulator == null) return;
+
+            if (ParcelCache.HasInstance)
+            {
+                SoilMoistureService.UpdateMoisture(ParcelCache.Parcels, simulator.CurrentImpact, ActiveClimate, deltaHours);
+            }
         }
 
         private void UpdateVisuals()

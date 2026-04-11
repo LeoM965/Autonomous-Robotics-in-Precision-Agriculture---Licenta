@@ -123,4 +123,12 @@ public class CropHarvester : RobotOperator
 
     public int TotalHarvested => operation?.TotalHarvested ?? 0;
     public bool IsHarvesting => state == OperatorState.Working;
+    
+    protected override void AbortOperation()
+    {
+        if (operation != null && operation.IsHarvesting)
+        {
+            operation.Abort();
+        }
+    }
 }

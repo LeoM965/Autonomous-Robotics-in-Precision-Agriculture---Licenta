@@ -11,6 +11,13 @@ namespace Weather.Services
         {
             if (deltaHours <= 0f || climate == null) return;
 
+            var beforeVals = new Dictionary<EnvironmentalSensor, float>();
+            foreach (var p in parcels)
+            {
+                if (p != null && p.composition != null) 
+                    beforeVals[p] = p.composition.moisture;
+            }
+
             // Subdivide large time gaps (SkipDay/SkipMonth) into 1h chunks
             while (deltaHours > 1.0f)
             {
@@ -19,11 +26,20 @@ namespace Weather.Services
             }
             if (deltaHours > 0.001f)
                 ApplyMoistureStep(parcels, impact, climate, deltaHours);
+
+            foreach (var p in parcels)
+            {
+                if (p == null || p.composition == null) continue;
+                if (beforeVals.TryGetValue(p, out float before))
+                {
+                    if (Mathf.Abs(before - p.composition.moisture) > 0.5f)
+                        p.Analyze();
+                }
+            }
         }
 
         private static void ApplyMoistureStep(IEnumerable<EnvironmentalSensor> parcels, WeatherImpact impact, ClimateProfile climate, float deltaHours)
         {
-
             float evapRate = climate.evaporationRate / 24f;
             float precipRate = impact.precipitationRate;
 
@@ -37,11 +53,7 @@ namespace Weather.Services
                 float drainage = 0.3f * Mathf.Max(0f, (moisture - 60f) / 40f);
 
                 float netChange = (absorption - evaporation - drainage) * deltaHours;
-                float before = moisture;
                 parcel.composition.moisture = Mathf.Clamp(moisture + netChange, 0f, 100f);
-
-                if (Mathf.Abs(before - parcel.composition.moisture) > 1.0f)
-                    parcel.Analyze();
             }
         }
     }

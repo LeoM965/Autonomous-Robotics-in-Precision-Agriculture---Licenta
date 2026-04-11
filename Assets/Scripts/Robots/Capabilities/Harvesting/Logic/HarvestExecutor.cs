@@ -54,8 +54,12 @@ public class HarvestExecutor
     {
         if (Economics.Managers.RobotEconomicsManager.Instance == null) return;
 
-        var sensor = crop.GetComponentInParent<EnvironmentalSensor>();
-        if (sensor == null) return;
+        var sensor = crop.ParentSensor;
+        if (sensor == null) 
+        {
+            sensor = crop.GetComponentInParent<EnvironmentalSensor>();
+            if (sensor == null) return;
+        }
 
         float soilQuality = sensor.LatestAnalysis.qualityScore / 100f;
         float weight = baseWeight * soilQuality * crop.Progress;

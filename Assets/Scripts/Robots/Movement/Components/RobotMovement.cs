@@ -28,11 +28,14 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
     public Vector3? FinalTarget => pathfinder?.FinalTarget;
     public List<Vector3> CurrentPath => pathfinder?.CurrentPath;
 
+    private Collider[] cachedColliders;
+
     private void Awake()
     {
         pathfinder = GetComponent<RobotPathfinder>();
         motor = GetComponent<RobotMotor>();
         wheelController = GetComponent<RobotWheelController>();
+        cachedColliders = GetComponentsInChildren<Collider>(true);
     }
 
     private bool isInitialized = false;
@@ -112,10 +115,10 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
 
     public void IgnoreCollisionWith(Collider target, bool ignore)
     {
-        Collider[] myColliders = GetComponentsInChildren<Collider>();
-        foreach (Collider myCol in myColliders)
+        if (cachedColliders == null) return;
+        foreach (Collider myCol in cachedColliders)
         {
-            if (target != null && myCol != null)
+            if (target != null && myCol != null && myCol.gameObject.activeInHierarchy)
                 Physics.IgnoreCollision(myCol, target, ignore);
         }
     }
