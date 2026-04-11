@@ -82,11 +82,13 @@ public class ParcelCache : MonoBehaviour
 
     public IEnumerable<EnvironmentalSensor> ParcelsIterator => cache.Values;
 
+    private static readonly List<EnvironmentalSensor> emptyList = new List<EnvironmentalSensor>();
+
     public static List<EnvironmentalSensor> Parcels
     {
         get
         {
-            if (Instance == null) return new List<EnvironmentalSensor>();
+            if (Instance == null) return emptyList;
             return Instance.GetAll();
         }
     }

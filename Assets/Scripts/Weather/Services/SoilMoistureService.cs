@@ -11,8 +11,18 @@ namespace Weather.Services
         {
             if (deltaHours <= 0f || climate == null) return;
 
-            // Protection: ignore large time gaps (jumps/skips) to keep soil values stable
-            if (deltaHours > 1.0f) return;
+            // Subdivide large time gaps (SkipDay/SkipMonth) into 1h chunks
+            while (deltaHours > 1.0f)
+            {
+                ApplyMoistureStep(parcels, impact, climate, 1.0f);
+                deltaHours -= 1.0f;
+            }
+            if (deltaHours > 0.001f)
+                ApplyMoistureStep(parcels, impact, climate, deltaHours);
+        }
+
+        private static void ApplyMoistureStep(IEnumerable<EnvironmentalSensor> parcels, WeatherImpact impact, ClimateProfile climate, float deltaHours)
+        {
 
             float evapRate = climate.evaporationRate / 24f;
             float precipRate = impact.precipitationRate;

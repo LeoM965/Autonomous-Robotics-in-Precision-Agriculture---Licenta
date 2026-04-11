@@ -8,6 +8,7 @@ public class CameraSettings : ScriptableObject
     public float sensitivity = 3f;
     public float distance = 12f;
     public float smoothDampTime = 0.15f;
+    public float panSpeed = 20f;
     
     [Header("FPS Mode")]
     public float fpsHeightOffset = 2.2f;

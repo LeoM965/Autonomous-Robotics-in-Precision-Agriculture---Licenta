@@ -73,6 +73,12 @@ public abstract class RobotOperator : MonoBehaviour
 
     protected void MoveToNextParcel()
     {
+        // Iterativ skip null parcels (evitam recursie infinita → StackOverflow)
+        while (parcelIndex < parcels.Count && parcels[parcelIndex] == null)
+        {
+            parcelIndex++;
+        }
+
         if (parcelIndex >= parcels.Count) 
         { 
             ReleaseCurrentParcel();
@@ -81,12 +87,6 @@ public abstract class RobotOperator : MonoBehaviour
         }
 
         EnvironmentalSensor nextParcel = parcels[parcelIndex];
-        if (nextParcel == null) 
-        { 
-            parcelIndex++; 
-            MoveToNextParcel(); 
-            return; 
-        }
 
         float dist = Vector3.Distance(transform.position, nextParcel.transform.position);
         if (energyManager != null && !energyManager.CheckBattery(dist, 60f)) 

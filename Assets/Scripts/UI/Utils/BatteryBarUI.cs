@@ -14,6 +14,11 @@ public class BatteryBarUI : MonoBehaviour
     private const float VIS_CHECK_INTERVAL = 0.25f;
     private const float MAX_RENDER_DIST_SQR = 80f * 80f;
 
+    // Shared across all instances to avoid GC alloc per frame per robot
+    private static readonly System.Collections.Generic.List<RaycastResult> sharedRaycastResults = new();
+    private bool isOverUI;
+    private float uiCheckTimer;
+
     private void Start()
     {
         if (energy == null) energy = GetComponentInParent<RobotEnergy>();
@@ -41,7 +46,15 @@ public class BatteryBarUI : MonoBehaviour
         float y = Screen.height - screenPos.y - barSize.y / 2;
 
         Rect barRect = new Rect(x, y, barSize.x, barSize.y);
-        if (IsOverCanvasUI(barRect)) return;
+
+        // Throttle UI overlap check — nu la fiecare frame
+        uiCheckTimer -= Time.deltaTime;
+        if (uiCheckTimer <= 0f)
+        {
+            uiCheckTimer = 0.5f;
+            isOverUI = IsOverCanvasUI(barRect);
+        }
+        if (isOverUI) return;
 
         float pct = energy.BatteryPercent;
         Color barColor = pct > 0.5f ? Color.green : (pct > 0.2f ? Color.yellow : Color.red);
@@ -78,14 +91,11 @@ public class BatteryBarUI : MonoBehaviour
 
     private bool IsOverCanvasUI(Rect barRect)
     {
+        if (EventSystem.current == null) return false;
         Vector2 center = new Vector2(barRect.x + barRect.width * 0.5f, barRect.y + barRect.height * 0.5f);
         var pointer = new PointerEventData(EventSystem.current) { position = center };
-        var results = new System.Collections.Generic.List<RaycastResult>();
-        if (EventSystem.current != null)
-        {
-            EventSystem.current.RaycastAll(pointer, results);
-            return results.Count > 0;
-        }
-        return false;
+        sharedRaycastResults.Clear();
+        EventSystem.current.RaycastAll(pointer, sharedRaycastResults);
+        return sharedRaycastResults.Count > 0;
     }
 }

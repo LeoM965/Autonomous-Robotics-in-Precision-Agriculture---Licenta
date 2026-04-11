@@ -91,7 +91,7 @@ namespace Robots.Capabilities.Flight
         {
             yield return new WaitForSeconds(1.5f);
             navigation.SetupRegion(transform);
-            motor.Initialize(flightBody, settings, null);
+            motor.Initialize(flightBody, settings, navigation.Region);
             if (navigation.HasTargets)
             {
                 navigation.SelectNextTarget();

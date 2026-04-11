@@ -41,7 +41,7 @@ namespace Weather.Components
 
             float deltaHours = currentSimHours - lastSimHours;
 
-            if (deltaHours > 1.0f || deltaHours < 0f) 
+            if (deltaHours <= 0f)
             {
                 lastSimHours = currentSimHours;
                 return;

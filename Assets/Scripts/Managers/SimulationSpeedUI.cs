@@ -3,6 +3,8 @@ using UnityEngine;
 public class SimulationSpeedUI : MonoBehaviour
 {
     private SimulationSpeedController controller;
+    private GUIStyle statusStyle;
+    private GUIStyle monthLabelStyle;
 
     private void Start()
     {
@@ -22,11 +24,14 @@ public class SimulationSpeedUI : MonoBehaviour
 
         GUI.backgroundColor = Color.white;
 
-        GUIStyle statusStyle = new GUIStyle(GUI.skin.label)
+        if (statusStyle == null)
         {
-            richText = true,
-            alignment = TextAnchor.MiddleCenter
-        };
+            statusStyle = new GUIStyle(GUI.skin.label)
+            {
+                richText = true,
+                alignment = TextAnchor.MiddleCenter
+            };
+        }
 
         string statusText = controller.IsSkipping ? "SKIPPING..." : (Time.timeScale > 0 ? "Speed: " + Time.timeScale + "x" : "PAUSED");
         GUILayout.Label("<b>" + statusText + "</b>", statusStyle);
@@ -85,8 +90,9 @@ public class SimulationSpeedUI : MonoBehaviour
     {
         if (TimeManager.Instance == null) return;
 
-        GUILayout.Label("<b>Sari la Luna:</b>", 
-            new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter });
+        if (monthLabelStyle == null)
+            monthLabelStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+        GUILayout.Label("<b>Sari la Luna:</b>", monthLabelStyle);
         
         string[] months = { "Ian", "Feb", "Mar", "Apr", "Mai", "Iun", "Iul", "Aug", "Sep", "Oct", "Noi", "Dec" };
         GUI.enabled = !controller.IsSkipping;

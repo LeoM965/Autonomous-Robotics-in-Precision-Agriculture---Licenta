@@ -11,7 +11,6 @@ namespace AI.Navigation
         private int currentSearchId;
         
         private readonly MinHeap<PathNode> openHeap = new MinHeap<PathNode>();
-        private readonly HashSet<PathNode> inOpenSet = new HashSet<PathNode>();
         private readonly HashSet<PathNode> closedSet = new HashSet<PathNode>();
         
         private void Awake() => Instance = this;
@@ -66,7 +65,9 @@ namespace AI.Navigation
             while (!openHeap.IsEmpty)
             {
                 PathNode current = openHeap.Dequeue();
-                inOpenSet.Remove(current);
+                
+                // Lazy duplicate: daca nodul a fost deja procesat cu un g mai bun, il ignoram
+                if (closedSet.Contains(current)) continue;
                 
                 if (current == endNode)
                 {
@@ -84,7 +85,6 @@ namespace AI.Navigation
         {
             currentSearchId++;
             openHeap.Clear();
-            inOpenSet.Clear();
             closedSet.Clear();
         }
 
@@ -100,7 +100,6 @@ namespace AI.Navigation
         private void AddToOpenSet(PathNode node)
         {
             openHeap.Enqueue(node, node.f);
-            inOpenSet.Add(node);
         }
 
         private void ProcessNeighbours(PathNode current, PathNode endNode)
@@ -120,10 +119,9 @@ namespace AI.Navigation
                     nb.h = PathHelper.Heuristic(nb, endNode);
                     nb.parent = current;
                     
-                    if (!inOpenSet.Contains(nb))
-                    {
-                        AddToOpenSet(nb);
-                    }
+                    // Lazy re-insert: adaugam nodul din nou cu prioritatea actualizata.
+                    // Copia veche (cu g mai mare) va fi ignorata de closedSet check la Dequeue.
+                    AddToOpenSet(nb);
                 }
             }
         }

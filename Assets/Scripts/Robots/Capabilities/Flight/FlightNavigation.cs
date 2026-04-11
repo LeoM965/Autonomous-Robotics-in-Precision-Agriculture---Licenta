@@ -10,10 +10,12 @@ namespace Robots.Capabilities.Flight
         private List<EnvironmentalSensor> trackedParcels = new List<EnvironmentalSensor>();
         private OperationRegion region;
         private Transform droneTransform;
+        private CropDatabase cropDB;
 
         public EnvironmentalSensor CurrentTarget { get; private set; }
         public float LastUrgency { get; private set; }
         public float LastDistance { get; private set; }
+        public OperationRegion Region => region;
 
         public void SetupRegion(Transform robotTransform)
         {
@@ -27,6 +29,7 @@ namespace Robots.Capabilities.Flight
             else
                 region = new OperationRegion(new Rect(0, 0, 1000, 1000));
 
+            cropDB = CropLoader.Load();
             RefreshParcels();
         }
 
@@ -80,7 +83,7 @@ namespace Robots.Capabilities.Flight
 
         private float CalculateUrgency(EnvironmentalSensor parcel)
         {
-            var data = CropLoader.Load()?.Get(parcel.plantedVarietyName);
+            var data = cropDB?.Get(parcel.plantedVarietyName);
             float optN = data?.requirements?.nitrogen?.optimal ?? 100f;
             float deficit = Mathf.Max(0, optN - parcel.nitrogen);
             return (deficit / Mathf.Max(optN, 1f)) * 100f;
@@ -89,7 +92,7 @@ namespace Robots.Capabilities.Flight
         public bool NeedsTreatment(EnvironmentalSensor parcel)
         {
             if (parcel == null) return false;
-            var data = CropLoader.Load()?.Get(parcel.plantedVarietyName);
+            var data = cropDB?.Get(parcel.plantedVarietyName);
             float requiredN = data?.requirements?.nitrogen?.optimal ?? 100f;
             return parcel.nitrogen < requiredN * 0.95f;
         }

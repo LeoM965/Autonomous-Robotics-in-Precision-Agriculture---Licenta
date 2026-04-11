@@ -37,7 +37,7 @@ namespace Robots.Components.Movement
             move.y = 0;
             lastUpdatePos = transform.position;
 
-            if (move.sqrMagnitude > 0.0001f)
+            if (move.sqrMagnitude > 0.001f)
             {
                 wheelRotation += move.magnitude / (wheelRadius * Mathf.PI * 2f) * 360f;
                 RobotHelper.UpdateWheelRotation(wheels, wheelAngles, wheelRotation);

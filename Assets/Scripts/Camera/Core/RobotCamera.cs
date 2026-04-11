@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
 public class RobotCamera : MonoBehaviour
@@ -20,6 +21,10 @@ public class RobotCamera : MonoBehaviour
     private CameraMode mode = CameraMode.Follow;
     private int targetIndex;
     private CameraDisplay display;
+    private bool isPanning;
+    private Vector3 panFocusPoint;
+    private float panIdleTimer;
+    private const float PAN_RETURN_DELAY = 1.0f;
 
     private void Start()
     {
@@ -41,7 +46,8 @@ public class RobotCamera : MonoBehaviour
         if (!target || !settings) return;
         
         float dt = Time.fixedDeltaTime;
-        state.smoothPosition = Vector3.Lerp(state.smoothPosition, target.position + settings.upOffset, dt * settings.smoothSpeed * 2f);
+        Vector3 targetPos = isPanning ? panFocusPoint : (target.position + settings.upOffset);
+        state.smoothPosition = Vector3.Lerp(state.smoothPosition, targetPos, dt * settings.smoothSpeed * 2f);
         
         state.desiredPosition = CameraHelper.GetModePosition(mode, state.smoothPosition, state.angleX, state.angleY, state.currentDistance, target, settings);
         state.desiredPosition = CameraHelper.AdjustForCollision(state.desiredPosition, state.smoothPosition, collisionMask);
@@ -65,8 +71,20 @@ public class RobotCamera : MonoBehaviour
         }
     }
 
+    private bool IsUIFocused()
+    {
+        if (EventSystem.current == null) return false;
+        var selected = EventSystem.current.currentSelectedGameObject;
+        if (selected == null) return false;
+        return selected.GetComponent<TMPro.TMP_InputField>() != null 
+            || selected.GetComponent<UnityEngine.UI.InputField>() != null;
+    }
+
     private void ProcessInput()
     {
+        // Blocam input-ul camerei cand un input field UI e activ
+        if (IsUIFocused()) return;
+
         if (Input.GetKeyDown(settings.toggleModeKey))
             mode = (CameraMode)(((int)mode + 1) % 4);
         
@@ -74,6 +92,7 @@ public class RobotCamera : MonoBehaviour
         {
             targetIndex = (targetIndex + 1) % targets.Count;
             target = targets[targetIndex];
+            isPanning = false;
         }
 
         if (Input.GetKeyDown(settings.resetKey))
@@ -82,6 +101,7 @@ public class RobotCamera : MonoBehaviour
             state.angleY = 0f;
             state.currentDistance = settings.distance;
             mode = CameraMode.Follow;
+            isPanning = false;
         }
 
         float scroll = Input.mouseScrollDelta.y;
@@ -93,6 +113,36 @@ public class RobotCamera : MonoBehaviour
             state.angleY += Input.GetAxis("Mouse X") * settings.sensitivity;
             state.angleX = CameraHelper.ClampAngle(state.angleX - Input.GetAxis("Mouse Y") * settings.sensitivity, settings.minAngleX, settings.maxAngleX);
         }
+
+        // --- WASD Map Navigation ---
+        Vector2 navInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        
+        if (navInput.magnitude > 0.2f)
+        {
+            if (!isPanning)
+            {
+                isPanning = true;
+                panFocusPoint = state.smoothPosition;
+            }
+
+            Quaternion rotation = Quaternion.Euler(0, state.angleY, 0);
+            Vector3 camForward = rotation * Vector3.forward;
+            Vector3 camRight = rotation * Vector3.right;
+
+            Vector3 move = (camForward * navInput.y + camRight * navInput.x).normalized;
+            panFocusPoint += move * settings.panSpeed * Time.deltaTime;
+            panIdleTimer = 0f;
+        }
+        else if (isPanning)
+        {
+            // Revenire automata la follow dupa ce nu mai apesi WASD
+            panIdleTimer += Time.deltaTime;
+            if (panIdleTimer >= PAN_RETURN_DELAY)
+            {
+                isPanning = false;
+                panIdleTimer = 0f;
+            }
+        }
     }
 
     public void SetTarget(Transform newTarget)
@@ -100,6 +150,7 @@ public class RobotCamera : MonoBehaviour
         if (newTarget == null) return;
         target = newTarget;
         state.smoothPosition = target.position + settings.upOffset;
+        isPanning = false;
     }
 
     private void OnGUI()

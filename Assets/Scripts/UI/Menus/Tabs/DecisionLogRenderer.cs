@@ -30,18 +30,15 @@ namespace UI.Menus.Tabs
         private static readonly Color AccentIndicator = new Color(0.2f, 0.85f, 0.45f, 1f);
         private static readonly Color SeparatorColor  = new Color(1f, 1f, 1f, 0.08f);
 
-        /// <summary>
-        /// Draws the decision history panel at the given position.
-        /// </summary>
         public void Draw(float x, float y, Transform robot, float maxHeight, UITheme theme)
         {
             if (DecisionTracker.Instance == null || robot == null) return;
             EnsureStyles(theme);
 
-            var decisions = DecisionTracker.Instance.GetRecentDecisions(robot, 10);
+            var decisions = DecisionTracker.Instance.GetRecentDecisions(robot, 1000);
 
             float w = 720f;
-            float h = Mathf.Min(maxHeight, 260f);
+            float h = Mathf.Min(maxHeight, 400f);
             Rect panel = new Rect(x - 5, y, w, h);
 
             // ── Panel background and border ──
@@ -132,8 +129,8 @@ namespace UI.Menus.Tabs
 
             GUIStyle lineStyle = isNewest ? rowBoldStyle : rowStyle;
 
-            // Index
-            GUI.Label(new Rect(ColOffsets[0] + 4, ey, 50, RowHeight), $"#{index + 1:D2}", dimStyle);
+            // Index (Global)
+            GUI.Label(new Rect(ColOffsets[0] + 4, ey, 50, RowHeight), $"#{d.globalIndex:D3}", dimStyle);
 
             // Timestamp (In-game Time)
             int day = Mathf.FloorToInt(d.timestamp / 24f) + 1;
@@ -153,7 +150,7 @@ namespace UI.Menus.Tabs
             GUI.Label(new Rect(ColOffsets[4] + 4, ey, 70, RowHeight), d.chosenScore.ToString("F1"), lineStyle);
 
             // Priority (Scan-time Value)
-            GUI.Label(new Rect(ColOffsets[5] + 4, ey, 80, RowHeight), d.schedulingValue.ToString("F1"), lineStyle);
+            GUI.Label(new Rect(ColOffsets[5] + 4, ey, 80, RowHeight), d.schedulingValue.ToString("F3"), lineStyle);
 
             // Net value (color-coded)
             string sign = d.netValue >= 0 ? "+" : "";

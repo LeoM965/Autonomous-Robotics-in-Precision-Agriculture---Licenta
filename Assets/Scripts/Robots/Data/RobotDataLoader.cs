@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public static class RobotDataLoader
 {
     private static RobotDatabase database;
+    private static Dictionary<string, RobotDataEntry> prefixCache;
 
     public static RobotDatabase Load()
     {
@@ -11,7 +12,17 @@ public static class RobotDataLoader
         TextAsset json = Resources.Load<TextAsset>("RobotData");
         if (json == null) return null;
         database = JsonUtility.FromJson<RobotDatabase>(json.text);
+        BuildPrefixCache();
         return database;
+    }
+
+    private static void BuildPrefixCache()
+    {
+        prefixCache = new Dictionary<string, RobotDataEntry>();
+        if (database?.robots == null) return;
+        foreach (var entry in database.robots)
+            if (!string.IsNullOrEmpty(entry.namePrefix))
+                prefixCache[entry.namePrefix] = entry;
     }
 
     public static RobotDataEntry FindByName(string robotName)
@@ -19,12 +30,11 @@ public static class RobotDataLoader
         var db = Load();
         if (db?.robots == null) return null;
 
-        string searchName = robotName;
-        
-        foreach (var entry in db.robots)
-        {
-            if (searchName.StartsWith(entry.namePrefix)) return entry;
-        }
+        // Fast path: direct prefix match
+        if (prefixCache != null)
+            foreach (var kv in prefixCache)
+                if (robotName.StartsWith(kv.Key)) return kv.Value;
+
         return null;
     }
 }

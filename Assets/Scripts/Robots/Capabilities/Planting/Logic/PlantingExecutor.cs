@@ -3,6 +3,8 @@ using Sensors.Components;
 
 public class PlantingExecutor
 {
+    private static CropSettings cachedSettings;
+
     EnvironmentalSensor parcel;
     CropData crop;
     GameObject prefab;
@@ -43,9 +45,9 @@ public class PlantingExecutor
         var growth = plant.GetComponent<CropGrowth>();
         if (growth == null)
         {
-            // Inject components if missing (e.g. for Onion/Radish raw models)
             growth = plant.AddComponent<CropGrowth>();
-            var settings = Resources.Load<CropSettings>("CropSettings");
+            if (cachedSettings == null) cachedSettings = Resources.Load<CropSettings>("CropSettings");
+            var settings = cachedSettings;
             
             growth.settings = settings;
             var scaler = plant.GetComponent<CropVisualScaling>();

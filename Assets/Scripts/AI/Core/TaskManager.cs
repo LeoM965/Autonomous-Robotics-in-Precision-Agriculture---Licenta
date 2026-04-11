@@ -17,6 +17,7 @@ namespace AI.Core
         private readonly Dictionary<(Type, int), MinHeap<RobotTask>> taskHeaps = new();
         private FenceZone[] zones;
         private float scanTimer = 3f;
+        private FenceGenerator cachedFenceGen;
 
         private void Awake()
         {
@@ -32,10 +33,11 @@ namespace AI.Core
 
         private void InitializeZones()
         {
-            FenceGenerator fenceGen = FindFirstObjectByType<FenceGenerator>();
-            if (fenceGen != null && fenceGen.zones != null && fenceGen.zones.Length > 0)
+            if (cachedFenceGen == null)
+                cachedFenceGen = FindFirstObjectByType<FenceGenerator>();
+            if (cachedFenceGen != null && cachedFenceGen.zones != null && cachedFenceGen.zones.Length > 0)
             {
-                zones = fenceGen.zones;
+                zones = cachedFenceGen.zones;
                 isInitialized = true;
             }
         }

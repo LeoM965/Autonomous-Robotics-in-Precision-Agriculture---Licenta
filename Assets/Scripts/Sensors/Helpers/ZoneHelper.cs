@@ -1,9 +1,18 @@
 using UnityEngine;
 public static class ZoneHelper
 {
+    private static FenceGenerator cachedFence;
+
+    private static FenceGenerator GetFence()
+    {
+        if (cachedFence == null)
+            cachedFence = Object.FindFirstObjectByType<FenceGenerator>();
+        return cachedFence;
+    }
+
     public static FenceZone GetZoneAt(Vector3 position)
     {
-        FenceGenerator fence = Object.FindFirstObjectByType<FenceGenerator>();
+        var fence = GetFence();
         if (fence == null || fence.zones == null || fence.zones.Length == 0)
             return null;
         for (int i = 0; i < fence.zones.Length; i++)
@@ -12,7 +21,7 @@ public static class ZoneHelper
             if (TerrainHelper.IsInsideZone(position, zone.startXZ, zone.endXZ))
                 return zone;
         }
-        return null; // Return null if not in any specific zone
+        return null;
     }
     public static bool IsInZone(Vector3 position, FenceZone zone)
     {

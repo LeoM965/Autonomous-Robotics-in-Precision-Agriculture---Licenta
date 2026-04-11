@@ -21,6 +21,7 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
     private RobotWheelController wheelController;
     private Terrain terrain;
     private Rect movementBounds;
+    private FenceGenerator cachedFence;
 
     public bool HasTarget => pathfinder != null && pathfinder.HasTarget;
     public bool HasArrived => pathfinder != null && pathfinder.HasArrived;
@@ -55,8 +56,9 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
         if (!isInitialized)
         {
             terrain = Terrain.activeTerrain;
-            FenceGenerator fence = FindFirstObjectByType<FenceGenerator>();
-            if (terrain != null && fence != null && fence.zones != null && fence.zones.Length > 0)
+            if (cachedFence == null)
+                cachedFence = FindFirstObjectByType<FenceGenerator>();
+            if (terrain != null && cachedFence != null && cachedFence.zones != null && cachedFence.zones.Length > 0)
             {
                 InitBounds();
                 float groundOffset = RobotHelper.CalculateGroundOffset(transform);
@@ -68,12 +70,13 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
 
     public void InitBounds()
     {
-        FenceGenerator fence = FindFirstObjectByType<FenceGenerator>();
-        if (fence?.zones != null)
+        if (cachedFence == null)
+            cachedFence = FindFirstObjectByType<FenceGenerator>();
+        if (cachedFence?.zones != null)
         {
-            FenceZone zone = BoundsHelper.FindZoneContaining(transform.position, fence.zones);
-            if (zone == null && fence.zones.Length > 0)
-                zone = fence.zones[0];
+            FenceZone zone = BoundsHelper.FindZoneContaining(transform.position, cachedFence.zones);
+            if (zone == null && cachedFence.zones.Length > 0)
+                zone = cachedFence.zones[0];
             if (zone != null)
             {
                 movementBounds = BoundsHelper.GetZoneBounds(zone, boundaryMargin);

@@ -68,7 +68,8 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         state.progress = 0f;
         state.lastUpdateHours = -1f;
         state.stage = CropStage.Seed;
-        transform.localScale = state.baseScale * scaler.GetInitialScale();
+        state.isBeingHarvested = false;
+        if (scaler) transform.localScale = state.baseScale * scaler.GetInitialScale();
     }
 
     public void ManualUpdate(float currentTotalHours)
@@ -109,13 +110,17 @@ public class CropGrowth : MonoBehaviour, ICropHandler
             ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier()
             : 1f;
 
+        float prevProgress = state.progress;
         state.elapsed += deltaHours * weatherMultiplier * nMultiplier;
         state.progress = Mathf.Clamp01(state.elapsed / state.growthTime);
+
+        // Skip visual update daca progressul s-a schimbat nesemnificativ
+        if (state.progress - prevProgress < 0.001f && state.stage != CropStage.Seed) return;
 
         CropStage newStage = scaler.DetermineStage(state.progress);
         Vector3 targetScale = state.baseScale * scaler.CalculateScale(newStage, state.progress);
 
-        if (state.stage != newStage || (transform.localScale - targetScale).sqrMagnitude > 0.00001f)
+        if (state.stage != newStage || (transform.localScale - targetScale).sqrMagnitude > 0.0001f)
         {
             state.stage = newStage;
             transform.localScale = targetScale;

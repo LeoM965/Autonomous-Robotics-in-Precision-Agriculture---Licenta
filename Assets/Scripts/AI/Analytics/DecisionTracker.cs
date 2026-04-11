@@ -8,7 +8,7 @@ namespace AI.Analytics
     {
         public static DecisionTracker Instance { get; private set; }
 
-        [SerializeField] private int maxHistoryPerRobot = 50;
+        [SerializeField] private int maxHistoryPerRobot = 1000;
         [SerializeField] private float cleanupInterval = 10f;
 
         private readonly Dictionary<Transform, DecisionRecord> lastDecisions = new Dictionary<Transform, DecisionRecord>();
@@ -50,6 +50,7 @@ namespace AI.Analytics
             }
 
             List<DecisionRecord> history = decisionHistory[robot];
+            record.globalIndex = totalDecisionsCount[robot] + 1;
             history.Add(record);
             totalScores[robot] += record.chosenScore;
             totalDecisionsCount[robot]++;

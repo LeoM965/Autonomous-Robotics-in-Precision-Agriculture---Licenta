@@ -72,14 +72,16 @@ public class BuildingSpawner : MonoBehaviour
         {
             if (b.type != BuildingType.ChargingStation) continue;
             
-            if (ZoneHelper.GetZoneAt(b.position) == robotZone)
+            // Daca robotul e in zona, cauta doar statii din aceeasi zona
+            // Daca robotul e intre zone (null), cauta orice statie
+            if (robotZone != null && ZoneHelper.GetZoneAt(b.position) != robotZone)
+                continue;
+
+            float dist = (b.position - position).sqrMagnitude;
+            if (dist < minDist)
             {
-                float dist = (b.position - position).sqrMagnitude;
-                if (dist < minDist)
-                {
-                    minDist = dist;
-                    best = b.position;
-                }
+                minDist = dist;
+                best = b.position;
             }
         }
         return best;

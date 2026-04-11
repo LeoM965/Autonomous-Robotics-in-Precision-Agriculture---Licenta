@@ -13,6 +13,7 @@ namespace AI.Analytics
         public string parcelName;
         public float timestamp;
         public float schedulingValue;
+        public int globalIndex;
         public List<DecisionAlternative> alternatives;
         public DecisionFactors factors;
         
