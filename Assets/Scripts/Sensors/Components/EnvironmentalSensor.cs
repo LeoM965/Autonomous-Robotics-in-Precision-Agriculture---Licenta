@@ -157,7 +157,7 @@ namespace Sensors.Components
         public void AdjustMoisture(float amount)
         {
             if (composition == null) return;
-            composition.moisture = Mathf.Min(composition.moisture + amount, 100f);
+            composition.moisture = Mathf.Clamp(composition.moisture + amount, 0f, 100f);
             Analyze();
         }
 

@@ -62,9 +62,6 @@ public class PlantingExecutor
             float nOptimal = crop.requirements?.nitrogen?.optimal ?? -1f;
             growth.Initialize(crop.GrowthHours, currentCost, nConsumption, nOptimal, cropIndex);
             
-            // Start the growth cycle by registering with the manager
-            if (CropManager.Instance != null) CropManager.Instance.RegisterCrop(growth);
-            
             parcel.activeCrops.Add(growth);
             plantsPlaced++;
         }

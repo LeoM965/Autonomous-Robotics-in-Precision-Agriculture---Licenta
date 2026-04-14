@@ -18,6 +18,7 @@ public class SimulationSpeedUI : MonoBehaviour
         GUILayout.BeginArea(new Rect(10, 65, 260, 240));
         GUILayout.BeginVertical("box");
 
+        GUILayout.BeginHorizontal();
         DrawSpeedButtons();
         DrawBoostButton();
         GUILayout.EndHorizontal();
@@ -49,7 +50,6 @@ public class SimulationSpeedUI : MonoBehaviour
 
     private void DrawSpeedButtons()
     {
-        GUILayout.BeginHorizontal();
         float[] speeds = controller.Speeds;
         for (int i = 0; i < speeds.Length; i++)
         {

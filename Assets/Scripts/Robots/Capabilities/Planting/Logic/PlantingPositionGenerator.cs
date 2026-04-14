@@ -52,4 +52,33 @@ public static class PlantingPositionGenerator
         float t = (float)plantIndex / (plantsPerRow - 1);
         return Mathf.Lerp(minZ, maxZ, t);
     }
+    public static List<Vector3> GenerateZigzag(Bounds bounds, float spacing, float margin, float fixedY)
+    {
+        List<Vector3> positions = new List<Vector3>();
+        float minX = bounds.min.x + margin;
+        float maxX = bounds.max.x - margin;
+        float minZ = bounds.min.z + margin;
+        float maxZ = bounds.max.z - margin;
+
+        int rowCount = Mathf.Max(1, Mathf.CeilToInt((maxZ - minZ) / spacing) + 1);
+        for (int row = 0; row < rowCount; row++)
+        {
+            float z = rowCount <= 1 ? (minZ + maxZ) * 0.5f : Mathf.Lerp(minZ, maxZ, (float)row / (rowCount - 1));
+            if (row % 2 == 0)
+            {
+                positions.Add(new Vector3(minX, fixedY, z));
+                positions.Add(new Vector3(maxX, fixedY, z));
+            }
+            else
+            {
+                positions.Add(new Vector3(maxX, fixedY, z));
+                positions.Add(new Vector3(minX, fixedY, z));
+            }
+        }
+
+        if (positions.Count == 0)
+            positions.Add(new Vector3(bounds.center.x, fixedY, bounds.center.z));
+
+        return positions;
+    }
 }

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Robots.Models;
 using Robots.Movement.Interfaces;
@@ -24,6 +25,10 @@ namespace Robots.Capabilities.Flight
         private float treatmentTimer;
         private float idleRescanTimer;
         private Vector3? manualTarget;
+
+        // Zig-zag sweep state
+        private List<Vector3> zigzagPath;
+        private int zigzagIndex;
 
         public bool HasTarget => manualTarget.HasValue || navigation?.CurrentTarget != null;
         public bool HasArrived => motor.HasReached(manualTarget ?? GetTargetPosition(navigation.CurrentTarget));
@@ -121,9 +126,8 @@ namespace Robots.Capabilities.Flight
             }
             else if (energy.IsCharging)
             {
-                motor.UpdateMovement(transform.position, false); // Stay put ONLY when actually charging
+                motor.UpdateMovement(transform.position, false);
             }
-            // If heading to charger, do nothing and let EnergyManager/Motor handle it
 
             if (!energy.IsCharging && !energyManager.IsHeadingToCharger)
             {
@@ -139,25 +143,49 @@ namespace Robots.Capabilities.Flight
             motor.UpdateMovement(target, true);
             if (motor.HasReached(target))
             {
-                treatmentTimer = settings.waitTimePerParcel;
+                BeginZigzagSweep(navigation.CurrentTarget);
                 state = FlightState.HoveringAtTarget;
             }
+        }
+
+        private void BeginZigzagSweep(EnvironmentalSensor parcel)
+        {
+            Collider col = parcel != null ? parcel.GetComponent<Collider>() : null;
+            Vector3 center = parcel != null ? parcel.transform.position : flightBody.position;
+            Bounds b = col != null ? col.bounds : new Bounds(center, Vector3.one * 6f);
+            zigzagPath = PlantingPositionGenerator.GenerateZigzag(b, settings.zigzagSpacing, settings.zigzagMargin, settings.altitude);
+            zigzagIndex = 0;
+            treatmentTimer = settings.waitTimePerParcel;
         }
 
         private void HandleTreatmentState()
         {
             if (navigation.CurrentTarget == null) { AnalyzeNextTask(); return; }
-            motor.UpdateMovement(GetTargetPosition(navigation.CurrentTarget), false);
+
+            // Fly zig-zag path over parcel while treating
+            if (zigzagPath != null && zigzagIndex < zigzagPath.Count)
+            {
+                Vector3 wp = zigzagPath[zigzagIndex];
+                motor.UpdateMovement(wp, true);
+                if (motor.HasReached(wp))
+                    zigzagIndex++;
+            }
+            else
+            {
+                motor.UpdateMovement(GetTargetPosition(navigation.CurrentTarget), false);
+            }
+
             treatment.ProcessTreatment(navigation.CurrentTarget, ref treatmentTimer);
-            if (treatmentTimer <= 0) AnalyzeNextTask();
+            bool pathDone = zigzagPath == null || zigzagIndex >= zigzagPath.Count;
+            if (treatmentTimer <= 0 && pathDone) AnalyzeNextTask();
         }
 
         private void AnalyzeNextTask()
         {
+            zigzagPath = null;
             var next = navigation.SelectNextTarget();
             if (next == null)
             {
-                // Nicio parcela nu mai are nevoie de tratament
                 idleRescanTimer = 5f;
                 state = FlightState.Idle;
                 return;
@@ -173,7 +201,6 @@ namespace Robots.Capabilities.Flight
 
         private void HandleIdleState()
         {
-            // Drona planeaza pe loc si re-verifica periodic daca vreo parcela are nevoie de tratament
             motor.UpdateMovement(flightBody.position, false);
             idleRescanTimer -= Time.deltaTime;
             if (idleRescanTimer <= 0f)
@@ -201,7 +228,7 @@ namespace Robots.Capabilities.Flight
             return state switch
             {
                 FlightState.Navigating => "Zbor spre " + navigation.CurrentTarget.name,
-                FlightState.HoveringAtTarget => "Tratare sol în desfășurare pe " + navigation.CurrentTarget.name,
+                FlightState.HoveringAtTarget => "Tratare zig-zag pe " + navigation.CurrentTarget.name,
                 FlightState.Charging => "Se deplasează la încărcare...",
                 FlightState.Idle => "Idle - Nicio parcelă nu necesită tratament",
                 _ => "Idle"

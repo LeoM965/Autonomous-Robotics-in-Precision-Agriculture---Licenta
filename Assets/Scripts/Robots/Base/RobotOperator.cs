@@ -95,8 +95,8 @@ public abstract class RobotOperator : MonoBehaviour
             return; 
         }
 
-        ReleaseCurrentParcel();
         SetParcelCollision(currentParcel, false);
+        ReleaseCurrentParcel();
         currentParcel = nextParcel;
         parcelIndex++;
 

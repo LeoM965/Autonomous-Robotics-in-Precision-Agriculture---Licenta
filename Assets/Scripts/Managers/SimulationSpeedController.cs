@@ -101,5 +101,6 @@ public class SimulationSpeedController : MonoBehaviour
             TimeManager.Instance.AdvanceTime(totalHours - hoursAdvanced);
 
         isSkipping = false;
+        UpdateSimulationTime();
     }
 }

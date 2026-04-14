@@ -11,6 +11,8 @@ namespace Robots.Models
         public float waitTimePerParcel = 3f;
         public float hoverAmplitude = 0.15f;
         public float hoverFrequency = 1.2f;
+        public float zigzagSpacing = 3f;
+        public float zigzagMargin = 1.5f;
 
         public float ArrivalThresholdSqr => arrivalThreshold * arrivalThreshold;
         public float AngularHoverFrequency => hoverFrequency * Mathf.PI * 2f;

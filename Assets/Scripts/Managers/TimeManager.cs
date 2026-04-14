@@ -57,6 +57,7 @@ public class TimeManager : MonoBehaviour
     {
         int oldHour = Mathf.FloorToInt(timeOfDay);
         int oldDay = currentDay;
+        Season oldSeason = GetCurrentSeason();
         
         totalSimulatedHours += hoursToAdd;
 
@@ -66,7 +67,9 @@ public class TimeManager : MonoBehaviour
         if (dayChanged)
         {
             OnDayChanged?.Invoke();
-            OnSeasonChanged?.Invoke(GetCurrentSeason());
+            Season newSeason = GetCurrentSeason();
+            if (newSeason != oldSeason)
+                OnSeasonChanged?.Invoke(newSeason);
         }
 
         if (hourChanged)

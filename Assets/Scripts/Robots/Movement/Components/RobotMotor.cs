@@ -23,6 +23,7 @@ namespace Robots.Components.Movement
         private Vector3 velocity;
         private bool isStopped;
         private RobotPathfinder pathfinder;
+        private float speedRandomFactor = 1f;
 
         private float currentHeight;
         private float currentPitch;
@@ -60,7 +61,7 @@ namespace Robots.Components.Movement
             var data = RobotDataLoader.FindByName(name);
             if (data != null)
             {
-                speed = data.maxSpeed;
+                speed = data.maxSpeed * speedRandomFactor;
             }
         }
 
@@ -148,7 +149,7 @@ namespace Robots.Components.Movement
         
         public void Randomize(float speedVar, float rotVar, float tiltVar, float maxTiltVar, float avoidVar)
         {
-            speed *= speedVar;
+            speedRandomFactor = speedVar;
             rotationSpeed *= rotVar;
             tiltSpeed *= tiltVar;
             maxTilt *= maxTiltVar;

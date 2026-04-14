@@ -154,6 +154,8 @@ public class CropGrowth : MonoBehaviour, ICropHandler
             GetComponentInParent<Sensors.Components.EnvironmentalSensor>()?.RemoveCrop(this);
         }
 
+        state.isBeingHarvested = false;
+        state.initialized = false;
         if (CropPool.Instance != null) CropPool.Instance.Return(gameObject);
         else Destroy(gameObject);
     }
