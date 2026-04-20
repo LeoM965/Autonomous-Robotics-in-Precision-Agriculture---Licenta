@@ -1,120 +1,157 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class SimulationSpeedUI : MonoBehaviour
 {
     private SimulationSpeedController controller;
-    private GUIStyle statusStyle;
-    private GUIStyle monthLabelStyle;
+
+    [Header("Speed Buttons")]
+    public Button[] speedButtons;
+    public Image[] speedImages;
+
+    [Header("Boost Components")]
+    public Button boostBtn;
+    public Image boostImage;
+    public TextMeshProUGUI boostText;
+
+    [Header("Status Context")]
+    public TextMeshProUGUI statusLabel;
+
+    [Header("Weather and Skip")]
+    public Button weatherBtn;
+    public TextMeshProUGUI weatherText;
+    public Button skipBtn;
+    public TextMeshProUGUI skipText;
+
+    [Header("Month Navigation")]
+    public Button[] monthButtons;
+
+    [Header("Theme Colors")]
+    public Color inactiveBtnColor = new Color(0.12f, 0.20f, 0.35f, 1f);
+    public Color activeSpeedColor = new Color(0.1f, 0.9f, 0.4f);
+    public Color activeBoostColor = new Color(0.05f, 0.6f, 1f, 1f);
+    public Color mainTextColor = Color.white;
+    public Color warningColor = new Color(0.95f, 0.7f, 0.1f);
 
     private void Start()
     {
         controller = SimulationSpeedController.Instance;
+
+        // Auto-assign listeners
+        if (speedButtons != null)
+        {
+            for (int i = 0; i < speedButtons.Length; i++)
+            {
+                int index = i;
+                if (speedButtons[i] != null)
+                    speedButtons[i].onClick.AddListener(() => { if (controller != null) controller.SetSpeed(index); });
+            }
+        }
+
+        if (boostBtn != null) 
+            boostBtn.onClick.AddListener(() => { if (controller != null) controller.ToggleBoost(); });
+
+        if (weatherBtn != null)
+            weatherBtn.onClick.AddListener(() => {
+                if (Weather.Components.WeatherSystem.Instance != null)
+                    Weather.Components.WeatherSystem.Instance.CycleForcedWeather();
+            });
+
+        if (skipBtn != null) 
+            skipBtn.onClick.AddListener(() => { if (controller != null) controller.SkipDay(); });
+
+        if (monthButtons != null)
+        {
+            for (int i = 0; i < monthButtons.Length; i++)
+            {
+                int mIndex = i;
+                if (monthButtons[i] != null)
+                    monthButtons[i].onClick.AddListener(() => {
+                        if (TimeManager.Instance != null)
+                            TimeManager.Instance.SkipToDate(1, mIndex + 1);
+                    });
+            }
+        }
     }
 
-    private void OnGUI()
+    private void Update()
     {
         if (controller == null) return;
+        UpdateUIState();
+    }
 
-        GUILayout.BeginArea(new Rect(10, 65, 260, 240));
-        GUILayout.BeginVertical("box");
-
-        GUILayout.BeginHorizontal();
-        DrawSpeedButtons();
-        DrawBoostButton();
-        GUILayout.EndHorizontal();
-
-        GUI.backgroundColor = Color.white;
-
-        if (statusStyle == null)
+    private void UpdateUIState()
+    {
+        // 1. Update Speeds
+        if (speedImages != null && speedImages.Length == controller.Speeds.Length)
         {
-            statusStyle = new GUIStyle(GUI.skin.label)
+            for (int i = 0; i < speedImages.Length; i++)
             {
-                richText = true,
-                alignment = TextAnchor.MiddleCenter
-            };
-        }
-
-        string statusText = controller.IsSkipping ? "SKIPPING..." : (Time.timeScale > 0 ? "Speed: " + Time.timeScale + "x" : "PAUSED");
-        GUILayout.Label("<b>" + statusText + "</b>", statusStyle);
-        GUILayout.Space(5);
-
-        DrawWeatherAndSkipRow();
-        
-        GUILayout.Space(10);
-        DrawMonthJumper();
-
-        GUI.enabled = true;
-        GUILayout.EndVertical();
-        GUILayout.EndArea();
-    }
-
-    private void DrawSpeedButtons()
-    {
-        float[] speeds = controller.Speeds;
-        for (int i = 0; i < speeds.Length; i++)
-        {
-            GUI.backgroundColor = controller.CurrentIndex == i ? Color.green : Color.white;
-            if (GUILayout.Button(GetLabel(speeds[i]), GUILayout.Width(35), GUILayout.Height(25)))
-                controller.SetSpeed(i);
-        }
-    }
-
-    private void DrawBoostButton()
-    {
-        GUI.backgroundColor = controller.IsBoostActive ? Color.cyan : Color.white;
-        if (GUILayout.Button("x" + controller.BoostMultiplier, GUILayout.Width(45), GUILayout.Height(25)))
-            controller.ToggleBoost();
-    }
-
-    private void DrawWeatherAndSkipRow()
-    {
-        GUILayout.BeginHorizontal();
-        if (Weather.Components.WeatherSystem.Instance != null)
-        {
-            var weatherSys = Weather.Components.WeatherSystem.Instance;
-            string label = weatherSys.ForcedWeather.HasValue ? weatherSys.ForcedWeather.Value.ToString() : "Auto W.";
-
-            GUI.enabled = !controller.IsSkipping;
-            if (GUILayout.Button(label, GUILayout.Height(25), GUILayout.Width(80)))
-                weatherSys.CycleForcedWeather();
-            GUI.enabled = true;
-        }
-
-        GUI.enabled = !controller.IsSkipping;
-        if (GUILayout.Button(controller.IsSkipping ? "..." : "Next Day", GUILayout.Height(25)))
-            controller.SkipDay();
-        GUILayout.EndHorizontal();
-    }
-
-    private void DrawMonthJumper()
-    {
-        if (TimeManager.Instance == null) return;
-
-        if (monthLabelStyle == null)
-            monthLabelStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-        GUILayout.Label("<b>Sari la Luna:</b>", monthLabelStyle);
-        
-        string[] months = { "Ian", "Feb", "Mar", "Apr", "Mai", "Iun", "Iul", "Aug", "Sep", "Oct", "Noi", "Dec" };
-        GUI.enabled = !controller.IsSkipping;
-
-        for (int i = 0; i < 12; i++)
-        {
-            if (i % 4 == 0) GUILayout.BeginHorizontal();
-            
-            if (GUILayout.Button(months[i], GUILayout.Width(55), GUILayout.Height(22)))
-            {
-                TimeManager.Instance.SkipToDate(1, i + 1);
+                bool active = (controller.CurrentIndex == i);
+                UpdateButtonTheme(speedImages[i], active ? activeSpeedColor : inactiveBtnColor, active);
             }
-            
-            if (i % 4 == 3) GUILayout.EndHorizontal();
         }
-        GUI.enabled = true;
+
+        // 2. Update Boost
+        if (boostImage != null)
+        {
+            bool bstActive = controller.IsBoostActive;
+            UpdateButtonTheme(boostImage, bstActive ? activeBoostColor : inactiveBtnColor, bstActive);
+            
+            if (boostText != null) 
+                boostText.text = "x" + controller.BoostMultiplier;
+        }
+
+        // 3. Update Status Label
+        if (statusLabel != null)
+        {
+            statusLabel.text = controller.IsSkipping ? "SKIPPING..." : (Time.timeScale > 0 ? "Speed: " + Time.timeScale + "x" : "PAUSED");
+            statusLabel.color = controller.IsSkipping ? warningColor : mainTextColor;
+        }
+
+        // 4. Update Weather Text
+        if (weatherText != null && Weather.Components.WeatherSystem.Instance != null)
+            weatherText.text = Weather.Components.WeatherSystem.Instance.ForcedWeather.HasValue 
+                ? Weather.Components.WeatherSystem.Instance.ForcedWeather.Value.ToString() 
+                : "Auto W.";
+
+        // 5. Update Skip State and Interactable Lock
+        bool skipBlocked = controller.IsSkipping;
+        
+        if (skipText != null) 
+            skipText.text = skipBlocked ? "..." : "Next Day";
+        
+        if (weatherBtn != null) weatherBtn.interactable = !skipBlocked;
+        if (skipBtn != null) skipBtn.interactable = !skipBlocked;
+
+        if (monthButtons != null)
+        {
+            for (int i = 0; i < monthButtons.Length; i++)
+            {
+                if (monthButtons[i] != null) 
+                    monthButtons[i].interactable = !skipBlocked;
+            }
+        }
     }
 
-    private string GetLabel(float val)
+    private void UpdateButtonTheme(Image img, Color c, bool isActive)
     {
-        if (val == 0) return "||";
-        if (val == 1) return ">";
-        return val.ToString();
+        if (img == null) return;
+        
+        img.color = c;
+        Button b = img.GetComponent<Button>();
+        if (b != null)
+        {
+            var cb = b.colors;
+            cb.normalColor = c;
+            cb.highlightedColor = c * 1.2f;
+            cb.pressedColor = c * 0.8f;
+            b.colors = cb;
+            
+            // Set Text
+            var txt = b.GetComponentInChildren<TextMeshProUGUI>();
+            if (txt != null) txt.color = isActive ? Color.black : Color.white;
+        }
     }
 }

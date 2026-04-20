@@ -27,8 +27,6 @@ public class SimulationSpeedController : MonoBehaviour
 
     private void Start()
     {
-        if (GetComponent<SimulationSpeedUI>() == null)
-            gameObject.AddComponent<SimulationSpeedUI>();
         SetSpeed(currentIndex);
     }
 

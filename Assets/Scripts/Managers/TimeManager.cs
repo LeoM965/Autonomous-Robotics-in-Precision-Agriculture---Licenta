@@ -55,26 +55,36 @@ public class TimeManager : MonoBehaviour
 
     public void AdvanceTime(float hoursToAdd)
     {
-        int oldHour = Mathf.FloorToInt(timeOfDay);
-        int oldDay = currentDay;
         Season oldSeason = GetCurrentSeason();
         
+        int oldHourCounter = Mathf.FloorToInt(totalSimulatedHours);
+        int oldDayCounter = Mathf.FloorToInt(totalSimulatedHours / 24f);
+
         totalSimulatedHours += hoursToAdd;
 
-        bool dayChanged = currentDay != oldDay;
-        bool hourChanged = Mathf.FloorToInt(timeOfDay) != oldHour || hoursToAdd >= 1f;
+        int newHourCounter = Mathf.FloorToInt(totalSimulatedHours);
+        int newDayCounter = Mathf.FloorToInt(totalSimulatedHours / 24f);
 
-        if (dayChanged)
+        int hoursPassed = newHourCounter - oldHourCounter;
+        int daysPassed = newDayCounter - oldDayCounter;
+
+        // Trigger hourly events reliably for every discrete hour passed
+        for (int i = 0; i < hoursPassed; i++)
         {
-            OnDayChanged?.Invoke();
-            Season newSeason = GetCurrentSeason();
-            if (newSeason != oldSeason)
-                OnSeasonChanged?.Invoke(newSeason);
+            float simulatedHourOfDay = (oldHourCounter + i + 1) % 24;
+            OnHourChanged?.Invoke(simulatedHourOfDay);
         }
 
-        if (hourChanged)
+        // Trigger daily events reliably for every discrete day passed (Crucial for Economy & Growth Simulation)
+        for (int i = 0; i < daysPassed; i++)
         {
-            OnHourChanged?.Invoke(timeOfDay);
+            OnDayChanged?.Invoke();
+        }
+
+        Season newSeason = GetCurrentSeason();
+        if (newSeason != oldSeason)
+        {
+            OnSeasonChanged?.Invoke(newSeason);
         }
     }
 
