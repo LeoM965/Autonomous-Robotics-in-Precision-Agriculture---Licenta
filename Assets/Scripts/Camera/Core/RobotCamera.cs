@@ -21,10 +21,10 @@ public class RobotCamera : MonoBehaviour
     private CameraMode mode = CameraMode.Follow;
     private int targetIndex;
     private CameraDisplay display;
-    private bool isPanning;
-    private Vector3 panFocusPoint;
-    private float panIdleTimer;
-    private const float PAN_RETURN_DELAY = 1.0f;
+
+    // Free-pan state (WASD independent of robot)
+    private bool isFreePan;
+    private Vector3 freePanPosition;
 
     private void Start()
     {
@@ -41,25 +41,47 @@ public class RobotCamera : MonoBehaviour
         if (target != null) state.smoothPosition = target.position + settings.upOffset;
     }
 
+    private Vector3 GetFocusPoint()
+    {
+        if (isFreePan)
+            return freePanPosition;
+        return target != null ? target.position + settings.upOffset : state.smoothPosition;
+    }
+
     private void FixedUpdate()
     {
-        if (!target || !settings) return;
+        if (settings == null) return;
+        if (!isFreePan && target == null) return;
         
         float dt = Time.fixedDeltaTime;
-        Vector3 targetPos = isPanning ? panFocusPoint : (target.position + settings.upOffset);
-        state.smoothPosition = Vector3.Lerp(state.smoothPosition, targetPos, dt * settings.smoothSpeed * 2f);
+        Vector3 focusPoint = GetFocusPoint();
+        state.smoothPosition = Vector3.Lerp(state.smoothPosition, focusPoint, dt * settings.smoothSpeed * 2f);
         
-        state.desiredPosition = CameraHelper.GetModePosition(mode, state.smoothPosition, state.angleX, state.angleY, state.currentDistance, target, settings);
+        if (!isFreePan && target != null)
+        {
+            // Locked on robot: use distinct behaviors for each mode
+            state.desiredPosition = CameraHelper.GetModePosition(mode, state.smoothPosition, state.angleX, state.angleY, state.currentDistance, target, settings);
+        }
+        else
+        {
+            // Free-pan mode: FPS and Follow act like Orbital (free orbit around WASD point), TopView looks straight down
+            if (mode == CameraMode.TopView)
+                state.desiredPosition = state.smoothPosition + Vector3.up * (state.currentDistance - 3f);
+            else
+                state.desiredPosition = CameraHelper.GetOrbitPosition(state.smoothPosition, state.angleX, state.angleY, state.currentDistance);
+        }
+
         state.desiredPosition = CameraHelper.AdjustForCollision(state.desiredPosition, state.smoothPosition, collisionMask);
     }
 
     private void LateUpdate()
     {
-        if (!target || !settings) return;
+        if (settings == null) return;
+        if (!isFreePan && target == null) return;
         
         ProcessInput();
         
-        if (mode == CameraMode.FPS)
+        if (mode == CameraMode.FPS && target != null && !isFreePan)
         {
             transform.position = Vector3.Lerp(transform.position, state.desiredPosition, Time.deltaTime * settings.fpsPositionSmooth);
             transform.rotation = Quaternion.Slerp(transform.rotation, target.rotation, Time.deltaTime * settings.fpsRotationSmooth);
@@ -86,13 +108,16 @@ public class RobotCamera : MonoBehaviour
         if (IsUIFocused()) return;
 
         if (Input.GetKeyDown(settings.toggleModeKey))
+        {
             mode = (CameraMode)(((int)mode + 1) % 4);
+            // Exiting FPS in free-pan uses orbital instead
+        }
         
         if (Input.GetKeyDown(settings.switchTargetKey) && targets.Count > 1)
         {
             targetIndex = (targetIndex + 1) % targets.Count;
             target = targets[targetIndex];
-            isPanning = false;
+            ExitFreePan();
         }
 
         if (Input.GetKeyDown(settings.resetKey))
@@ -101,48 +126,41 @@ public class RobotCamera : MonoBehaviour
             state.angleY = 0f;
             state.currentDistance = settings.distance;
             mode = CameraMode.Follow;
-            isPanning = false;
+            ExitFreePan();
         }
 
         float scroll = Input.mouseScrollDelta.y;
         if (Mathf.Abs(scroll) > 0.1f)
             state.currentDistance = CameraHelper.GetNextZoom(state.currentDistance, settings.zoomPresets, scroll > 0);
 
-        if (Input.GetMouseButton(1) && mode != CameraMode.FPS)
+        if (Input.GetMouseButton(1))
         {
             state.angleY += Input.GetAxis("Mouse X") * settings.sensitivity;
             state.angleX = CameraHelper.ClampAngle(state.angleX - Input.GetAxis("Mouse Y") * settings.sensitivity, settings.minAngleX, settings.maxAngleX);
         }
 
-        // --- WASD Map Navigation ---
+        // --- WASD Free Navigation (independent of robot) ---
         Vector2 navInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         
         if (navInput.magnitude > 0.2f)
         {
-            if (!isPanning)
-            {
-                isPanning = true;
-                panFocusPoint = state.smoothPosition;
-            }
+            if (!isFreePan) EnterFreePan();
 
             Quaternion rotation = Quaternion.Euler(0, state.angleY, 0);
-            Vector3 camForward = rotation * Vector3.forward;
-            Vector3 camRight = rotation * Vector3.right;
+            Vector3 move = (rotation * Vector3.forward * navInput.y + rotation * Vector3.right * navInput.x).normalized;
+            freePanPosition += move * settings.panSpeed * Time.deltaTime;
+        }
+    }
 
-            Vector3 move = (camForward * navInput.y + camRight * navInput.x).normalized;
-            panFocusPoint += move * settings.panSpeed * Time.deltaTime;
-            panIdleTimer = 0f;
-        }
-        else if (isPanning)
-        {
-            // Revenire automata la follow dupa ce nu mai apesi WASD
-            panIdleTimer += Time.deltaTime;
-            if (panIdleTimer >= PAN_RETURN_DELAY)
-            {
-                isPanning = false;
-                panIdleTimer = 0f;
-            }
-        }
+    private void EnterFreePan()
+    {
+        isFreePan = true;
+        freePanPosition = state.smoothPosition;
+    }
+
+    private void ExitFreePan()
+    {
+        isFreePan = false;
     }
 
     public void SetTarget(Transform newTarget)
@@ -150,11 +168,15 @@ public class RobotCamera : MonoBehaviour
         if (newTarget == null) return;
         target = newTarget;
         state.smoothPosition = target.position + settings.upOffset;
-        isPanning = false;
+        ExitFreePan();
     }
 
     private void OnGUI()
     {
-        if (showHUD && target && display) display.DrawOverlay(mode, target.name, state.currentDistance);
+        if (showHUD && display)
+        {
+            string label = isFreePan ? "Free Camera" : (target != null ? target.name : "No Target");
+            display.DrawOverlay(mode, label, state.currentDistance);
+        }
     }
 }

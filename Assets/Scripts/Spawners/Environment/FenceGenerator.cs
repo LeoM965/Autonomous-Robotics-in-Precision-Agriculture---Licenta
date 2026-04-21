@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 public class FenceGenerator : MonoBehaviour
 {
+    public static FenceGenerator Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+    }
+
     [Header("References")]
     [SerializeField] private GameObject fencePrefab;
     [SerializeField] private Terrain terrain;

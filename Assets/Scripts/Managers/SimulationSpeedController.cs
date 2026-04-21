@@ -18,7 +18,7 @@ public class SimulationSpeedController : MonoBehaviour
     public bool IsBoostActive => isBoostActive;
     public bool IsSkipping => isSkipping;
     public float BoostMultiplier => boostMultiplier;
-    public float FairnessMultiplier => isSkipping ? 10f : 1f;
+
 
     private void Awake()
     {
@@ -52,10 +52,15 @@ public class SimulationSpeedController : MonoBehaviour
 
     public void SkipDay()
     {
-        if (!isSkipping) StartCoroutine(SkipDayGradual());
+        SkipTimeGradual(24f, 2.5f);
     }
 
-    public void UpdateSimulationTime()
+    public void SkipTimeGradual(float hours, float realTimeDuration)
+    {
+        if (!isSkipping) StartCoroutine(PerformSkip(hours, realTimeDuration));
+    }
+
+    private void UpdateSimulationTime()
     {
         if (isPausedInternally)
         {
@@ -71,14 +76,15 @@ public class SimulationSpeedController : MonoBehaviour
         Time.fixedDeltaTime = Mathf.Clamp(0.02f * scale, 0.02f, 0.08f);
     }
 
-    private IEnumerator SkipDayGradual()
+    private IEnumerator PerformSkip(float totalHours, float realDuration)
     {
         if (TimeManager.Instance == null) yield break;
 
         isSkipping = true;
-        float realDuration = 3f;
+        float prevTimeScale = Time.timeScale;
+        Time.timeScale = 0f; // Pauză pe fizică
+
         float elapsed = 0f;
-        float totalHours = 24f;
         float hoursAdvanced = 0f;
 
         while (elapsed < realDuration)

@@ -18,7 +18,11 @@ public class BuildingSpawner : MonoBehaviour
     public static BuildingSpawner Instance { get; private set; }
     public List<Building> spawnedBuildings => buildings;
     
-    void Awake() => Instance = this;
+    void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else { Destroy(gameObject); return; }
+    }
     
     void Start()
     {

@@ -12,19 +12,13 @@ public static class SpawnHelper
         float angle = Random.Range(0f, 360f);
         return Quaternion.Euler(0, angle, 0);
     }
-    public static int PositionHash(Vector3 position, float precision)
+    public static int PositionHash(Vector3 position)
     {
+        const float precision = 2f;
         int x = Mathf.RoundToInt(position.x * precision);
         int y = Mathf.RoundToInt(position.y * precision);
         int z = Mathf.RoundToInt(position.z * precision);
-        int hash = x * 73856093;
-        hash = hash ^ (y * 19349663);
-        hash = hash ^ (z * 83492791);
-        return hash;
-    }
-    public static int PositionHash(Vector3 position)
-    {
-        return PositionHash(position, 2f);
+        return x * 73856093 ^ y * 19349663 ^ z * 83492791;
     }
 
     public static GameObject CreateRoot(Transform parent, string name, bool isStatic = false)

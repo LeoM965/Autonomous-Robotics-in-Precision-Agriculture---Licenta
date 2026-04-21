@@ -13,6 +13,7 @@ public class BatteryBarUI : MonoBehaviour
     private GUIStyle chargingStyle;
     private const float VIS_CHECK_INTERVAL = 0.25f;
     private const float MAX_RENDER_DIST_SQR = 80f * 80f;
+    private int lastDrawFrame;
 
     // Shared across all instances to avoid GC alloc per frame per robot
     private static readonly System.Collections.Generic.List<RaycastResult> sharedRaycastResults = new();
@@ -25,10 +26,10 @@ public class BatteryBarUI : MonoBehaviour
         mainCam = Camera.main;
     }
 
-    private void OnGUI()
+    private void Update()
     {
         if (energy == null || mainCam == null) return;
-
+        
         visCheckTimer -= Time.deltaTime;
         if (visCheckTimer <= 0f)
         {
@@ -36,6 +37,30 @@ public class BatteryBarUI : MonoBehaviour
             float sqrDist = (mainCam.transform.position - transform.position).sqrMagnitude;
             isVisible = sqrDist < MAX_RENDER_DIST_SQR;
         }
+
+        if (isVisible)
+        {
+            uiCheckTimer -= Time.deltaTime;
+            if (uiCheckTimer <= 0f)
+            {
+                uiCheckTimer = 0.5f;
+                // Approximate screen position for UI overlap check
+                Vector3 screenPos = mainCam.WorldToScreenPoint(transform.position + offset);
+                float x = screenPos.x - barSize.x / 2;
+                float y = Screen.height - screenPos.y - barSize.y / 2;
+                isOverUI = IsOverCanvasUI(new Rect(x, y, barSize.x, barSize.y));
+            }
+        }
+    }
+
+    private void OnGUI()
+    {
+        if (energy == null || mainCam == null) return;
+        // Only draw every other frame to halve per-robot OnGUI cost
+        int frame = Time.frameCount;
+        if (Event.current.type == EventType.Repaint && (frame & 1) != (lastDrawFrame & 1))
+            return;
+        lastDrawFrame = frame;
 
         if (!isVisible) return;
 
@@ -47,13 +72,6 @@ public class BatteryBarUI : MonoBehaviour
 
         Rect barRect = new Rect(x, y, barSize.x, barSize.y);
 
-        // Throttle UI overlap check — nu la fiecare frame
-        uiCheckTimer -= Time.deltaTime;
-        if (uiCheckTimer <= 0f)
-        {
-            uiCheckTimer = 0.5f;
-            isOverUI = IsOverCanvasUI(barRect);
-        }
         if (isOverUI) return;
 
         float pct = energy.BatteryPercent;

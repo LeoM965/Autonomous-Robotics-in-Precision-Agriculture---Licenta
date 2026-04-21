@@ -39,7 +39,6 @@ public static class RobotHelper
         if (hit.transform.IsChildOf(transform) || hit.transform.CompareTag("Parcel"))
             return Vector3.zero;
 
-        // Cropurile sunt copii de parcele — verificam root-ul fara GetComponentInParent
         Transform root = hit.transform;
         while (root.parent != null) root = root.parent;
         if (root.CompareTag("Parcel"))

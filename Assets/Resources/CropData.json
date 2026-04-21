@@ -1,0 +1,358 @@
+{
+    "crops": [
+        {
+            "id": "Corn",
+            "name": "Porumb",
+            "category": "cereala",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Plant_Corn_01.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 5.5,
+                    "max": 7.5,
+                    "optimal": 6.5
+                },
+                "humidity": {
+                    "min": 40,
+                    "max": 85,
+                    "optimal": 60
+                },
+                "nitrogen": {
+                    "min": 120,
+                    "max": 180,
+                    "optimal": 150
+                },
+                "phosphorus": {
+                    "min": 60,
+                    "max": 90,
+                    "optimal": 75
+                },
+                "potassium": {
+                    "min": 60,
+                    "max": 80,
+                    "optimal": 70
+                }
+            },
+            "seedCostEUR": 0.004,
+            "yieldWeightKg": 0.23,
+            "marketPricePerKg": 0.25,
+            "growthDays": 90,
+            "nitrogenConsumptionRate": 0.083,
+            "tempMin": 8.0,
+            "tempOptimal": 25.0,
+            "tempMax": 40.0,
+            "description": "Cereala principala, necesita N si K ridicat",
+            "source": "MADR 2023. NPK strict (kg/ha): N=120-180, P=60-90, K=60-80. Temp: Sánchez et al. 2014."
+        },
+        {
+            "id": "Wheat",
+            "name": "Grau",
+            "category": "cereala",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Plant_Wheat_01.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 5.8,
+                    "max": 7.8,
+                    "optimal": 6.5
+                },
+                "humidity": {
+                    "min": 30,
+                    "max": 75,
+                    "optimal": 50
+                },
+                "nitrogen": {
+                    "min": 80,
+                    "max": 120,
+                    "optimal": 100
+                },
+                "phosphorus": {
+                    "min": 60,
+                    "max": 90,
+                    "optimal": 75
+                },
+                "potassium": {
+                    "min": 40,
+                    "max": 60,
+                    "optimal": 50
+                }
+            },
+            "seedCostEUR": 0.001,
+            "yieldWeightKg": 0.003,
+            "marketPricePerKg": 0.22,
+            "growthDays": 120,
+            "nitrogenConsumptionRate": 0.041,
+            "isFrostResistant": false,
+            "tempMin": 0.0,
+            "tempOptimal": 20.0,
+            "tempMax": 35.0,
+            "description": "Cereala de baza, toleranta la seceta moderata",
+            "source": "MADR 2023. NPK strict (kg/ha): N=80-120, P=60-90, K=40-60. Temp: Porter & Gawith 1999."
+        },
+        {
+            "id": "Tomato",
+            "name": "Rosie",
+            "category": "leguma_fruct",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Plant_Bush_02_Tomato.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 5.5,
+                    "max": 7.5,
+                    "optimal": 6.3
+                },
+                "humidity": {
+                    "min": 50,
+                    "max": 90,
+                    "optimal": 70
+                },
+                "nitrogen": {
+                    "min": 100,
+                    "max": 120,
+                    "optimal": 110
+                },
+                "phosphorus": {
+                    "min": 80,
+                    "max": 100,
+                    "optimal": 90
+                },
+                "potassium": {
+                    "min": 120,
+                    "max": 150,
+                    "optimal": 135
+                }
+            },
+            "seedCostEUR": 0.25,
+            "yieldWeightKg": 8.0,
+            "marketPricePerKg": 1.20,
+            "growthDays": 70,
+            "nitrogenConsumptionRate": 0.078,
+            "tempMin": 10.0,
+            "tempOptimal": 24.0,
+            "tempMax": 35.0,
+            "description": "Necesita K foarte ridicat pentru fructificare",
+            "source": "MADR 2023. NPK strict (kg/ha): N=100-120, P=80-100, K=120-150. Temp: FAO Crop Information."
+        },
+        {
+            "id": "Potato",
+            "name": "Cartof",
+            "category": "tubercul",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Plant_Potato_01_L.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 4.8,
+                    "max": 6.5,
+                    "optimal": 5.5
+                },
+                "humidity": {
+                    "min": 45,
+                    "max": 90,
+                    "optimal": 65
+                },
+                "nitrogen": {
+                    "min": 120,
+                    "max": 160,
+                    "optimal": 140
+                },
+                "phosphorus": {
+                    "min": 80,
+                    "max": 120,
+                    "optimal": 100
+                },
+                "potassium": {
+                    "min": 100,
+                    "max": 160,
+                    "optimal": 130
+                }
+            },
+            "seedCostEUR": 0.06,
+            "yieldWeightKg": 1.2,
+            "marketPricePerKg": 0.45,
+            "growthDays": 100,
+            "nitrogenConsumptionRate": 0.070,
+            "tempMin": 5.0,
+            "tempOptimal": 20.0,
+            "tempMax": 30.0,
+            "description": "Prefera pH usor acid, K foarte ridicat",
+            "source": "MADR 2023. NPK strict (kg/ha): N=120-160, P=80-120, K=100-160. Temp: Struik 2007."
+        },
+        {
+            "id": "Bean",
+            "name": "Fasole",
+            "category": "leguminoasa",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Plant_Bush_01_Bean.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 6.0,
+                    "max": 7.5,
+                    "optimal": 6.5
+                },
+                "humidity": {
+                    "min": 45,
+                    "max": 65,
+                    "optimal": 55
+                },
+                "nitrogen": {
+                    "min": 40,
+                    "max": 80,
+                    "optimal": 60
+                },
+                "phosphorus": {
+                    "min": 20,
+                    "max": 45,
+                    "optimal": 30
+                },
+                "potassium": {
+                    "min": 90,
+                    "max": 150,
+                    "optimal": 120
+                }
+            },
+            "seedCostEUR": 0.02,
+            "yieldWeightKg": 0.25,
+            "marketPricePerKg": 2.50,
+            "growthDays": 55,
+            "nitrogenConsumptionRate": 0.017,
+            "tempMin": 10.0,
+            "tempOptimal": 23.0,
+            "tempMax": 35.0,
+            "description": "Leguminoasa - fixeaza azot, necesita putin N extern",
+            "source": "User Refinement 2026. NPK (kg/ha): N=30-150, P=15-150, K=60-300. Temp: FAO Crop Information."
+        },
+        {
+            "id": "Lettuce",
+            "name": "Salata",
+            "category": "ciclu_scurt",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Lettuce_01_L.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 6.2,
+                    "max": 6.8,
+                    "optimal": 6.5
+                },
+                "humidity": {
+                    "min": 60,
+                    "max": 75,
+                    "optimal": 65
+                },
+                "nitrogen": { "min": 80, "max": 160, "optimal": 120 },
+                "phosphorus": { "min": 40, "max": 100, "optimal": 70 },
+                "potassium": { "min": 150, "max": 300, "optimal": 220 }
+            },
+            "seedCostEUR": 0.02,
+            "yieldWeightKg": 0.40,
+            "marketPricePerKg": 1.50,
+            "growthDays": 45,
+            "nitrogenConsumptionRate": 0.111,
+            "isFrostResistant": true,
+            "tempMin": 2.0,
+            "tempOptimal": 18.0,
+            "tempMax": 25.0,
+            "description": "Ciclu scurt 45 zile, frunze comestibile",
+            "source": "User Refinement 2026. NPK (kg/ha): N=110-150, P=40-60, K=210-270. Temp: Wurr et al. 1996."
+        },
+        {
+            "id": "Sunflower",
+            "name": "Floarea Soarelui",
+            "category": "oleaginoasa",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Sunflower_01.prefab",
+            "requirements": {
+                "pH": {
+                    "min": 5.5,
+                    "max": 8.0,
+                    "optimal": 6.8
+                },
+                "humidity": {
+                    "min": 25,
+                    "max": 70,
+                    "optimal": 45
+                },
+                "nitrogen": {
+                    "min": 60,
+                    "max": 90,
+                    "optimal": 75
+                },
+                "phosphorus": {
+                    "min": 60,
+                    "max": 80,
+                    "optimal": 70
+                },
+                "potassium": {
+                    "min": 60,
+                    "max": 80,
+                    "optimal": 70
+                }
+            },
+            "seedCostEUR": 0.003,
+            "yieldWeightKg": 0.06,
+            "marketPricePerKg": 0.56,
+            "growthDays": 85,
+            "nitrogenConsumptionRate": 0.044,
+            "tempMin": 6.0,
+            "tempOptimal": 25.0,
+            "tempMax": 40.0,
+            "description": "Toleranta la seceta, radacina pivotanta profunda",
+            "source": "MADR 2023. NPK strict (kg/ha): N=60-90, P=60-80, K=60-80. Temp: Rondanini et al. 2006."
+        },
+        {
+            "id": "Onion",
+            "name": "Ceapa",
+            "category": "leguma",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Onion_01.prefab",
+            "requirements": {
+                "pH": { "min": 6.0, "max": 7.5, "optimal": 6.8 },
+                "humidity": { "min": 50, "max": 80, "optimal": 65 },
+                "nitrogen": { "min": 60, "max": 140, "optimal": 100 },
+                "phosphorus": { "min": 30, "max": 90, "optimal": 60 },
+                "potassium": { "min": 80, "max": 160, "optimal": 120 }
+            },
+            "seedCostEUR": 0.02,
+            "yieldWeightKg": 0.5,
+            "marketPricePerKg": 0.85,
+            "growthDays": 70,
+            "nitrogenConsumptionRate": 0.06,
+            "isFrostResistant": true,
+            "tempMin": 2.0,
+            "tempOptimal": 20.0,
+            "tempMax": 30.0,
+            "description": "Rezistenta la frig, prefera sol bine drenat",
+            "source": "AgroIntel 2024. N=80-120, P=40-60, K=100-150. Temp: Brewster 2008."
+        },
+        {
+            "id": "Radish",
+            "name": "Ridiche",
+            "category": "leguma",
+            "prefabPath": "Assets/PolygonFarm/Prefabs/Plants/SM_Prop_Beetroot_01.prefab",
+            "requirements": {
+                "pH": { "min": 6.0, "max": 7.0, "optimal": 6.5 },
+                "humidity": { "min": 60, "max": 80, "optimal": 70 },
+                "nitrogen": { "min": 30, "max": 140, "optimal": 80 },
+                "phosphorus": { "min": 20, "max": 90, "optimal": 50 },
+                "potassium": { "min": 40, "max": 130, "optimal": 90 }
+            },
+            "seedCostEUR": 0.015,
+            "yieldWeightKg": 0.15,
+            "marketPricePerKg": 2.20,
+            "growthDays": 25,
+            "nitrogenConsumptionRate": 0.03,
+            "isFrostResistant": true,
+            "tempMin": 2.0,
+            "tempOptimal": 18.0,
+            "tempMax": 30.0,
+            "description": "Crestere foarte rapida, rezistenta la frig",
+            "source": "AgroIntel 2024. N=40-70, P=30-50, K=50-80. Temp: Boodley 1998."
+        }
+    ],
+    "settings": {
+        "minQualityToPlant": 30
+    },
+    "sources": {
+        "fao_crops": "https://www.fao.org/land-water/databases-and-software/crop-information/",
+        "usda_plants": "https://plants.usda.gov/",
+        "barker_pilbeam": "Handbook of Plant Nutrition, 2nd Edition (Barker & Pilbeam, 2015)",
+        "romania_market": "https://www.romania-insider.com/, ukragroconsult.com, tridge.com - preturi piata RO 2024",
+        "eurostat_prices": "https://ec.europa.eu/eurostat - Agricultural Price Statistics 2024",
+        "cornell_soil": "Cornell Cooperative Extension - Soil Nutrient Testing & Interpretation",
+        "osu_nutrient": "Ohio State University Extension - Soil Fertility and Nutrient Management",
+        "porter_gawith": "Porter, J.R. & Gawith, M. (1999). Temperatures and the growth of wheat: a review. European Journal of Agronomy, 10(1), 23-36.",
+        "hatfield_prueger": "Hatfield, J.L. & Prueger, J.H. (2015). Temperature extremes: Effect on plant growth and development. Weather and Climate Extremes, 10, 4-10.",
+        "sanchez_2014": "Sánchez, B. et al. (2014). Temperatures and the growth and development of maize and rice. Global Change Biology, 20(2), 408-417."
+    }
+}

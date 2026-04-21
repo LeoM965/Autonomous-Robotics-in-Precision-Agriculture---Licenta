@@ -4,7 +4,11 @@ using System.Collections.Generic;
 public class MultiRobotSpawner : MonoBehaviour
 {
     public static MultiRobotSpawner Instance;
-    void Awake() => Instance = this;
+    void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else { Destroy(gameObject); return; }
+    }
 
     [Header("Robot Prefabs")]
     public List<GameObject> robotPrefabs = new List<GameObject>();
@@ -118,7 +122,8 @@ public class MultiRobotSpawner : MonoBehaviour
 
     private void CollectValidZones()
     {
-        FenceGenerator fenceGen = FindFirstObjectByType<FenceGenerator>();
+        FenceGenerator fenceGen = FenceGenerator.Instance;
+        if (fenceGen == null) fenceGen = FindFirstObjectByType<FenceGenerator>();
         if (fenceGen == null || fenceGen.zones == null) return;
         for (int i = 0; i < fenceGen.zones.Length; i++)
             validZones.Add(fenceGen.zones[i]);

@@ -11,6 +11,7 @@ public class MiniMap : MonoBehaviour
     private MapData data;
     private GUIStyle headerStyle;
     private float pulse;
+    private RobotCamera cachedRobotCam;
 
     private void Start()
     {
@@ -160,8 +161,9 @@ public class MiniMap : MonoBehaviour
     private void SelectRobot(int index)
     {
         data.selectedRobotIndex = index;
-        RobotCamera cam = FindFirstObjectByType<RobotCamera>();
-        if (cam != null)
-            cam.target = data.robots[index];
+        if (cachedRobotCam == null)
+            cachedRobotCam = FindFirstObjectByType<RobotCamera>();
+        if (cachedRobotCam != null)
+            cachedRobotCam.target = data.robots[index];
     }
 }

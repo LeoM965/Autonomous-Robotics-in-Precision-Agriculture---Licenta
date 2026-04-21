@@ -6,11 +6,11 @@ namespace Sensors.Components
     public class SensorVisuals : MonoBehaviour
     {
         [Header("Status Colors")]
-        [SerializeField] private Color excellentColor = new Color(0.1f, 0.9f, 0.2f);
-        [SerializeField] private Color optimalColor = new Color(0.2f, 0.7f, 0.3f);
-        [SerializeField] private Color suboptimalColor = new Color(0.9f, 0.8f, 0.2f);
-        [SerializeField] private Color deficientColor = new Color(0.9f, 0.4f, 0.1f);
-        [SerializeField] private Color criticalColor = new Color(0.9f, 0.1f, 0.1f);
+        [SerializeField] private Color excellentColor = new Color(0.18f, 0.42f, 0.12f);  // Rich dark fertile green
+        [SerializeField] private Color optimalColor = new Color(0.28f, 0.52f, 0.18f);    // Healthy green-brown
+        [SerializeField] private Color suboptimalColor = new Color(0.55f, 0.48f, 0.22f);  // Dry earth yellow-brown
+        [SerializeField] private Color deficientColor = new Color(0.6f, 0.35f, 0.15f);    // Depleted brown-orange
+        [SerializeField] private Color criticalColor = new Color(0.5f, 0.22f, 0.1f);      // Cracked dry red-brown
 
         private MeshRenderer[] renderers;
         private MaterialPropertyBlock propBlock;

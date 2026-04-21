@@ -28,6 +28,7 @@ public class TimeManager : MonoBehaviour
 
     private float secondsPerMeter;
     private int activeRobotCount = 0;
+    private float pendingHours;
 
     private void Awake()
     {
@@ -43,14 +44,21 @@ public class TimeManager : MonoBehaviour
 
     public void AddDistanceTraveled(float distanceMeters)
     {
-        float hours = (distanceMeters * secondsPerMeter) / Mathf.Max(1, activeRobotCount) / 3600f;
-        AdvanceTime(hours);
+        pendingHours += (distanceMeters * secondsPerMeter) / Mathf.Max(1, activeRobotCount) / 3600f;
     }
     
     public void AddWorkTime(float simulatedSeconds)
     {
-        float hours = (simulatedSeconds / Mathf.Max(1, activeRobotCount)) / 3600f;
-        AdvanceTime(hours);
+        pendingHours += (simulatedSeconds / Mathf.Max(1, activeRobotCount)) / 3600f;
+    }
+
+    private void LateUpdate()
+    {
+        if (pendingHours > 0f)
+        {
+            AdvanceTime(pendingHours);
+            pendingHours = 0f;
+        }
     }
 
     public void AdvanceTime(float hoursToAdd)
@@ -97,8 +105,20 @@ public class TimeManager : MonoBehaviour
 
             if (target <= current) target = target.AddYears(1);
 
-            double hours = (target - current).TotalHours;
-            AdvanceTime((float)hours);
+            float hours = (float)(target - current).TotalHours;
+
+            // Daca avem controller, facem skip gradual sa se vada frumos
+            if (SimulationSpeedController.Instance != null)
+            {
+                // Durata dinamica: intre 3s (pt 1 zi) si 7s (pt perioade mari)
+                float duration = Mathf.Clamp(hours / 24f * 0.5f, 3f, 7f);
+                SimulationSpeedController.Instance.SkipTimeGradual(hours, duration);
+            }
+            else
+            {
+                AdvanceTime(hours);
+            }
+            
             Debug.Log($"[TimeManager] Jumped to {target:d MMM yyyy}");
         }
         catch (Exception)

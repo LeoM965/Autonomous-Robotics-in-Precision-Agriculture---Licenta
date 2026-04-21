@@ -35,12 +35,9 @@ namespace Robots.Models
         {
             float minX = Mathf.Min(zone.startXZ.x, zone.endXZ.x);
             float minZ = Mathf.Min(zone.startXZ.y, zone.endXZ.y);
-            float width = Mathf.Abs(bestWidth(zone));
-            float height = Mathf.Abs(bestHeight(zone));
+            float width = Mathf.Abs(zone.endXZ.x - zone.startXZ.x);
+            float height = Mathf.Abs(zone.endXZ.y - zone.startXZ.y);
             return new OperationRegion(new Rect(minX, minZ, width, height));
         }
-
-        private static float bestWidth(FenceZone zone) => zone.endXZ.x - zone.startXZ.x;
-        private static float bestHeight(FenceZone zone) => zone.endXZ.y - zone.startXZ.y;
     }
 }

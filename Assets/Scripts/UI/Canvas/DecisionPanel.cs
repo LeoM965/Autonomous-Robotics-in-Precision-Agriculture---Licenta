@@ -13,6 +13,8 @@ namespace UI.Canvas
         private RectTransform[] barFills = new RectTransform[5];
         private Image[] barImages = new Image[5];
         private TextMeshProUGUI[] barTexts = new TextMeshProUGUI[5];
+        private TextMeshProUGUI[] altLabels = new TextMeshProUGUI[3];
+        private TextMeshProUGUI[] altValues = new TextMeshProUGUI[3];
 
         protected override void OnInitialize()
         {
@@ -32,6 +34,12 @@ namespace UI.Canvas
                 barFills[i] = fill;
                 barImages[i] = fill?.GetComponent<Image>();
                 barTexts[i] = CanvasHelper.GetText(visuals.transform, "Bar_" + ids[i] + "/V");
+            }
+
+            for (int i = 1; i <= 3; i++)
+            {
+                altLabels[i - 1] = GetText($"Visuals/Row_Alt{i}/L");
+                altValues[i - 1] = GetText($"Visuals/Row_Alt{i}/Val");
             }
         }
 
@@ -56,8 +64,8 @@ namespace UI.Canvas
         {
             for (int i = 1; i <= 3; i++)
             {
-                var lText = GetText($"Visuals/Row_Alt{i}/L");
-                var vText = GetText($"Visuals/Row_Alt{i}/Val");
+                var lText = altLabels[i - 1];
+                var vText = altValues[i - 1];
                 if (lText == null || vText == null) continue;
 
                 if (d.alternatives != null && d.alternatives.Count > i)

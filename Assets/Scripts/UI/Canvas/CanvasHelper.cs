@@ -120,9 +120,7 @@ namespace UI.Canvas
             TextMeshProUGUI tmpText = textObject.AddComponent<TextMeshProUGUI>();
             tmpText.text = text; tmpText.color = color; tmpText.fontSize = fontSize; tmpText.fontStyle = fontStyle; tmpText.alignment = alignment; tmpText.raycastTarget = false;
             tmpText.enableWordWrapping = false;
-            tmpText.enableAutoSizing = true;
-            tmpText.fontSizeMin = 6;
-            tmpText.fontSizeMax = fontSize;
+            tmpText.enableAutoSizing = false;
             tmpText.overflowMode = TextOverflowModes.Overflow;
             return tmpText;
         }

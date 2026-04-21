@@ -12,7 +12,7 @@ namespace Robots.Models
         public float consumptionStandbySec = 0f;
         public float rechargeRate = 5f;
 
-        public float Percentage => currentKWh / maxKWh;
+        public float Percentage => maxKWh > 0 ? currentKWh / maxKWh : 0f;
         public bool IsCritical => currentKWh < maxKWh * 0.15f;
         public bool IsFull => currentKWh >= maxKWh * 0.99f;
 

@@ -17,7 +17,7 @@ namespace Settings
 
         void Update() 
         { 
-            if (Input.GetKeyDown(KeyCode.S)) 
+            if (Input.GetKeyDown(KeyCode.P)) 
             {
                 isOpen = !isOpen;
                 if (isOpen) RefreshData(); 
@@ -76,7 +76,7 @@ namespace Settings
             }
 
             // Footer
-            GUI.Label(new Rect(p.x, p.yMax - 28, w, 20), "Apasă S pentru a închide", theme.Footer);
+            GUI.Label(new Rect(p.x, p.yMax - 28, w, 20), "Apasă P pentru a închide", theme.Footer);
             
             if (GUI.Button(new Rect(p.x + (w / 2) - 40, p.yMax - 30, 80, 22), "Aplică", theme.Button))
             {

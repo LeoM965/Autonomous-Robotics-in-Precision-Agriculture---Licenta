@@ -18,6 +18,7 @@ public class RobotEnergy : MonoBehaviour
     private float accumulatedEnergy;
     private float accumulatedDist;
     private float accumulatedSimHours;
+    private int reportOffset;
 
     public float BatteryPercent => battery.Percentage;
     public float CurrentBattery => battery.currentKWh;
@@ -38,6 +39,7 @@ public class RobotEnergy : MonoBehaviour
     private void Start()
     {
         lastPosition = transform.position;
+        reportOffset = Mathf.Abs(GetInstanceID()) % 10;
         
         if (GetComponent<BatteryBarUI>() == null)
             gameObject.AddComponent<BatteryBarUI>();
@@ -63,20 +65,19 @@ public class RobotEnergy : MonoBehaviour
 
     private void Update()
     {
-        float multiplier = SimulationSpeedController.Instance != null ? SimulationSpeedController.Instance.FairnessMultiplier : 1f;
-
         if (isCharging)
         {
-            battery.Recharge(Time.deltaTime * multiplier);
-            
-            if (TimeManager.Instance != null)
-                TimeManager.Instance.AddWorkTime(Time.deltaTime);
+            battery.Recharge(Time.deltaTime);
 
             if (battery.IsFull) 
             {
                 isCharging = false;
+                OnBatteryChanged?.Invoke(BatteryPercent);
             }
-            OnBatteryChanged?.Invoke(BatteryPercent);
+            else if (Time.frameCount % 10 == 0)
+            {
+                OnBatteryChanged?.Invoke(BatteryPercent);
+            }
             return;
         }
 
@@ -88,29 +89,32 @@ public class RobotEnergy : MonoBehaviour
         }
 
         float consumed = 0f;
-        float dist = Vector3.Distance(transform.position, lastPosition);
+        float distSqr = (transform.position - lastPosition).sqrMagnitude;
+        float reportDist = 0f;
 
-        if (dist > 0.01f)
+        if (distSqr > 0.0001f) // Aprox 0.01m threshold (0.01^2 = 0.0001)
         {
+            float dist = Mathf.Sqrt(distSqr);
             consumed += dist * battery.consumptionMeter;
             lastPosition = transform.position;
+            reportDist = dist;
             
             if (TimeManager.Instance != null)
                 TimeManager.Instance.AddDistanceTraveled(dist);
         }
 
-        float effectiveDT = Time.deltaTime * multiplier;
-        consumed += (isWorking ? battery.consumptionWorkSec : battery.consumptionStandbySec) * effectiveDT;
+        float dt = Time.deltaTime;
+        consumed += (isWorking ? battery.consumptionWorkSec : battery.consumptionStandbySec) * dt;
 
         if (consumed > 0)
         {
             Consume(consumed);
 
             accumulatedEnergy += consumed;
-            accumulatedDist += dist;
-            accumulatedSimHours += effectiveDT / 3600f;
+            accumulatedDist += reportDist;
+            accumulatedSimHours += dt / 3600f;
             
-            if (Time.frameCount % 10 == 0 && RobotEconomicsManager.Instance != null)
+            if ((Time.frameCount + reportOffset) % 10 == 0 && RobotEconomicsManager.Instance != null)
             {
                 RobotEconomicsManager.Instance.RecordStatus(transform, accumulatedEnergy, accumulatedDist, accumulatedSimHours);
                 accumulatedEnergy = 0f;
@@ -129,7 +133,12 @@ public class RobotEnergy : MonoBehaviour
 
     public void StartCharging() => isCharging = true;
     public void SetWorking(bool working) => isWorking = working;
-    public void SetIdle(bool idle) => isIdle = idle;
+    public void SetIdle(bool idle) 
+    { 
+        isIdle = idle;
+        if (RobotEconomicsManager.Instance != null)
+            RobotEconomicsManager.Instance.SetRobotIdle(transform, idle);
+    }
 
     public bool HasEnoughEnergy(float estimatedDistance, float estimatedWorkSeconds = 0f)
     {

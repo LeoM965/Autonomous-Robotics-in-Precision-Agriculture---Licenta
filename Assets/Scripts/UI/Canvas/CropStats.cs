@@ -9,10 +9,12 @@ namespace UI.Canvas
     public class CropStats : MonoBehaviour
     {
         private Transform container;
+        private RectTransform containerRect;
         private TextMeshProUGUI totalTxt;
         private Dictionary<string, Dictionary<string, int>> zones = new Dictionary<string, Dictionary<string, int>>();
         private List<Row> pool = new List<Row>();
         private int activeCount;
+        private int lastActiveCount;
         private float timer;
 
         private class Row
@@ -32,6 +34,7 @@ namespace UI.Canvas
         void Start()
         {
             container = transform.Find("Visuals/List");
+            containerRect = container?.GetComponent<RectTransform>();
             totalTxt = transform.Find("Visuals/Total")?.GetComponent<TextMeshProUGUI>();
             Refresh();
         }
@@ -72,7 +75,11 @@ namespace UI.Canvas
 
             for (int i = activeCount; i < pool.Count; i++) pool[i].obj.SetActive(false);
             if (totalTxt) totalTxt.text = $"TOTAL PLANTE: {total}";
-            LayoutRebuilder.ForceRebuildLayoutImmediate(container.GetComponent<RectTransform>());
+            if (activeCount != lastActiveCount && containerRect != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(containerRect);
+                lastActiveCount = activeCount;
+            }
         }
 
         private void UpdateRow(string z, string c, string cnt, bool sz, bool w)

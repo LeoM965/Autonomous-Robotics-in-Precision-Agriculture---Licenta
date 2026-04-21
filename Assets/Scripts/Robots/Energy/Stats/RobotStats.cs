@@ -17,7 +17,7 @@ public class RobotStats
     public float energykWh;
     public float revenueGenerated;
     public string zone = "?";
-    public bool IsCurrentlyActive { get; set; }
+    public bool IsIdle { get; set; }
     
     public static float EnergyPrice => SimulationSettings.EnergyPrice;
     public float TotalCost => maintenanceCost + depreciationCost + (energykWh * EnergyPrice);
@@ -51,6 +51,8 @@ public class RobotStats
 
     public float AddMaintenance(float distMeters, float deltaHours)
     {
+        if (IsIdle) return 0f;
+
         float deltaKm = distMeters / 1000f;
         float annualBudget = purchasePrice * maintenanceRate;
         float costDist = (deltaKm * (annualBudget * 0.5f)) / 10000f;
@@ -68,7 +70,7 @@ public class RobotStats
 
     public float AddDepreciation(float deltaHours)
     {
-        if (deltaHours <= 0) return 0;
+        if (deltaHours <= 0 || IsIdle) return 0;
 
         float annualDep = purchasePrice * (1f - residualValueRate);
         int life = utilityLifeYears > 0 ? utilityLifeYears : 10;
@@ -91,17 +93,17 @@ public class RobotStats
 
     public void UpdateZone(Vector3 pos)
     {
-        float minDist = float.MaxValue;
+        float minDistSqr = float.MaxValue;
         var parcels = ParcelCache.Parcels;
         if (parcels == null || parcels.Count == 0) return;
 
         foreach (var p in parcels)
         {
             if (p == null) continue;
-            float d = Vector3.Distance(pos, p.transform.position);
-            if (d < minDist)
+            float dSqr = (pos - p.transform.position).sqrMagnitude;
+            if (dSqr < minDistSqr)
             {
-                minDist = d;
+                minDistSqr = dSqr;
                 zone = GetZoneFromName(p.name);
             }
         }

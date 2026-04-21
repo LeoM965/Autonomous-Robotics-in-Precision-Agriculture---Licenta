@@ -1,16 +1,25 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Jobs;
 
 public class CropManager : MonoBehaviour
 {
     public static CropManager Instance { get; private set; }
 
-    [Header("Optimization")]
-    [SerializeField] private int updatesPerFrame = 512;
+    [Header("Optimization (Job System)")]
+    [Tooltip("Ruleaza calculele agricole cu Burst Compiler pe toate plantele simultan.")]
+    [SerializeField] private bool useJobSystem = true;
     
     private readonly List<CropGrowth> activeCrops = new List<CropGrowth>(4096);
     private readonly Dictionary<CropGrowth, int> cropIndices = new Dictionary<CropGrowth, int>();
-    private int lastUpdateIndex;
+
+    // Persistent Buffers for Job System
+    private Unity.Collections.NativeArray<float> consumeRates;
+    private Unity.Collections.NativeArray<float> optimalNs;
+    private Unity.Collections.NativeArray<float> sensorNs;
+    private Unity.Collections.NativeArray<float> tempMults;
+    private Unity.Collections.NativeArray<float> outNitrogen;
+    private Unity.Collections.NativeArray<float> outGrowth;
 
     private void Awake()
     {
@@ -30,6 +39,35 @@ public class CropManager : MonoBehaviour
     private void OnDisable()
     {
         CropSelector.CropSelected -= OnCropSelected;
+        DisposeBuffers();
+    }
+
+    private void OnDestroy() => DisposeBuffers();
+
+    private void DisposeBuffers()
+    {
+        if (consumeRates.IsCreated) consumeRates.Dispose();
+        if (optimalNs.IsCreated) optimalNs.Dispose();
+        if (sensorNs.IsCreated) sensorNs.Dispose();
+        if (tempMults.IsCreated) tempMults.Dispose();
+        if (outNitrogen.IsCreated) outNitrogen.Dispose();
+        if (outGrowth.IsCreated) outGrowth.Dispose();
+    }
+
+    private void EnsureBufferCapacity(int count)
+    {
+        if (consumeRates.IsCreated && consumeRates.Length >= count) return;
+
+        DisposeBuffers();
+        int newSize = Mathf.Max(count, 1024);
+        var alloc = Unity.Collections.Allocator.Persistent;
+
+        consumeRates = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        optimalNs = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        sensorNs = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        tempMults = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        outNitrogen = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        outGrowth = new Unity.Collections.NativeArray<float>(newSize, alloc);
     }
 
     private void OnCropSelected(Transform robot, CropData crop, float score, 
@@ -89,9 +127,9 @@ public class CropManager : MonoBehaviour
         activeCrops.RemoveAt(lastIndex);
         cropIndices.Remove(crop);
         
-        if (lastUpdateIndex >= activeCrops.Count) 
-            lastUpdateIndex = 0;
     }
+
+    private float lastProcessTime = -1f;
 
     private void Update()
     {
@@ -99,13 +137,76 @@ public class CropManager : MonoBehaviour
         if (count == 0 || TimeManager.Instance == null) return;
 
         float currentSimHours = TimeManager.Instance.TotalSimulatedHours;
-        int slice = Mathf.Min(count, updatesPerFrame);
         
-        for (int i = 0; i < slice; i++)
+        float deltaHours = lastProcessTime >= 0 ? currentSimHours - lastProcessTime : 0f;
+        lastProcessTime = currentSimHours;
+
+        if (deltaHours <= 0) return;
+
+        float weatherMult = Weather.Components.WeatherSystem.Instance != null 
+                          ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier() : 1f;
+
+        if (useJobSystem && count > 0)
         {
-            lastUpdateIndex = (lastUpdateIndex + 1) % count;
-            var crop = activeCrops[lastUpdateIndex];
-            if (crop != null) crop.ManualUpdate(currentSimHours);
+            EnsureBufferCapacity(count);
+
+            // Temperatura curenta (o citim o singura data, nu per-planta)
+            float currentTemp = Weather.Components.WeatherSystem.Instance != null
+                ? Weather.Components.WeatherSystem.Instance.CurrentTemperature : 20f;
+            var db = CropLoader.Load();
+
+            // 2. Colectam datele (Main Thread gathering - can be a bottleneck for 10k+)
+            for (int i = 0; i < count; i++)
+            {
+                var crop = activeCrops[i];
+                if (crop != null && !crop.IsBeingHarvested && crop.Progress < 1f)
+                {
+                    consumeRates[i] = crop.GetNitrogenConsumptionRate();
+                    optimalNs[i] = crop.GetOptimalNitrogen();
+                    sensorNs[i] = crop.ParentSensor != null ? crop.ParentSensor.nitrogen : 0f;
+
+                    // Temperatura cardinala per cultura: CropData.GetTemperatureMultiplier()
+                    tempMults[i] = crop.GetTemperatureMultiplier(currentTemp, db);
+                }
+                else
+                {
+                    consumeRates[i] = 0f;
+                    optimalNs[i] = 0f;
+                    sensorNs[i] = 0f;
+                    tempMults[i] = 1f;
+                }
+            }
+
+            // 3. Rulam Job-ul Paralel
+            var job = new Crops.Jobs.CropUpdateJob
+            {
+                deltaHours = deltaHours,
+                weatherMultiplier = weatherMult,
+                consumeRates = consumeRates,
+                optimalNs = optimalNs,
+                sensorNitrogens = sensorNs,
+                tempMultipliers = tempMults,
+                outConsumedNitrogen = outNitrogen,
+                outGrowthDelta = outGrowth
+            };
+
+            job.Schedule(count, 64).Complete();
+
+            // 4. Aplicam rezultatele vizual
+            for (int i = 0; i < count; i++)
+            {
+                if (activeCrops[i] != null && (outGrowth[i] > 0 || outNitrogen[i] > 0))
+                    activeCrops[i].ApplyJobResults(outGrowth[i], outNitrogen[i]);
+            }
+        }
+        else
+        {
+            // Punctul in care pica FPS-urile daca nu se foloseste Job-ul (fallback iterativ)
+            for (int i = 0; i < count; i++)
+            {
+                if (activeCrops[i] != null) 
+                    activeCrops[i].ProcessGrowth(deltaHours, weatherMult);
+            }
         }
     }
 }

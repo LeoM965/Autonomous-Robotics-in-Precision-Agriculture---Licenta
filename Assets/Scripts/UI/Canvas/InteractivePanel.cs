@@ -13,6 +13,7 @@ namespace UI.Canvas
         protected Camera mainCam;
         protected GameObject visuals;
         protected Transform selectedTarget;
+        private float refreshTimer;
 
         protected virtual void Start()
         {
@@ -30,7 +31,11 @@ namespace UI.Canvas
             
             if (visuals != null && visuals.activeSelf && selectedTarget != null)
             {
-                OnRefresh();
+                if ((refreshTimer -= Time.unscaledDeltaTime) <= 0f)
+                {
+                    OnRefresh();
+                    refreshTimer = 0.25f;
+                }
             }
         }
 

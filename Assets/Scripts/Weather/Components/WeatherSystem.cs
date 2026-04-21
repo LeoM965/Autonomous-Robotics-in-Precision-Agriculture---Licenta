@@ -39,14 +39,26 @@ namespace Weather.Components
         {
             if (TimeManager.Instance != null)
             {
-                TimeManager.Instance.OnDayChanged += () => UpdateClimate();
-                TimeManager.Instance.OnHourChanged += (hour) => simulator.RerollWeather(hour);
+                TimeManager.Instance.OnDayChanged += OnDayTick;
+                TimeManager.Instance.OnHourChanged += OnHourTick;
             }
 
             UpdateClimate();
             float startTime = TimeManager.Instance != null ? TimeManager.Instance.timeOfDay : 12f;
             simulator.RerollWeather(startTime);
         }
+
+        private void OnDestroy()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnDayChanged -= OnDayTick;
+                TimeManager.Instance.OnHourChanged -= OnHourTick;
+            }
+        }
+
+        private void OnDayTick() => UpdateClimate();
+        private void OnHourTick(float hour) => simulator?.RerollWeather(hour);
 
         private float lastSimHours = -1f;
         private float moistureTimer = 0f;

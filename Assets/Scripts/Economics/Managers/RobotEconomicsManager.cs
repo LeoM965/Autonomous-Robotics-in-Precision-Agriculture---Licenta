@@ -49,15 +49,17 @@ namespace Economics.Managers
             float worldDelta = TimeManager.Instance.TotalSimulatedHours - lastSyncTotalHours;
             lastSyncTotalHours = TimeManager.Instance.TotalSimulatedHours;
 
-            if (worldDelta > 0)
+            bool isSkipping = SimulationSpeedController.Instance != null && SimulationSpeedController.Instance.IsSkipping;
+
+            // Daca suntem intr-un Fast Skip, oprim taxarea pentru a nu penaliza robotii care erau activi la startul skip-ului
+            if (worldDelta > 0 && !isSkipping)
             {
                 foreach (var stats in RobotStatsMap.Values)
                 {
-                    if (stats.IsCurrentlyActive)
+                    if (!stats.IsIdle)
                     {
                         GlobalDepreciationCost += stats.AddDepreciation(worldDelta);
                         stats.time += worldDelta * 3600f;
-                        stats.IsCurrentlyActive = false;
                     }
                 }
             }
@@ -74,8 +76,6 @@ namespace Economics.Managers
             if (!RobotStatsMap.ContainsKey(robot)) RegisterRobot(robot);
             
             var stats = RobotStatsMap[robot];
-            stats.IsCurrentlyActive = true;
-            
             globalEnergykWh += kWh;
             stats.AddEnergy(kWh);
 
@@ -85,7 +85,6 @@ namespace Economics.Managers
             if (distMeters > 0 || deltaHours > 0)
             {
                 GlobalMaintenanceCost += stats.AddMaintenance(distMeters, deltaHours);
-                // Amortizarea nu se mai calculeaza aici - se aplica in LateUpdate pe timp calendaristic
             }
         }
 
@@ -105,7 +104,14 @@ namespace Economics.Managers
             }
         }
 
-        private readonly List<Transform> toRemove = new List<Transform>();
+        public void SetRobotIdle(Transform robot, bool idle)
+    {
+        if (robot == null) return;
+        if (!RobotStatsMap.ContainsKey(robot)) RegisterRobot(robot);
+        RobotStatsMap[robot].IsIdle = idle;
+    }
+
+    private readonly List<Transform> toRemove = new List<Transform>();
 
         private void CleanUpDestroyedRobots()
         {

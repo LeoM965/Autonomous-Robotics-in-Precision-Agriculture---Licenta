@@ -29,10 +29,6 @@ public class SpawnPositionFinder
     {
         usedCells.Add(PositionToCell(position));
     }
-    public void Clear()
-    {
-        usedCells.Clear();
-    }
     private Vector2Int PositionToCell(Vector3 position)
     {
         int x = Mathf.FloorToInt(position.x / cellSize);

@@ -22,7 +22,11 @@ namespace AI.Navigation
         public float CellSize => cellSize;
         public bool IsReady => grid != null;
         
-        private void Awake() => Instance = this;
+        private void Awake()
+        {
+            if (Instance == null) Instance = this;
+            else { Destroy(gameObject); return; }
+        }
         
         private void Start()
         {

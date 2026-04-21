@@ -6,6 +6,8 @@ namespace Sensors.Components
 {
     public class TerrainAnalyzer : MonoBehaviour
     {
+        private static readonly System.Collections.Generic.Dictionary<Vector2Int, AgroSoilType> soilCache = new System.Collections.Generic.Dictionary<Vector2Int, AgroSoilType>();
+
         public AgroSoilType AnalyzeTerrain(Vector3 position)
         {
             var terrain = Terrain.activeTerrain;
@@ -17,6 +19,12 @@ namespace Sensors.Components
 
             int mapX = Mathf.Clamp((int)(nx * td.alphamapWidth), 0, td.alphamapWidth - 1);
             int mapZ = Mathf.Clamp((int)(nz * td.alphamapHeight), 0, td.alphamapHeight - 1);
+
+            Vector2Int key = new Vector2Int(mapX, mapZ);
+            if (soilCache.TryGetValue(key, out AgroSoilType cachedType))
+            {
+                return cachedType;
+            }
 
             float[,,] alphas = td.GetAlphamaps(mapX, mapZ, 1, 1);
             int dominantIndex = 0;
@@ -32,7 +40,9 @@ namespace Sensors.Components
             }
 
             string layerName = td.terrainLayers[dominantIndex].name;
-            return MapLayerToSoilType(layerName);
+            AgroSoilType resultType = MapLayerToSoilType(layerName);
+            soilCache[key] = resultType;
+            return resultType;
         }
 
         private AgroSoilType MapLayerToSoilType(string layerName)

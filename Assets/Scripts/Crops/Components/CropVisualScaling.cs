@@ -16,7 +16,9 @@ public class CropVisualScaling : MonoBehaviour
     public float CalculateScale(CropStage stage, float progress)
     {
         if (settings == null) return 1f;
+
         int idx = (int)stage;
+        if (idx >= settings.stageScales.Length) idx = settings.stageScales.Length - 1;
         
         float[] scales = settings.stageScales;
         float currentScale = scales[idx];
@@ -40,4 +42,8 @@ public class CropVisualScaling : MonoBehaviour
     }
 
     public float GetInitialScale() => settings != null ? settings.stageScales[0] : 0.01f;
+
+    // Cleanup: dummy methods in case other scripts still call them
+    public void ApplyDecayTint(CropStage stage) { }
+    public void ClearTint() { }
 }

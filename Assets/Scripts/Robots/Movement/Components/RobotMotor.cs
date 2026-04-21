@@ -106,13 +106,13 @@ namespace Robots.Components.Movement
                 moveDirection = (moveDirection + stuckPush).normalized;
 
             float angleDiff = Mathf.Abs(Mathf.DeltaAngle(currentAngle, targetAngle));
-            float speedMultiplier = angleDiff > 45f ? 0.3f : (angleDiff > 15f ? 0.7f : 1f);
+            float speedMultiplier = angleDiff > 90f ? 0.5f : (angleDiff > 30f ? 0.8f : 1f);
 
             float weatherPenalty = 1.0f;
             if (Weather.Components.WeatherSystem.Instance != null)
                 weatherPenalty = Weather.Components.WeatherSystem.Instance.GetMovementPenalty();
 
-            velocity = Vector3.Lerp(velocity, moveDirection * speed * speedMultiplier * weatherPenalty, dt * 5f);
+            velocity = Vector3.Lerp(velocity, moveDirection * speed * speedMultiplier * weatherPenalty, dt * 12f);
             pos += velocity * dt;
             pos = BoundsHelper.ClampPosition(pos, movementBounds);
 
@@ -147,13 +147,28 @@ namespace Robots.Components.Movement
 
         public void SetTerrain(Terrain t) => terrain = t;
         
+        private float baseRotationSpeed;
+        private float baseTiltSpeed;
+        private float baseMaxTilt;
+        private float baseAvoidRadius;
+        private bool hasBaseValues;
+
         public void Randomize(float speedVar, float rotVar, float tiltVar, float maxTiltVar, float avoidVar)
         {
+            if (!hasBaseValues)
+            {
+                baseRotationSpeed = rotationSpeed;
+                baseTiltSpeed = tiltSpeed;
+                baseMaxTilt = maxTilt;
+                baseAvoidRadius = avoidRadius;
+                hasBaseValues = true;
+            }
+
             speedRandomFactor = speedVar;
-            rotationSpeed *= rotVar;
-            tiltSpeed *= tiltVar;
-            maxTilt *= maxTiltVar;
-            avoidRadius *= avoidVar;
+            rotationSpeed = baseRotationSpeed * rotVar;
+            tiltSpeed = baseTiltSpeed * tiltVar;
+            maxTilt = baseMaxTilt * maxTiltVar;
+            avoidRadius = baseAvoidRadius * avoidVar;
         }
     }
 }

@@ -51,7 +51,6 @@ public class HarvesterOperation
 
         if (cropsToHarvest.Count > 0)
         {
-            if (energy != null) energy.SetWorking(true);
             executor.SetTarget(parcel, config.harvestDelay, cropDB);
             isHarvesting = true;
             MoveToNextCrop();
@@ -118,7 +117,6 @@ public class HarvesterOperation
             }
         }
 
-        if (energy != null) energy.SetWorking(false);
         sessionHarvestedCount += executor.HarvestedInParcel;
         cropsToHarvest.Clear();
         cropIndex = 0;

@@ -16,7 +16,7 @@ public class CropHarvestVisuals : MonoBehaviour
         float t = 0f;
         while (t < 1f)
         {
-            t += Time.deltaTime / settings.sinkDuration;
+            t += Time.unscaledDeltaTime / settings.sinkDuration;
             float smooth = t * t;
             target.localPosition = Vector3.Lerp(startPos, endPos, smooth);
             target.localScale = Vector3.Lerp(startScale, Vector3.zero, smooth);

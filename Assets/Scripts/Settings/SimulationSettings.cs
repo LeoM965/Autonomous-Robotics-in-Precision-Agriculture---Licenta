@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Settings
 {
     public static class SimulationSettings
@@ -94,6 +96,27 @@ namespace Settings
                     K_Max[i] = crop.requirements.potassium.max;
                 }
             }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            OnSettingsChanged = null;
+            PlantsPerRow = 4;
+            SelectedCropIndex = -1;
+            SeedCosts = null;
+            YieldWeights = null;
+            MarketPrices = null;
+            EnergyPrice = 0.20f;
+            MinQualityToPlant = 30f;
+            UseCentralizedScheduling = true;
+            RobotCounts = null;
+            RobotTypeCount = 0;
+            ZoneCount = 0;
+            RobotTypeNames = null;
+            N_Min = N_Opt = N_Max = null;
+            P_Min = P_Opt = P_Max = null;
+            K_Min = K_Opt = K_Max = null;
         }
     }
 }

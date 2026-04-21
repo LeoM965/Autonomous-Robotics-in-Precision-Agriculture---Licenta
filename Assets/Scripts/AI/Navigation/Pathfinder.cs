@@ -13,7 +13,11 @@ namespace AI.Navigation
         private readonly MinHeap<PathNode> openHeap = new MinHeap<PathNode>();
         private readonly HashSet<PathNode> closedSet = new HashSet<PathNode>();
         
-        private void Awake() => Instance = this;
+        private void Awake()
+        {
+            if (Instance == null) Instance = this;
+            else { Destroy(gameObject); return; }
+        }
         
         private void Start() => grid = PathGrid.Instance;
         
@@ -119,8 +123,6 @@ namespace AI.Navigation
                     nb.h = PathHelper.Heuristic(nb, endNode);
                     nb.parent = current;
                     
-                    // Lazy re-insert: adaugam nodul din nou cu prioritatea actualizata.
-                    // Copia veche (cu g mai mare) va fi ignorata de closedSet check la Dequeue.
                     AddToOpenSet(nb);
                 }
             }

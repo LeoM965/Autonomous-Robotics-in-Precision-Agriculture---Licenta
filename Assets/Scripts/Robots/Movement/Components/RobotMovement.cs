@@ -9,10 +9,6 @@ using Robots.Movement.Interfaces;
 [RequireComponent(typeof(RobotLifecycle))]
 public class RobotMovement : MonoBehaviour, IRobotMovement
 {
-    [Header("Wheels Configuration")]
-    [SerializeField] private Transform[] wheels;
-    [SerializeField] private float wheelRadius = 0.3f;
-
     [Header("Bounds")]
     [SerializeField] private float boundaryMargin = 12f;
 
@@ -42,16 +38,12 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
 
     private void Start()
     {
-        terrain = Terrain.activeTerrain;
-        
         motor.Randomize(
             Random.Range(0.75f, 1.3f),
             Random.Range(0.8f, 1.2f),
             Random.Range(0.7f, 1.3f),
             Random.Range(0.8f, 1.2f),
             Random.Range(0.8f, 1.2f));
-        
-        wheelController.SetWheels(wheels, wheelRadius);
     }
 
     private void Update()
@@ -60,7 +52,7 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
         {
             terrain = Terrain.activeTerrain;
             if (cachedFence == null)
-                cachedFence = FindFirstObjectByType<FenceGenerator>();
+                cachedFence = FenceGenerator.Instance;
             if (terrain != null && cachedFence != null && cachedFence.zones != null && cachedFence.zones.Length > 0)
             {
                 InitBounds();
@@ -74,7 +66,7 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
     public void InitBounds()
     {
         if (cachedFence == null)
-            cachedFence = FindFirstObjectByType<FenceGenerator>();
+            cachedFence = FenceGenerator.Instance;
         if (cachedFence?.zones != null)
         {
             FenceZone zone = BoundsHelper.FindZoneContaining(transform.position, cachedFence.zones);

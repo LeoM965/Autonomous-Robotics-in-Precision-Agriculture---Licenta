@@ -44,11 +44,5 @@ namespace Robots.Components.Movement
             }
         }
 
-        public void SetWheels(Transform[] newWheels, float radius)
-        {
-            wheels = newWheels;
-            wheelRadius = radius;
-            InitializeWheels();
-        }
     }
 }

@@ -16,10 +16,16 @@ namespace UI.Canvas
 
         void Update()
         {
-            if ((timer -= Time.deltaTime) <= 0f)
+            // Folosim unscaledDeltaTime pentru ca UI-ul sa mearga si in pauza/skip
+            timer -= Time.unscaledDeltaTime;
+
+            bool isSkipping = SimulationSpeedController.Instance != null && SimulationSpeedController.Instance.IsSkipping;
+            
+            // Daca dam skip, facem update mult mai des (la fiecare cadru) pentru fluiditate
+            if (timer <= 0f || isSkipping)
             {
                 Refresh();
-                timer = 1.0f; 
+                timer = 0.1f; // In mod normal, de 10 ori pe secunda e suficient
             }
         }
 

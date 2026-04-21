@@ -48,7 +48,6 @@ public class PlanterOperation
         }
         
         // Positions are already generated inside SetupCropForParcel
-        if (energy != null) energy.SetWorking(true);
         isPlanting = true;
         plantIndex = 0;
         MoveToNextPlantPoint();
@@ -118,7 +117,6 @@ public class PlanterOperation
 
     private void FinishParcel()
     {
-        if (energy != null) energy.SetWorking(false);
         sessionPlantsPlaced += executor.PlantsPlaced;
         sessionTotalCost += executor.TotalCost;
         plantPositions.Clear();
