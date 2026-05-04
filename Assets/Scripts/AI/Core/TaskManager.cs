@@ -130,12 +130,5 @@ namespace AI.Core
 
             return null;
         }
-
-        private int GetTotalTaskCount()
-        {
-            int total = 0;
-            foreach (var heap in taskHeaps.Values) total += heap.Count;
-            return total;
-        }
     }
 }

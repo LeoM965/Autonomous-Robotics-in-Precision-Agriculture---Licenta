@@ -45,6 +45,18 @@ public class RobotEnergy : MonoBehaviour
             gameObject.AddComponent<BatteryBarUI>();
 
         UpdateFromStaticData();
+        
+        // Încarcă bateria complet la spawn — DOAR dacă NU se încarcă o salvare
+        if (!SaveSystem.SimLoader.ShouldLoadSave)
+            battery.currentKWh = battery.maxKWh;
+        
+        OnBatteryChanged?.Invoke(BatteryPercent);
+    }
+
+    /// <summary>Setat de SimSaveManager.Load() pentru a restaura bateria din save.</summary>
+    public void SetBattery(float kwh)
+    {
+        battery.currentKWh = Mathf.Clamp(kwh, 0f, battery.maxKWh);
         OnBatteryChanged?.Invoke(BatteryPercent);
     }
 

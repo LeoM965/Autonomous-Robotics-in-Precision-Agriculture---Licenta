@@ -9,6 +9,8 @@ public class RobotEnergyManager
     private Vector3? currentChargerTarget;
     private bool isHeadingToCharger;
 
+    private const float CRITICAL_BATTERY = 0.08f;
+
     public RobotEnergyManager(Transform t, RobotEnergy e, IRobotMovement m)
     {
         transform = t;
@@ -28,6 +30,18 @@ public class RobotEnergyManager
         return true;
     }
 
+    public void Update()
+    {
+        if (isHeadingToCharger && currentChargerTarget.HasValue)
+        {
+            CheckArrivalAtCharger();
+            return;
+        }
+
+        if (energy != null && !energy.IsCharging && energy.BatteryPercent < CRITICAL_BATTERY)
+            StartNavigationToCharger();
+    }
+
     private void StartNavigationToCharger()
     {
         Vector3? station = BuildingSpawner.GetNearestChargingStation(transform.position);
@@ -42,12 +56,6 @@ public class RobotEnergyManager
             isHeadingToCharger = false;
             currentChargerTarget = null;
         }
-    }
-
-    public void Update()
-    {
-        if (isHeadingToCharger && currentChargerTarget.HasValue) 
-            CheckArrivalAtCharger();
     }
 
     private void CheckArrivalAtCharger()

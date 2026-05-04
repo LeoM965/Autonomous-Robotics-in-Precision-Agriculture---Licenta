@@ -108,6 +108,8 @@ namespace Robots.Capabilities.Flight
         private void ExecuteStateLogic()
         {
             energy.SetWorking(state == FlightState.HoveringAtTarget);
+            energy.SetIdle(state == FlightState.Idle);
+            
             switch (state)
             {
                 case FlightState.Charging: HandleChargingState(); break;
@@ -224,13 +226,13 @@ namespace Robots.Capabilities.Flight
         public string GetStatus()
         {
             if (state == FlightState.Initializing) return "Sisteme în pornire...";
+            if (state == FlightState.Idle) return "Idle - Nicio parcelă nu necesită tratament";
             if (navigation?.CurrentTarget == null) return "Scanare câmp...";
             return state switch
             {
                 FlightState.Navigating => "Zbor spre " + navigation.CurrentTarget.name,
-                FlightState.HoveringAtTarget => "Tratare zig-zag pe " + navigation.CurrentTarget.name,
-                FlightState.Charging => "Se deplasează la încărcare...",
-                FlightState.Idle => "Idle - Nicio parcelă nu necesită tratament",
+                FlightState.HoveringAtTarget => "Tratează " + navigation.CurrentTarget.name,
+                FlightState.Charging => "La încărcat...",
                 _ => "Idle"
             };
         }

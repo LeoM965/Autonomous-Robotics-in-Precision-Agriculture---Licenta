@@ -10,7 +10,7 @@ namespace Weather.Services
         private bool initialized;
 
         public WeatherType CurrentWeather { get; private set; }
-        public float CurrentTemperature { get; private set; }
+        public float CurrentTemperature { get; set; }
         public WeatherImpact CurrentImpact { get; private set; }
         public WeatherType? ForcedWeather { get; set; }
 

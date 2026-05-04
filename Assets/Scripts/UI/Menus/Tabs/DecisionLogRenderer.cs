@@ -212,7 +212,7 @@ namespace UI.Menus.Tabs
         {
             var s = new GUIStyle(GUI.skin.label)
             {
-                fontSize = size, fontStyle = weight, alignment = anchor
+                fontSize = size, fontStyle = weight, alignment = anchor, wordWrap = false
             };
             s.normal.textColor = color;
             return s;

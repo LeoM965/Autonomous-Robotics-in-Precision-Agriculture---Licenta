@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Settings.Tabs;
+using SaveSystem;
 
 namespace Settings
 {
@@ -36,12 +37,20 @@ namespace Settings
             for (int i = 0; i < count; i++) cropNames[i + 1] = cropDB.crops[i].name;
 
             // Initialize tabs
+            // Ensure save manager exists
+            if (SimSaveManager.Instance == null)
+            {
+                var go = new GameObject("SaveManager");
+                go.AddComponent<SimSaveManager>();
+            }
+
             tabs = new List<ISettingsTab>
             {
                 new GeneralTab(cropNames),
                 new EconomicsTab(cropDB),
                 new NutrientsTab(cropDB),
-                new RobotStatsTab()
+                new RobotStatsTab(),
+                new SaveTab()
             };
         }
 

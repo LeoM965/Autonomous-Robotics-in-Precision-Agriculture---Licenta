@@ -152,6 +152,7 @@ public class MultiRobotSpawner : MonoBehaviour
         position = TerrainHelper.GetPosition(position.x, position.z, config.heightOffset);
         Quaternion rotation = SpawnHelper.RandomYRotation();
         GameObject robot = Instantiate(prefab, position, rotation, container);
+        robot.name = prefab.name + "_" + spawnedRobots.Count;
         RobotMovement movement = robot.GetComponent<RobotMovement>();
         if (movement != null)
             movement.SetTerrain(terrain);

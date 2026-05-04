@@ -50,6 +50,10 @@ namespace UI.Menus
         private void OnGUI()
         {
             if (!IsOpen || cachedDB?.crops == null || activeReport.AnalysisByVariety == null) return;
+            
+            if (currentTab == DashboardTab.Robots)
+                robotTab.CacheRobotData();
+            
             MapHelper.DrawBox(new Rect(0, 0, Screen.width, Screen.height), new Color(0, 0, 0, 0.45f));
             DrawAnalysisDashboard();
         }

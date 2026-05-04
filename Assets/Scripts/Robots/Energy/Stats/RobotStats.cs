@@ -91,6 +91,17 @@ public class RobotStats
         revenueGenerated += amount;
     }
 
+    /// <summary>Restaurează statisticile din save.</summary>
+    public void Restore(float dist, float t, float energy, float maint, float depr, float revenue)
+    {
+        distance = dist;
+        time = t;
+        energykWh = energy;
+        maintenanceCost = maint;
+        depreciationCost = depr;
+        revenueGenerated = revenue;
+    }
+
     public void UpdateZone(Vector3 pos)
     {
         float minDistSqr = float.MaxValue;

@@ -9,7 +9,8 @@ namespace UI.Menus.Tabs
     public class RobotDashboardTab : BaseDashboardTab
     {
         private string filterZone = "Toate";
-        private readonly float[] robotColOffsets = { 0, 60, 200, 290, 350, 420, 500, 580, 660 };
+        // Mai mult spațiu pentru Activity (180 la 330 = 150px lățime)
+        private readonly float[] robotColOffsets = { 0, 40, 180, 330, 380, 440, 510, 580, 650 };
 
         private struct CachedRobotData
         {
@@ -52,16 +53,39 @@ namespace UI.Menus.Tabs
 
                 if (rt != null)
                 {
-                    var op = rt.GetComponent<RobotOperator>();
-                    if (op != null) statusText = op.CurrentState.ToString();
                     var energy = rt.GetComponent<RobotEnergy>();
                     if (energy != null) batteryPct = energy.BatteryPercent * 100f;
+
+                    var operators = rt.GetComponents<RobotOperator>();
+                    foreach (var op in operators)
+                    {
+                        if (op.CurrentState != RobotOperator.OperatorState.Idle)
+                        {
+                            statusText = op.GetStatus();
+                            break;
+                        }
+                    }
+
+                    if (statusText == "Idle")
+                    {
+                        var flight = rt.GetComponent<Robots.Capabilities.Flight.AgroBotFlight>();
+                        if (flight != null)
+                        {
+                            string fStatus = flight.GetStatus();
+                            if (!fStatus.StartsWith("Idle")) statusText = fStatus;
+                        }
+                    }
+
+                    if (statusText == "Idle" && energy != null && energy.IsCharging)
+                        statusText = "Charging";
                 }
+
+                string robotName = rt != null ? rt.name.Replace("(Clone)", "").Trim() : stats.type;
 
                 fleetInvestment += stats.purchasePrice;
                 cachedRobots.Add(new CachedRobotData
                 {
-                    Zone = stats.zone, Type = stats.type, StatusText = statusText,
+                    Zone = stats.zone, Type = robotName, StatusText = statusText,
                     BatteryPct = batteryPct, WorkHours = stats.time / 3600f,
                     DistKm = stats.distance / 1000f, TotalCost = stats.TotalCost,
                     RevenueGenerated = stats.revenueGenerated, ROI = stats.ROI,

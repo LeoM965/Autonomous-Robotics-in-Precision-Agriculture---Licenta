@@ -39,6 +39,7 @@ public class PlanterOperation
 
     public void StartPlanting(EnvironmentalSensor parcel)
     {
+        currentParcel = parcel;
         SetupCropForParcel(parcel);
         Collider col = parcel.GetComponent<Collider>();
         if (col == null)
@@ -115,14 +116,21 @@ public class PlanterOperation
         executor.SetTarget(parcel, crop, CropLoader.LoadPrefab(crop.prefabPath), idx, plantCount);
     }
 
+    private EnvironmentalSensor currentParcel;
+
     private void FinishParcel()
     {
+        if (currentParcel != null)
+        {
+            currentParcel.isScheduledForTask = false;
+        }
         sessionPlantsPlaced += executor.PlantsPlaced;
         sessionTotalCost += executor.TotalCost;
         plantPositions.Clear();
         plantIndex = 0;
         executor.Reset();
         isPlanting = false;
+        currentParcel = null;
     }
 
     public void Abort()

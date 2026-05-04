@@ -72,14 +72,16 @@ namespace Robots.Capabilities.Flight
 
             float urgency = navigation?.LastUrgency ?? 0f;
             float dist = navigation?.LastDistance ?? 0f;
+            float priority = urgency / Mathf.Max(dist, 1f);
             float energyCost = dist * 0.001f;
 
             activeRecord = new DecisionRecord
             {
                 decisionType = "Soil Treatment",
-                chosenOption = "Pulverizing nutrients on " + target.name,
+                chosenOption = "Treat Soil",
                 parcelName = target.name,
                 chosenScore = urgency,
+                schedulingValue = priority,
                 netValue = urgency - energyCost,
                 factors = new DecisionFactors()
             };

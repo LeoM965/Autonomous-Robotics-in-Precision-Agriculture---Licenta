@@ -142,6 +142,18 @@ namespace Weather.Components
                 simulator.RerollWeather(TimeManager.Instance.timeOfDay);
         }
 
+        /// <summary>Restaurează starea meteo exact din save (fără random).</summary>
+        public void RestoreState(WeatherType type, float temperature)
+        {
+            if (simulator == null) return;
+            simulator.ForcedWeather = type;
+            simulator.CurrentTemperature = temperature;
+            if (TimeManager.Instance != null)
+                simulator.RerollWeather(TimeManager.Instance.timeOfDay);
+            // Override temperatura după RerollWeather (care adaugă jitter)
+            simulator.CurrentTemperature = temperature;
+        }
+
         public void CycleForcedWeather()
         {
             if (simulator == null) return;

@@ -14,8 +14,8 @@ namespace AI.Core.Scanners
             if (ParcelCache.Instance == null) return;
 
             var db = CropLoader.Load();
-            float avgYieldValue = GetAverageYieldValue(db);
-            float avgSeedCost = GetAverageSeedCost(db);
+            float avgYieldValue = AverageCropStat(db, c => c.yieldValueEUR, 1f);
+            float avgSeedCost   = AverageCropStat(db, c => c.seedCostEUR,   5f);
 
             foreach (var parcel in ParcelCache.Instance.ParcelsIterator)
             {
@@ -26,29 +26,27 @@ namespace AI.Core.Scanners
                 int zoneIdx = GetOrCreateZoneIndex(parcel, zones);
                 if (zoneIdx >= 0)
                 {
-                    float suitability = parcel.soilQuality / 100f;
-                    float gain = suitability * avgYieldValue;
-                    float cost = avgSeedCost;
-                    tasks.Add(new PlantingTask(parcel.transform, gain, cost));
-                    parcel.isScheduledForTask = true;
+                    // Pre-check if any crop is suitable right now (weather/season permitting)
+                    var bestCrop = CropSelector.SelectBestCrop(db, parcel.composition, null, parcel.name, 1, 0f, false);
+                    if (bestCrop != null)
+                    {
+                        float suitability = parcel.soilQuality / 100f;
+                        float gain = suitability * avgYieldValue;
+                        float cost = avgSeedCost;
+                        tasks.Add(new PlantingTask(parcel.transform, gain, cost));
+                        parcel.isScheduledForTask = true;
+                    }
                 }
             }
         }
 
-        private float GetAverageSeedCost(CropDatabase db)
+        private static float AverageCropStat(CropDatabase db, System.Func<CropData, float> selector, float fallback)
         {
-            if (db?.crops == null || db.crops.Length == 0) return 5f;
+            if (db?.crops == null || db.crops.Length == 0) return fallback;
             float total = 0f;
-            foreach (var crop in db.crops) total += crop.seedCostEUR;
-            return total / db.crops.Length;
-        }
-
-        private float GetAverageYieldValue(CropDatabase db)
-        {
-            if (db?.crops == null || db.crops.Length == 0) return 1f;
-            float total = 0f;
-            foreach (var crop in db.crops) total += crop.yieldValueEUR;
+            foreach (var crop in db.crops) total += selector(crop);
             return total / db.crops.Length;
         }
     }
 }
+

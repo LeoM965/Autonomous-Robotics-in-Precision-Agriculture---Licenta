@@ -24,6 +24,11 @@ public class SimulationSpeedUI : MonoBehaviour
     public Button skipBtn;
     public TextMeshProUGUI skipText;
 
+    [Header("Auto Skip")]
+    public Button autoSkipBtn;
+    public Image autoSkipImage;
+    public TextMeshProUGUI autoSkipText;
+
     [Header("Month Navigation")]
     public Button[] monthButtons;
 
@@ -38,7 +43,6 @@ public class SimulationSpeedUI : MonoBehaviour
     {
         controller = SimulationSpeedController.Instance;
 
-        // Auto-assign listeners
         if (speedButtons != null)
         {
             for (int i = 0; i < speedButtons.Length; i++)
@@ -61,6 +65,12 @@ public class SimulationSpeedUI : MonoBehaviour
         if (skipBtn != null) 
             skipBtn.onClick.AddListener(() => { if (controller != null) controller.SkipDay(); });
 
+        if (autoSkipBtn == null && skipBtn != null)
+            CreateAutoSkipButton();
+
+        if (autoSkipBtn != null)
+            autoSkipBtn.onClick.AddListener(() => { if (controller != null) controller.ToggleAutoSkip(); });
+
         if (monthButtons != null)
         {
             for (int i = 0; i < monthButtons.Length; i++)
@@ -73,6 +83,45 @@ public class SimulationSpeedUI : MonoBehaviour
                     });
             }
         }
+    }
+
+    private void CreateAutoSkipButton()
+    {
+        GameObject clone = Instantiate(skipBtn.gameObject, skipBtn.transform.parent);
+        clone.name = "AutoSkipBtn";
+
+        RectTransform skipRect = skipBtn.GetComponent<RectTransform>();
+        RectTransform newRect = clone.GetComponent<RectTransform>();
+
+        var le = clone.GetComponent<LayoutElement>();
+        if (le == null) le = clone.AddComponent<LayoutElement>();
+        le.ignoreLayout = true;
+
+        if (weatherBtn != null)
+        {
+            RectTransform wRect = weatherBtn.GetComponent<RectTransform>();
+            newRect.SetParent(skipRect.parent, false);
+
+            float minX = wRect.localPosition.x - wRect.rect.width * wRect.pivot.x;
+            float maxX = skipRect.localPosition.x + skipRect.rect.width * (1f - skipRect.pivot.x);
+
+            newRect.pivot = new Vector2(0.5f, 0.5f);
+            newRect.anchorMin = new Vector2(0.5f, 0.5f);
+            newRect.anchorMax = new Vector2(0.5f, 0.5f);
+            
+            newRect.sizeDelta = new Vector2(maxX - minX, skipRect.rect.height);
+            newRect.localPosition = new Vector3((minX + maxX) / 2f, skipRect.localPosition.y - skipRect.rect.height - 10f, skipRect.localPosition.z);
+        }
+        else
+        {
+            newRect.anchoredPosition = skipRect.anchoredPosition + new Vector2(0f, -(skipRect.rect.height + 10f));
+        }
+
+        autoSkipBtn = clone.GetComponent<Button>();
+        autoSkipBtn.onClick.RemoveAllListeners();
+        autoSkipImage = clone.GetComponent<Image>();
+        autoSkipText = clone.GetComponentInChildren<TextMeshProUGUI>();
+        if (autoSkipText != null) autoSkipText.text = "AUTO";
     }
 
     private void Update()
@@ -133,6 +182,15 @@ public class SimulationSpeedUI : MonoBehaviour
                     monthButtons[i].interactable = !skipBlocked;
             }
         }
+
+        // 6. Auto Skip Toggle
+        if (autoSkipImage != null)
+        {
+            bool on = controller.AutoSkipEnabled;
+            UpdateButtonTheme(autoSkipImage, on ? activeSpeedColor : inactiveBtnColor, on);
+        }
+        if (autoSkipText != null)
+            autoSkipText.text = controller.AutoSkipEnabled ? "AUTO" : "AUTO OFF";
     }
 
     private void UpdateButtonTheme(Image img, Color c, bool isActive)

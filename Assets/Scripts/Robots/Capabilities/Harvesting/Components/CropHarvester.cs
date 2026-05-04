@@ -46,6 +46,7 @@ public class CropHarvester : RobotOperator
 
     protected override void OnAllParcelsComplete()
     {
+        movement.Stop();
         state = OperatorState.Idle;
         idleTimer = config.rescanInterval;
     }

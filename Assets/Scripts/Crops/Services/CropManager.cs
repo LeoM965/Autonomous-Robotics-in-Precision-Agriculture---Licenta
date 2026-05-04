@@ -131,17 +131,20 @@ public class CropManager : MonoBehaviour
 
     private float lastProcessTime = -1f;
 
+    /// <summary>Sincronizează timpul de referință la load (evită delta uriașe).</summary>
+    public void SyncProcessTime(float simHours) => lastProcessTime = simHours;
+
     private void Update()
     {
-        int count = activeCrops.Count;
-        if (count == 0 || TimeManager.Instance == null) return;
+        if (TimeManager.Instance == null) return;
 
         float currentSimHours = TimeManager.Instance.TotalSimulatedHours;
         
         float deltaHours = lastProcessTime >= 0 ? currentSimHours - lastProcessTime : 0f;
         lastProcessTime = currentSimHours;
 
-        if (deltaHours <= 0) return;
+        int count = activeCrops.Count;
+        if (count == 0 || deltaHours <= 0) return;
 
         float weatherMult = Weather.Components.WeatherSystem.Instance != null 
                           ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier() : 1f;

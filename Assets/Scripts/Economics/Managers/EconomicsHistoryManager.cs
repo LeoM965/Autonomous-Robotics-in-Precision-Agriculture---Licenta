@@ -1,5 +1,7 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Economics.Models;
@@ -14,6 +16,13 @@ namespace Economics.Managers
 
         [SerializeField] private List<DailySnapshot> history = new List<DailySnapshot>();
         public List<DailySnapshot> History => history;
+
+        /// <summary>Restaurează istoricul zilnic din save.</summary>
+        public void RestoreHistory(List<DailySnapshot> saved)
+        {
+            history.Clear();
+            if (saved != null) history.AddRange(saved);
+        }
 
         private void Awake()
         {
@@ -90,7 +99,7 @@ namespace Economics.Managers
 
             foreach (var s in history)
             {
-                csv.AppendLine($"{s.Day},{s.SeasonName},{s.TotalRevenue:F2},{s.TotalCosts:F2},{s.NetProfit:F2},{s.ProfitDelta:F2},{s.RevenueDelta:F2},{s.TotalWeightKg:F2},{s.TotalPlants}");
+                csv.AppendLine(Inv($"{s.Day},{s.SeasonName},{s.TotalRevenue:F2},{s.TotalCosts:F2},{s.NetProfit:F2},{s.ProfitDelta:F2},{s.RevenueDelta:F2},{s.TotalWeightKg:F2},{s.TotalPlants}"));
             }
 
             string timestamp = System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
@@ -126,14 +135,14 @@ namespace Economics.Managers
                 if (!report.AnalysisByVariety.TryGetValue(crop.name, out var stats)) continue;
                 float profit = stats.TotalRevenue - stats.TotalSeedCost;
                 float roi = stats.TotalSeedCost > 0 ? (profit / stats.TotalSeedCost) * 100f : 0f;
-                csv.AppendLine($"{crop.name},{stats.TotalPlants},{stats.HarvestedPlants},{stats.TotalSeedCost:F2},{stats.TotalRevenue:F2},{stats.TotalWeightKg:F2},{profit:F2},{roi:F1},{stats.AvgSoilCompatibility:F1}");
+                csv.AppendLine(Inv($"{crop.name},{stats.TotalPlants},{stats.HarvestedPlants},{stats.TotalSeedCost:F2},{stats.TotalRevenue:F2},{stats.TotalWeightKg:F2},{profit:F2},{roi:F1},{stats.AvgSoilCompatibility:F1}"));
             }
 
             var totals = report.FarmTotals;
             float totalProfit = totals.NetProfit;
             float totalROI = (totals.TotalSeedCost + totals.TotalOperationalCost) > 0
                 ? (totalProfit / (totals.TotalSeedCost + totals.TotalOperationalCost)) * 100f : 0f;
-            csv.AppendLine($"TOTAL,{totals.TotalPlants},{totals.HarvestedPlants},{totals.TotalSeedCost:F2},{totals.TotalRevenue:F2},{totals.TotalWeightKg:F2},{totalProfit:F2},{totalROI:F1},");
+            csv.AppendLine(Inv($"TOTAL,{totals.TotalPlants},{totals.HarvestedPlants},{totals.TotalSeedCost:F2},{totals.TotalRevenue:F2},{totals.TotalWeightKg:F2},{totalProfit:F2},{totalROI:F1},"));
 
             string timestamp = System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string fileName = $"CropResults_{timestamp}.csv";
@@ -149,5 +158,11 @@ namespace Economics.Managers
                 Debug.LogError($"[EconomicsHistoryManager] Eroare la export culturi: {e.Message}");
             }
         }
+
+        /// <summary>
+        /// Formateaza cu punct decimal (InvariantCulture), nu virgula — esential pentru CSV valid.
+        /// </summary>
+        private static string Inv(FormattableString fs)
+            => fs.ToString(CultureInfo.InvariantCulture);
     }
 }

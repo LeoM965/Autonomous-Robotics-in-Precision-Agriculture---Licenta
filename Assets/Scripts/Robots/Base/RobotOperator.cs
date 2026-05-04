@@ -7,15 +7,19 @@ public abstract class RobotOperator : MonoBehaviour
     protected RobotEnergyManager energyManager;
     protected RobotMovement movement;
     protected RobotEnergy energy;
-    
+
     protected List<EnvironmentalSensor> parcels = new List<EnvironmentalSensor>();
     protected EnvironmentalSensor currentParcel;
     protected int parcelIndex;
-    
+
     public enum OperatorState { Idle, MovingToParcel, Working, Charging }
     protected OperatorState state = OperatorState.Idle;
     public OperatorState CurrentState => state;
     protected float idleTimer;
+
+    // Anti-stuck: forțează arrival dacă robotul e blocat mai mult de 8s
+    private float moveTimer;
+    private const float MAX_MOVE_TIME = 8f;
 
     protected virtual void Awake()
     {
@@ -34,14 +38,30 @@ public abstract class RobotOperator : MonoBehaviour
     protected virtual void Update()
     {
         if (energyManager == null) return;
+
+        // Oprire forțată pe vreme rea
+        if (SimulationSpeedController.Instance != null &&
+            SimulationSpeedController.Instance.ShouldRobotsStop)
+        {
+            ForceIdle();
+            SyncIdleToManager();
+            return;
+        }
+
+        // Cedează dacă alt operator de pe același robot e ocupat
+        if (state == OperatorState.Idle && AnotherOperatorIsActive())
+        {
+            SyncIdleToManager();
+            return;
+        }
+
         energyManager.Update();
 
-        bool needsChargingAction = energyManager.IsHeadingToCharger || (energy != null && energy.IsCharging);
+        bool needsCharge = energyManager.IsHeadingToCharger ||
+                           (energy != null && energy.IsCharging);
 
-        if (needsChargingAction)
-        {
+        if (needsCharge)
             state = OperatorState.Charging;
-        }
         else if (state == OperatorState.Charging)
         {
             state = OperatorState.Idle;
@@ -51,54 +71,101 @@ public abstract class RobotOperator : MonoBehaviour
         if (state != OperatorState.Charging)
             UpdateOperation();
 
-        if (energy != null) 
-        {
+        if (energy != null)
             energy.SetWorking(state == OperatorState.Working);
-            energy.SetIdle(state == OperatorState.Idle);
-        }
+
+        SyncIdleToManager();
 
         switch (state)
         {
             case OperatorState.MovingToParcel:
-                CheckArrivalAtParcel();
+                moveTimer += Time.deltaTime;
+                if (moveTimer > MAX_MOVE_TIME && currentParcel != null)
+                {
+                    // Blocat prea mult — consideră că a ajuns
+                    OnArrivedAtParcel(currentParcel);
+                    state = OperatorState.Working;
+                }
+                else
+                {
+                    CheckArrivalAtParcel();
+                }
                 break;
+
             case OperatorState.Working:
                 if (!IsWorking()) MoveToNextParcel();
                 break;
+
             case OperatorState.Idle:
                 UpdateIdle();
                 break;
         }
     }
 
+    // ── Helpers ──
+
+    private bool AnotherOperatorIsActive()
+    {
+        var ops = GetComponents<RobotOperator>();
+        foreach (var op in ops)
+        {
+            if (op != this && op.state != OperatorState.Idle)
+                return true;
+        }
+        return false;
+    }
+
+    private void SyncIdleToManager()
+    {
+        if (energy == null) return;
+
+        var ops = GetComponents<RobotOperator>();
+        bool allIdle = true;
+        foreach (var op in ops)
+        {
+            if (op.state != OperatorState.Idle)
+            { allIdle = false; break; }
+        }
+        energy.SetIdle(allIdle);
+    }
+
+    private void ForceIdle()
+    {
+        if (state == OperatorState.Idle) return;
+        ReleaseCurrentParcel();
+        movement.Stop();
+        state = OperatorState.Idle;
+    }
+
+    // ── Navigation ──
+
     protected void MoveToNextParcel()
     {
-        // Iterativ skip null parcels (evitam recursie infinita → StackOverflow)
         while (parcelIndex < parcels.Count && parcels[parcelIndex] == null)
-        {
             parcelIndex++;
-        }
 
-        if (parcelIndex >= parcels.Count) 
-        { 
+        if (parcelIndex >= parcels.Count)
+        {
             ReleaseCurrentParcel();
-            OnAllParcelsComplete(); 
-            return; 
+            OnAllParcelsComplete();
+            return;
         }
 
-        EnvironmentalSensor nextParcel = parcels[parcelIndex];
+        EnvironmentalSensor next = parcels[parcelIndex];
+        float dist = Vector3.Distance(transform.position, next.transform.position);
 
-        float dist = Vector3.Distance(transform.position, nextParcel.transform.position);
-        if (energyManager != null && !energyManager.CheckBattery(dist, 60f)) 
-        { 
-            state = OperatorState.Charging; 
-            return; 
+        if (energyManager != null && !energyManager.CheckBattery(dist, 60f))
+        {
+            state = OperatorState.Charging;
+            return;
         }
 
         SetParcelCollision(currentParcel, false);
         ReleaseCurrentParcel();
-        currentParcel = nextParcel;
+
+        currentParcel = next;
         parcelIndex++;
+        moveTimer = 0f;
 
         SetParcelCollision(currentParcel, true);
         movement.SetTarget(currentParcel.transform.position);
@@ -117,10 +184,11 @@ public abstract class RobotOperator : MonoBehaviour
     private void CheckArrivalAtParcel()
     {
         if (currentParcel == null) return;
+
         Vector3 diff = transform.position - currentParcel.transform.position;
-        float arriveDistSqr = GetArriveDistance() * GetArriveDistance();
-        
-        if (diff.x * diff.x + diff.z * diff.z < arriveDistSqr || movement.HasArrived)
+        float r = GetArriveDistance();
+
+        if (diff.x * diff.x + diff.z * diff.z < r * r || movement.HasArrived)
         {
             OnArrivedAtParcel(currentParcel);
             state = OperatorState.Working;
@@ -134,20 +202,23 @@ public abstract class RobotOperator : MonoBehaviour
         if (col != null) movement.IgnoreCollisionWith(col, ignore);
     }
 
+    // ── Status ──
+
     public string GetStatus()
     {
         if (state == OperatorState.Charging)
-        {
             return energyManager.IsHeadingToCharger ? "Going to Charger" : "Charging";
-        }
+
         return state switch
         {
             OperatorState.MovingToParcel => $"Moving to {(currentParcel ? currentParcel.name : "Parcel")}",
-            OperatorState.Working => GetWorkingStatus(),
-            OperatorState.Idle => GetIdleStatus(),
-            _ => "Idle"
+            OperatorState.Working        => GetWorkingStatus(),
+            OperatorState.Idle           => GetIdleStatus(),
+            _                            => "Idle"
         };
     }
+
+    // ── Abstract ──
 
     protected abstract float GetArriveDistance();
     protected abstract bool IsWorking();

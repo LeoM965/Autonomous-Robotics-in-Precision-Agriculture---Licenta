@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Weather.Components;
 
 public class SimulationSpeedController : MonoBehaviour
 {
@@ -7,60 +8,113 @@ public class SimulationSpeedController : MonoBehaviour
 
     [SerializeField] private float[] speeds = { 0f, 1f, 2f, 5f, 10f };
     [SerializeField] private float boostMultiplier = 5f;
+    [SerializeField] private float idleGracePeriod = 3f;
+    [SerializeField] private float minOperatingTemp = 0f;
 
     private int currentIndex = 1;
     private bool isBoostActive;
     private bool isSkipping;
     private bool isPausedInternally;
+    private bool autoSkipEnabled;
+    private float skipTimer;
 
     public float[] Speeds => speeds;
     public int CurrentIndex => currentIndex;
     public bool IsBoostActive => isBoostActive;
     public bool IsSkipping => isSkipping;
+    public bool AutoSkipEnabled => autoSkipEnabled;
     public float BoostMultiplier => boostMultiplier;
+    public bool ShouldRobotsStop => autoSkipEnabled && TooCold();
 
+    private bool TooCold() =>
+        WeatherSystem.Instance != null && WeatherSystem.Instance.CurrentTemperature < minOperatingTemp;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
     }
 
-    private void Start()
+    private void Start() => SetSpeed(currentIndex);
+
+    private void Update()
     {
-        SetSpeed(currentIndex);
+        if (!autoSkipEnabled || isSkipping || isPausedInternally) return;
+        if (speeds[currentIndex] <= 0f) return;
+
+        bool cold = TooCold();
+
+        if (AllRobotsIdle())
+        {
+            skipTimer += Time.unscaledDeltaTime;
+            float wait = cold ? 0.5f : idleGracePeriod;
+            if (skipTimer >= wait)
+            {
+                skipTimer = 0f;
+                SkipDay();
+            }
+        }
+        else
+        {
+            skipTimer = 0f;
+        }
+    }
+
+    private bool AllRobotsIdle()
+    {
+        var operators = FindObjectsByType<RobotOperator>(FindObjectsSortMode.None);
+        var flights = FindObjectsByType<Robots.Capabilities.Flight.AgroBotFlight>(FindObjectsSortMode.None);
+
+        if (operators.Length == 0 && flights.Length == 0) return false;
+
+        foreach (var op in operators)
+        {
+            if (op.CurrentState != RobotOperator.OperatorState.Idle)
+                return false;
+        }
+
+        foreach (var flight in flights)
+        {
+            if (flight.GetStatus() != "Idle" && flight.GetStatus() != "Idle - Nicio parcelă nu necesită tratament")
+                return false;
+        }
+
+        return true;
+    }
+
+    public void ToggleAutoSkip()
+    {
+        autoSkipEnabled = !autoSkipEnabled;
+        skipTimer = 0f;
     }
 
     public void SetSpeed(int index)
     {
         if (isSkipping) return;
         currentIndex = Mathf.Clamp(index, 0, speeds.Length - 1);
-        UpdateSimulationTime();
+        ApplyTimeScale();
     }
 
     public void ToggleBoost()
     {
         if (isSkipping) return;
         isBoostActive = !isBoostActive;
-        UpdateSimulationTime();
+        ApplyTimeScale();
     }
 
     public void SetPaused(bool paused)
     {
         isPausedInternally = paused;
-        UpdateSimulationTime();
+        ApplyTimeScale();
     }
 
-    public void SkipDay()
-    {
-        SkipTimeGradual(24f, 2.5f);
-    }
+    public void SkipDay() => SkipTimeGradual(24f, 2.5f);
 
     public void SkipTimeGradual(float hours, float realTimeDuration)
     {
         if (!isSkipping) StartCoroutine(PerformSkip(hours, realTimeDuration));
     }
 
-    private void UpdateSimulationTime()
+    private void ApplyTimeScale()
     {
         if (isPausedInternally)
         {
@@ -81,8 +135,7 @@ public class SimulationSpeedController : MonoBehaviour
         if (TimeManager.Instance == null) yield break;
 
         isSkipping = true;
-        float prevTimeScale = Time.timeScale;
-        Time.timeScale = 0f; // Pauză pe fizică
+        Time.timeScale = 0f;
 
         float elapsed = 0f;
         float hoursAdvanced = 0f;
@@ -105,6 +158,6 @@ public class SimulationSpeedController : MonoBehaviour
             TimeManager.Instance.AdvanceTime(totalHours - hoursAdvanced);
 
         isSkipping = false;
-        UpdateSimulationTime();
+        ApplyTimeScale();
     }
 }

@@ -46,6 +46,7 @@ public class CropPlanter : RobotOperator
 
     protected override void OnAllParcelsComplete()
     {
+        movement.Stop();
         state = OperatorState.Idle;
         idleTimer = config.rescanInterval;
         movement.ClearTarget();
@@ -84,8 +85,20 @@ public class CropPlanter : RobotOperator
     private void ScanSequentially()
     {
         FenceZone zone = ZoneHelper.GetZoneAt(transform.position);
-        parcels = ParcelHelper.GetParcelsInZone(zone, config.minSoilQuality);
-        parcels.RemoveAll(p => p.activeCrops.Count > 0);
+        var rawParcels = ParcelHelper.GetParcelsInZone(zone, config.minSoilQuality);
+        
+        parcels = new List<EnvironmentalSensor>();
+        var db = CropLoader.Load();
+        
+        foreach (var p in rawParcels)
+        {
+            if (p.activeCrops.Count > 0) continue;
+            
+            // Only add parcels that can actually be planted right now (avoids infinite looping)
+            var crop = CropSelector.SelectBestCrop(db, p.composition, transform, p.name, 1, 0f, false);
+            if (crop != null) parcels.Add(p);
+        }
+
         DistributeRoundRobin(zone);
 
         parcelIndex = 0;

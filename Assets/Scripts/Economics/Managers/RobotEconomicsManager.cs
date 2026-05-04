@@ -11,6 +11,7 @@ namespace Economics.Managers
         public Dictionary<Transform, RobotStats> RobotStatsMap { get; private set; } = new Dictionary<Transform, RobotStats>();
         
         public float GlobalEnergyCost => globalEnergykWh * RobotStats.EnergyPrice;
+        public float GlobalEnergykWh => globalEnergykWh;
         public float GlobalMaintenanceCost { get; private set; }
         public float GlobalDepreciationCost { get; private set; }
 
@@ -28,6 +29,9 @@ namespace Economics.Managers
         }
 
         private float lastSyncTotalHours = -1f;
+
+        /// <summary>Sincronizează timpul de referință la load.</summary>
+        public void SyncTime(float simHours) => lastSyncTotalHours = simHours;
 
         private void ScanForExistingRobots()
         {
@@ -102,6 +106,14 @@ namespace Economics.Managers
                 RobotStatsMap[robot] = new RobotStats(robot);
                 Debug.Log($"[Economics] Inregistrat robot: {robot.name}");
             }
+        }
+
+        /// <summary>Restaurează costurile din save.</summary>
+        public void RestoreCosts(float energykWh, float maintenance, float depreciation)
+        {
+            globalEnergykWh = energykWh;
+            GlobalMaintenanceCost = maintenance;
+            GlobalDepreciationCost = depreciation;
         }
 
         public void SetRobotIdle(Transform robot, bool idle)

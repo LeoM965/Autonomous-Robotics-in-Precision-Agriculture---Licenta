@@ -42,7 +42,8 @@ public class CropGrowth : MonoBehaviour, ICropHandler
 
     private void OnEnable()
     {
-        if (!parentSensor) parentSensor = GetComponentInParent<Sensors.Components.EnvironmentalSensor>();
+        // Always refresh — crop may have been recycled to a different parcel by the pool
+        parentSensor = GetComponentInParent<Sensors.Components.EnvironmentalSensor>();
         if (CropManager.Instance) CropManager.Instance.RegisterCrop(this);
 
         if (!state.initialized)

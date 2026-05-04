@@ -31,14 +31,15 @@ namespace UI.Menus.Tabs
                     MapHelper.DrawBox(new Rect(x - 5, y - 1, 720, 20), new Color(1f, 1f, 1f, 0.025f));
 
                 activeReport.AnalysisByVariety.TryGetValue(crops[i].name, out var stats);
-                DrawDataRowCustom(x, y, crops[i].name, stats, stats.NetProfit, theme, false);
+                float harvestProfit = stats.HarvestedRevenue - stats.TotalSeedCost;
+                DrawDataRowCustom(x, y, crops[i].name, stats, harvestProfit, theme, false);
                 y += 22;
             }
 
             UIDrawUtils.DrawHorizontalLine(x, y + 4, 720);
             
             MapHelper.DrawBox(new Rect(x - 5, y + 10, 720, 22), new Color(1f, 1f, 1f, 0.06f));
-            float cropOnlyProfit = activeReport.FarmTotals.TotalRevenue - activeReport.FarmTotals.TotalSeedCost;
+            float cropOnlyProfit = activeReport.FarmTotals.HarvestedRevenue - activeReport.FarmTotals.TotalSeedCost;
             DrawDataRowCustom(x, y + 15, "TOTAL CULTURI", activeReport.FarmTotals, cropOnlyProfit, theme, true);
             
             y += 55;
@@ -60,7 +61,7 @@ namespace UI.Menus.Tabs
 
             string[] values = {
                 label, totalAll.ToString(),
-                s.TotalSeedCost.ToString("F1"), s.TotalRevenue.ToString("F1"),
+                s.TotalSeedCost.ToString("F1"), s.HarvestedRevenue.ToString("F1"),
                 s.TotalWeightKg.ToString("F1"), profitToShow.ToString("F1"),
                 roi.ToString("F0") + "%", s.AvgSoilCompatibility.ToString("F0") + "%"
             };

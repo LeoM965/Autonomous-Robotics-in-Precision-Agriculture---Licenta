@@ -62,6 +62,20 @@ namespace AI.Analytics
             }
         }
 
+        public void RestoreDecisions(Transform robot, List<DecisionRecord> savedDecisions)
+        {
+            if (robot == null || savedDecisions == null || savedDecisions.Count == 0) return;
+
+            decisionHistory[robot] = new List<DecisionRecord>(savedDecisions);
+            lastDecisions[robot] = savedDecisions[savedDecisions.Count - 1];
+            
+            float total = 0f;
+            foreach (var d in savedDecisions) total += d.chosenScore;
+            
+            totalScores[robot] = total;
+            totalDecisionsCount[robot] = savedDecisions[savedDecisions.Count - 1].globalIndex;
+        }
+
         public DecisionRecord GetLastDecision(Transform robot)
         {
             return lastDecisions.TryGetValue(robot, out var record) ? record : null;

@@ -9,7 +9,7 @@ public class PlantingConfig
 
     [Header("Movement")]
     public float plantDistance = 3f;
-    public float arriveDistance = 2.5f;
+    public float arriveDistance = 6f;
 
     [Header("Quality")]
     public float minSoilQuality = 0.3f;

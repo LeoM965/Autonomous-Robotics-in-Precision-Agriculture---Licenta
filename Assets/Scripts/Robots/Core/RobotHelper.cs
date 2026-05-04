@@ -39,6 +39,10 @@ public static class RobotHelper
         if (hit.transform.IsChildOf(transform) || hit.transform.CompareTag("Parcel"))
             return Vector3.zero;
 
+        if (hit.transform.GetComponentInParent<CropGrowth>() != null || 
+            hit.transform.GetComponentInParent<Sensors.Components.EnvironmentalSensor>() != null)
+            return Vector3.zero;
+
         Transform root = hit.transform;
         while (root.parent != null) root = root.parent;
         if (root.CompareTag("Parcel"))

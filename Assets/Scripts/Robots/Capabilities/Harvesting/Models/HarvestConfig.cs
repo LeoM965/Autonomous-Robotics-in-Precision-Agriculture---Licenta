@@ -4,8 +4,8 @@ using UnityEngine;
 public class HarvestConfig
 {
     [Header("Movement")]
-    public float arriveDistance = 4f;
-    public float harvestRadius = 1.8f;
+    public float arriveDistance = 8f;
+    public float harvestRadius = 2.5f;
 
     [Header("Timing")]
     public float harvestDelay = 0.5f;

@@ -39,14 +39,14 @@ namespace Sensors.Components
         public CropStage currentGrowthStage {
             get {
                 foreach(var c in activeCrops)
-                 if(c != null) return c.CurrentStage;
+                 if(c != null && !c.IsBeingHarvested) return c.CurrentStage;
                 return CropStage.Seed;
             }
         }
         public float growthProgress {
             get {
                 foreach(var c in activeCrops)
-                 if(c != null) return c.Progress * 100f;
+                 if(c != null && !c.IsBeingHarvested) return c.Progress * 100f;
                 return 0f;
             }
         }
@@ -112,6 +112,15 @@ namespace Sensors.Components
             harvestedWeightKg += weightKg;
             harvestedRevenue += revenue;
             harvestedSeedCost += seedCost;
+        }
+
+        /// <summary>Restaurează statisticile de recoltă din save.</summary>
+        public void RestoreHarvestStats(int count, float weight, float revenue, float seedCost)
+        {
+            harvestedCount = count;
+            harvestedWeightKg = weight;
+            harvestedRevenue = revenue;
+            harvestedSeedCost = seedCost;
         }
 
         // Registru global istoric per cultura (se acumuleaza la fiecare replantare)
