@@ -27,6 +27,17 @@ namespace UI.Canvas
                 Refresh();
                 timer = 0.1f; // In mod normal, de 10 ori pe secunda e suficient
             }
+
+            // Revenire rapidă la MainMenu
+            if (Input.GetKeyDown(KeyCode.Backspace))
+            {
+                if (SaveSystem.SimSaveManager.Instance != null && !string.IsNullOrEmpty(SaveSystem.SimSaveManager.LastSaveName))
+                {
+                    SaveSystem.SimSaveManager.Instance.Save(SaveSystem.SimSaveManager.LastSaveName);
+                }
+                
+                UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            }
         }
 
         private void Refresh()

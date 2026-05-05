@@ -9,7 +9,6 @@ public class CropGrowthState
     public float progress;
     public bool isBeingHarvested;
     public float growthTime = -1f;
-    public float lastUpdateHours = -1f;
     public float purchasePrice;
     public Vector3 baseScale;
     public bool initialized;

@@ -2,7 +2,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(CropVisualScaling))]
 [RequireComponent(typeof(CropHarvestVisuals))]
-public class CropGrowth : MonoBehaviour, ICropHandler
+public class CropGrowth : MonoBehaviour
 {
     [Header("Configuration")]
     public CropSettings settings;
@@ -84,7 +84,6 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         state.elapsed = 0f;
         state.progress = 0f;
         lastVisualProgress = -1f;
-        state.lastUpdateHours = -1f;
         state.stage = CropStage.Seed;
         state.isBeingHarvested = false;
         accumulatedHealth = 0f;
@@ -212,18 +211,6 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         if (value <= optimal)
             return Mathf.Lerp(0.1f, 1f, (value - min) / (optimal - min));
         return Mathf.Lerp(1f, 0.1f, (value - optimal) / (max - optimal));
-    }
-
-    public void ManualUpdate(float currentTotalHours)
-    {
-        float deltaHours = state.lastUpdateHours >= 0 ? currentTotalHours - state.lastUpdateHours : 0f;
-        state.lastUpdateHours = currentTotalHours;
-        if (deltaHours <= 0) return;
-        
-        float weatherMult = Weather.Components.WeatherSystem.Instance != null 
-            ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier() : 1f;
-
-        ProcessGrowth(deltaHours, weatherMult);
     }
 
     public Sensors.Components.EnvironmentalSensor ParentSensor => parentSensor;

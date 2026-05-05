@@ -157,7 +157,7 @@ namespace UI.MainMenu
             fRt.sizeDelta = new Vector2(800, 55);
             fRt.anchoredPosition = new Vector2(0, 18);
             var ft = fGo.AddComponent<TextMeshProUGUI>();
-            ft.text = "Academia de Studii Economice din București  ·  Facultatea CSIE\nMircea Ștefăniță-Leonard  ·  Coordonator: Conf. dr. Zurini Mădălina";
+            ft.text = "Academia de Studii Economice din București  ·  Facultatea CSIE\nMircea Ștefăniță-Leonard  ·  Coordonator: Lector. dr. Zurini Mădălina";
             ft.fontSize = 13;
             ft.alignment = TextAlignmentOptions.Center;
             ft.color = TXT_MID;
@@ -511,62 +511,6 @@ namespace UI.MainMenu
             t.alignment = TextAlignmentOptions.Center;
             t.color = txtCol;
             t.raycastTarget = false;
-        }
-
-        private TMP_InputField MakeInputField(Transform p, string defaultText, float yPos, float h)
-        {
-            var go = new GameObject("Input");
-            go.transform.SetParent(p, false);
-            var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(360, h);
-            rt.anchoredPosition = new Vector2(0, yPos);
-
-            var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.07f, 0.11f);
-
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = CARD_EDGE;
-            outline.effectDistance = new Vector2(1, 1);
-
-            // Text area
-            var textGo = new GameObject("Text");
-            textGo.transform.SetParent(go.transform, false);
-            var tRt = textGo.AddComponent<RectTransform>();
-            tRt.anchorMin = Vector2.zero;
-            tRt.anchorMax = Vector2.one;
-            tRt.offsetMin = new Vector2(12, 4);
-            tRt.offsetMax = new Vector2(-12, -4);
-            var tmp = textGo.AddComponent<TextMeshProUGUI>();
-            tmp.fontSize = 15;
-            tmp.color = TXT_MAIN;
-            tmp.alignment = TextAlignmentOptions.MidlineLeft;
-
-            // Placeholder
-            var phGo = new GameObject("Placeholder");
-            phGo.transform.SetParent(go.transform, false);
-            var phRt = phGo.AddComponent<RectTransform>();
-            phRt.anchorMin = Vector2.zero;
-            phRt.anchorMax = Vector2.one;
-            phRt.offsetMin = new Vector2(12, 4);
-            phRt.offsetMax = new Vector2(-12, -4);
-            var phTmp = phGo.AddComponent<TextMeshProUGUI>();
-            phTmp.text = "Introdu un nume...";
-            phTmp.fontSize = 15;
-            phTmp.fontStyle = FontStyles.Italic;
-            phTmp.color = TXT_DIM;
-            phTmp.alignment = TextAlignmentOptions.MidlineLeft;
-
-            var input = go.AddComponent<TMP_InputField>();
-            input.textViewport = tRt;
-            input.textComponent = tmp;
-            input.placeholder = phTmp;
-            input.text = defaultText;
-            input.characterLimit = 30;
-            input.contentType = TMP_InputField.ContentType.Alphanumeric;
-
-            return input;
         }
     }
 }
