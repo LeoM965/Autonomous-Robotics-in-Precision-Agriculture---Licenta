@@ -101,7 +101,7 @@ namespace Robots.Capabilities.Flight
         }
 
         /// <summary>
-        /// A parcel needs treatment if ANY of N, P, K is below 95% of its optimal value.
+        /// A parcel needs treatment if ANY of N, P, K is below 80% of its optimal value.
         /// </summary>
         public bool NeedsTreatment(EnvironmentalSensor parcel)
         {
@@ -114,9 +114,9 @@ namespace Robots.Capabilities.Flight
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
 
-            return parcel.nitrogen < optN * 0.95f
-                || parcel.phosphorus < optP * 0.95f
-                || parcel.potassium < optK * 0.95f;
+            return parcel.nitrogen < optN * 0.80f
+                || parcel.phosphorus < optP * 0.80f
+                || parcel.potassium < optK * 0.80f;
         }
 
         public bool HasTargets => trackedParcels.Count > 0;

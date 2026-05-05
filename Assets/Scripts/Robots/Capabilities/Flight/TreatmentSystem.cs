@@ -22,7 +22,7 @@ namespace Robots.Capabilities.Flight
         /// <summary>
         /// Processes soil treatment on the target parcel.
         /// Treats ALL deficient nutrients (N, P, K) — not just nitrogen.
-        /// Uses the same 0.95 threshold as FlightNavigation.NeedsTreatment for consistency.
+        /// Uses the same 0.80 threshold as FlightNavigation.NeedsTreatment for consistency.
         /// </summary>
         public void ProcessTreatment(EnvironmentalSensor target, ref float timer)
         {
@@ -33,10 +33,10 @@ namespace Robots.Capabilities.Flight
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
 
-            // Check if ANY nutrient needs treatment (consistent 0.95 threshold)
-            bool needsN = target.nitrogen < optN * 0.95f;
-            bool needsP = target.phosphorus < optP * 0.95f;
-            bool needsK = target.potassium < optK * 0.95f;
+            // Check if ANY nutrient needs treatment (consistent 0.80 threshold)
+            bool needsN = target.nitrogen < optN * 0.80f;
+            bool needsP = target.phosphorus < optP * 0.80f;
+            bool needsK = target.potassium < optK * 0.80f;
 
             if (needsN || needsP || needsK)
             {
@@ -45,7 +45,7 @@ namespace Robots.Capabilities.Flight
             }
             else
             {
-                // All nutrients are at or above 95% optimal — treatment complete
+                // All nutrients are at or above 80% optimal — treatment complete
                 timer = 0;
             }
         }
