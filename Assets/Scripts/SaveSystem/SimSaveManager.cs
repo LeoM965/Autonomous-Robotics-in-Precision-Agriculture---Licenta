@@ -26,7 +26,6 @@ namespace SaveSystem
         }
 
         private void OnApplicationQuit() => AutoSave();
-        private void OnDisable() => AutoSave();
 
         private void AutoSave()
         {
@@ -47,9 +46,10 @@ namespace SaveSystem
                 savedAt = System.DateTime.Now.ToString("dd/MM/yyyy HH:mm")
             };
 
-            // Time
+            // Time — flush any pending robot-accumulated time first
             if (TimeManager.Instance != null)
             {
+                TimeManager.Instance.FlushPendingTime();
                 data.totalSimulatedHours = TimeManager.Instance.totalSimulatedHours;
                 data.dayNumber = TimeManager.Instance.currentDay;
             }
@@ -175,7 +175,10 @@ namespace SaveSystem
 
             // Time + sync all time-dependent systems
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.totalSimulatedHours = data.totalSimulatedHours;
+                TimeManager.Instance.ClearPendingTime(); // discard stale pending hours from pre-load frames
+            }
             if (CropManager.Instance != null)
                 CropManager.Instance.SyncProcessTime(data.totalSimulatedHours);
 

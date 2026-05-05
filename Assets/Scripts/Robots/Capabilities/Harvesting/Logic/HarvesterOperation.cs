@@ -61,7 +61,7 @@ public class HarvesterOperation
 
         if (harvestPositions.Count == 0) { FinishParcel(); return; }
 
-        executor.SetTarget(parcel, 0f, cropDB);
+        executor.SetTarget(parcel, cropDB);
         isHarvesting = true;
 
         if (!decisionLogged)

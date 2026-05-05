@@ -4,8 +4,6 @@ using Sensors.Components;
 public class HarvestExecutor
 {
     private int harvestedInParcel;
-    private float harvestTimer;
-    private float harvestDelay;
 
     // Cached per-parcel (set once in SetTarget, used for all crops in parcel)
     private string varietyName;
@@ -15,9 +13,8 @@ public class HarvestExecutor
 
     public int HarvestedInParcel => harvestedInParcel;
 
-    public void SetTarget(EnvironmentalSensor targetParcel, float delay, CropDatabase db)
+    public void SetTarget(EnvironmentalSensor targetParcel, CropDatabase db)
     {
-        harvestDelay = delay;
         harvestedInParcel = 0;
         varietyName = targetParcel.plantedVarietyName;
 
@@ -34,20 +31,12 @@ public class HarvestExecutor
             ? mPrices[cropIndex] : (data?.marketPricePerKg ?? 1f);
     }
 
-    public bool UpdateHarvest(CropGrowth crop, Transform robotTransform)
+    public void UpdateHarvest(CropGrowth crop, Transform robotTransform)
     {
-        if (crop == null || !crop.IsHarvestable) return true;
-
-        harvestTimer += Time.deltaTime;
-        if (harvestTimer >= harvestDelay)
-        {
-            ReportRevenue(crop, robotTransform);
-            crop.Harvest();
-            harvestedInParcel++;
-            harvestTimer = 0f;
-            return true;
-        }
-        return false;
+        if (crop == null || !crop.IsHarvestable) return;
+        ReportRevenue(crop, robotTransform);
+        crop.Harvest();
+        harvestedInParcel++;
     }
 
     private void ReportRevenue(CropGrowth crop, Transform robot)
@@ -62,7 +51,8 @@ public class HarvestExecutor
         }
 
         float soilQuality = sensor.LatestAnalysis.qualityScore / 100f;
-        float weight = baseWeight * soilQuality * crop.Progress;
+        float nutrientHealth = crop.NutrientHealthScore; // lifetime average NPK satisfaction
+        float weight = baseWeight * soilQuality * nutrientHealth * crop.Progress;
         float revenue = marketPrice * weight;
 
         Economics.Managers.RobotEconomicsManager.Instance.AddRobotRevenue(robot, revenue);
@@ -72,7 +62,6 @@ public class HarvestExecutor
     public void Reset()
     {
         harvestedInParcel = 0;
-        harvestTimer = 0f;
         varietyName = null;
         cropIndex = -1;
     }

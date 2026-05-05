@@ -42,8 +42,9 @@ namespace AI.Analytics
             if (!string.IsNullOrEmpty(simName))
             {
                 folderPath = Path.Combine(basePath, simName);
-                // Extract run ID from counter for CSV compatibility
-                runId = LoadAndIncrementRunCounter(basePath);
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+                runId = LoadOrCreateLocalRunId(folderPath, basePath);
             }
             else
             {
@@ -126,6 +127,16 @@ namespace AI.Analytics
         // ──────────────────────────────────────────────
 
         private ExportContext CreateContext(int day) => new ExportContext(runId, day, folderPath);
+
+        private int LoadOrCreateLocalRunId(string folder, string basePath)
+        {
+            string localFile = Path.Combine(folder, "run_id.txt");
+            if (File.Exists(localFile) && int.TryParse(File.ReadAllText(localFile).Trim(), out int id))
+                return id;
+            int newId = LoadAndIncrementRunCounter(basePath);
+            File.WriteAllText(localFile, newId.ToString());
+            return newId;
+        }
 
         private int LoadAndIncrementRunCounter(string basePath)
         {

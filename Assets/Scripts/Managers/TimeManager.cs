@@ -5,7 +5,7 @@ using Weather.Models;
 
 public class TimeManager : MonoBehaviour
 {
-    public static TimeManager Instance;
+    public static TimeManager Instance { get; private set; }
 
     [Header("Time & Distance Settings")]
     [Tooltip("Real-world speed of the robot in km/h used for calculation.")]
@@ -51,6 +51,19 @@ public class TimeManager : MonoBehaviour
     {
         pendingHours += (simulatedSeconds / Mathf.Max(1, activeRobotCount)) / 3600f;
     }
+
+    /// <summary>Commits any pending robot-accumulated time before saving.</summary>
+    public void FlushPendingTime()
+    {
+        if (pendingHours > 0f)
+        {
+            AdvanceTime(pendingHours);
+            pendingHours = 0f;
+        }
+    }
+
+    /// <summary>Discards stale pending time after a load restore.</summary>
+    public void ClearPendingTime() => pendingHours = 0f;
 
     private void LateUpdate()
     {

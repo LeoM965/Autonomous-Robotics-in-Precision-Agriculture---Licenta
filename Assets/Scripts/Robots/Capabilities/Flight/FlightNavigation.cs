@@ -81,20 +81,42 @@ namespace Robots.Capabilities.Flight
             return best;
         }
 
+        /// <summary>
+        /// Calculates combined NPK urgency (0–100) as a weighted average of each nutrient's deficit.
+        /// Weights: N=50%, P=30%, K=20% — reflecting agronomic importance.
+        /// </summary>
         private float CalculateUrgency(EnvironmentalSensor parcel)
         {
             var data = cropDB?.Get(parcel.plantedVarietyName);
             float optN = data?.requirements?.nitrogen?.optimal ?? 100f;
-            float deficit = Mathf.Max(0, optN - parcel.nitrogen);
-            return (deficit / Mathf.Max(optN, 1f)) * 100f;
+            float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
+            float optK = data?.requirements?.potassium?.optimal ?? 50f;
+
+            float defN = Mathf.Max(0, optN - parcel.nitrogen) / Mathf.Max(optN, 1f);
+            float defP = Mathf.Max(0, optP - parcel.phosphorus) / Mathf.Max(optP, 1f);
+            float defK = Mathf.Max(0, optK - parcel.potassium) / Mathf.Max(optK, 1f);
+
+            // Weighted average: N has highest priority, then P, then K
+            return (defN * 0.5f + defP * 0.3f + defK * 0.2f) * 100f;
         }
 
+        /// <summary>
+        /// A parcel needs treatment if ANY of N, P, K is below 95% of its optimal value.
+        /// </summary>
         public bool NeedsTreatment(EnvironmentalSensor parcel)
         {
             if (parcel == null) return false;
+            if (string.IsNullOrEmpty(parcel.plantedVarietyName)) return false; // no crop = no treatment needed
+
             var data = cropDB?.Get(parcel.plantedVarietyName);
-            float requiredN = data?.requirements?.nitrogen?.optimal ?? 100f;
-            return parcel.nitrogen < requiredN * 0.95f;
+
+            float optN = data?.requirements?.nitrogen?.optimal ?? 100f;
+            float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
+            float optK = data?.requirements?.potassium?.optimal ?? 50f;
+
+            return parcel.nitrogen < optN * 0.95f
+                || parcel.phosphorus < optP * 0.95f
+                || parcel.potassium < optK * 0.95f;
         }
 
         public bool HasTargets => trackedParcels.Count > 0;

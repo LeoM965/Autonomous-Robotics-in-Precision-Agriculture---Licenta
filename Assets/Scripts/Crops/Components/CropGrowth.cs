@@ -20,6 +20,11 @@ public class CropGrowth : MonoBehaviour, ICropHandler
     private int cropIndex = -1;
     private CropData cachedCropData;
 
+    // Lifetime nutrient health tracking — affects harvest yield
+    private float accumulatedHealth;
+    private int healthSamples;
+    public float NutrientHealthScore => healthSamples > 0 ? accumulatedHealth / healthSamples : 1f;
+
     // === Public API ===
     public bool IsFullyGrown => state.stage == CropStage.Mature;
     public bool IsBeingHarvested => state.isBeingHarvested;
@@ -82,6 +87,8 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         state.lastUpdateHours = -1f;
         state.stage = CropStage.Seed;
         state.isBeingHarvested = false;
+        accumulatedHealth = 0f;
+        healthSamples = 0;
         if (scaler) transform.localScale = state.baseScale * scaler.GetInitialScale();
     }
 
@@ -108,13 +115,23 @@ public class CropGrowth : MonoBehaviour, ICropHandler
             : (settings != null ? settings.nitrogenOptimalThreshold : 50f);
     }
 
-    public void ApplyJobResults(float addedElapsed, float consumedNitrogen)
+    public void ApplyJobResults(float addedElapsed, float consumedNitrogen, float consumedPhosphorus = 0f, float consumedPotassium = 0f)
     {
         if (state.isBeingHarvested || state.progress >= 1f || addedElapsed <= 0) return;
 
         if (parentSensor)
         {
-            parentSensor.AdjustNutrients(-consumedNitrogen, 0, 0);
+            parentSensor.AdjustNutrients(-consumedNitrogen, -consumedPhosphorus, -consumedPotassium);
+
+            // Sample current nutrient satisfaction for lifetime health score
+            float optN = GetOptimalNitrogen();
+            float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optN * 0.5f);
+            float optK = cachedCropData?.requirements?.potassium?.optimal ?? (optN * 0.3f);
+            float nS = optN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / optN) : 1f;
+            float pS = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / optP) : 1f;
+            float kS = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / optK) : 1f;
+            accumulatedHealth += Mathf.Min(nS, Mathf.Min(pS, kS));
+            healthSamples++;
         }
 
         state.elapsed += addedElapsed;
@@ -138,16 +155,43 @@ public class CropGrowth : MonoBehaviour, ICropHandler
         if (state.isBeingHarvested || state.progress >= 1f || deltaHours <= 0) return;
         
         if (!parentSensor) parentSensor = GetComponentInParent<Sensors.Components.EnvironmentalSensor>();
-        float nMultiplier = 1f;
+        float nutrientMultiplier = 1f;
+        float moistureMultiplier = 1f;
+        float phMultiplier = 1f;
+
+        float consumedN = 0f, consumedP = 0f, consumedK = 0f;
 
         if (parentSensor)
         {
-            float consumeRate = GetNitrogenConsumptionRate();
-            parentSensor.AdjustNutrients(-consumeRate * deltaHours, 0, 0);
+            float nConsumeRate = GetNitrogenConsumptionRate();
+            float pConsumeRate = nConsumeRate * 0.5f;  // P consumed at 50% of N rate
+            float kConsumeRate = nConsumeRate * 0.3f;  // K consumed at 30% of N rate
 
+            consumedN = nConsumeRate * deltaHours;
+            consumedP = pConsumeRate * deltaHours;
+            consumedK = kConsumeRate * deltaHours;
+
+            // Nutrient satisfaction = worst of N, P, K satisfaction
             float optimalN = GetOptimalNitrogen();
-            if (optimalN > 0)
-                nMultiplier = Mathf.Clamp01(parentSensor.nitrogen / optimalN);
+            float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optimalN * 0.5f);
+            float optK = cachedCropData?.requirements?.potassium?.optimal ?? (optimalN * 0.3f);
+
+            float nSat = optimalN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / optimalN) : 1f;
+            float pSat = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / optP) : 1f;
+            float kSat = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / optK) : 1f;
+
+            nutrientMultiplier = Mathf.Min(nSat, Mathf.Min(pSat, kSat));
+
+            // Moisture multiplier — based on crop-specific optimal humidity range
+            float optMoist = cachedCropData?.requirements?.humidity?.optimal ?? 60f;
+            float maxMoist = cachedCropData?.requirements?.humidity?.max ?? 90f;
+            moistureMultiplier = CalculateRangeMultiplier(parentSensor.soilMoisture, optMoist * 0.4f, optMoist, maxMoist);
+
+            // pH multiplier — based on crop-specific optimal pH range
+            float optPH = cachedCropData?.requirements?.pH?.optimal ?? 6.5f;
+            float minPH = cachedCropData?.requirements?.pH?.min ?? 5.0f;
+            float maxPH = cachedCropData?.requirements?.pH?.max ?? 8.0f;
+            phMultiplier = CalculateRangeMultiplier(parentSensor.soilPH, minPH, optPH, maxPH);
         }
 
         float tempMultiplier = 1f;
@@ -157,7 +201,17 @@ public class CropGrowth : MonoBehaviour, ICropHandler
             tempMultiplier = cachedCropData.GetTemperatureMultiplier(currentTemp);
         }
 
-        ApplyJobResults(deltaHours * weatherMultiplier * nMultiplier * tempMultiplier, 0);
+        float totalMult = weatherMultiplier * nutrientMultiplier * moistureMultiplier * phMultiplier * tempMultiplier;
+        ApplyJobResults(deltaHours * totalMult, consumedN, consumedP, consumedK);
+    }
+
+    /// <summary>Cardinal-style piecewise multiplier: 0 at extremes, 1 at optimal.</summary>
+    private static float CalculateRangeMultiplier(float value, float min, float optimal, float max)
+    {
+        if (value <= min || value >= max) return 0.1f; // never fully zero — survival minimum
+        if (value <= optimal)
+            return Mathf.Lerp(0.1f, 1f, (value - min) / (optimal - min));
+        return Mathf.Lerp(1f, 0.1f, (value - optimal) / (max - optimal));
     }
 
     public void ManualUpdate(float currentTotalHours)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Jobs;
+using UnityEngine.SceneManagement;
 
 public class CropManager : MonoBehaviour
 {
@@ -21,6 +22,14 @@ public class CropManager : MonoBehaviour
     private Unity.Collections.NativeArray<float> outNitrogen;
     private Unity.Collections.NativeArray<float> outGrowth;
 
+    // P & K buffers
+    private Unity.Collections.NativeArray<float> optimalPs;
+    private Unity.Collections.NativeArray<float> optimalKs;
+    private Unity.Collections.NativeArray<float> sensorPs;
+    private Unity.Collections.NativeArray<float> sensorKs;
+    private Unity.Collections.NativeArray<float> outPhosphorus;
+    private Unity.Collections.NativeArray<float> outPotassium;
+
     private void Awake()
     {
         if (Instance == null)
@@ -34,15 +43,24 @@ public class CropManager : MonoBehaviour
     private void OnEnable()
     {
         CropSelector.CropSelected += OnCropSelected;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
         CropSelector.CropSelected -= OnCropSelected;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         DisposeBuffers();
     }
 
     private void OnDestroy() => DisposeBuffers();
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        activeCrops.Clear();
+        cropIndices.Clear();
+        lastProcessTime = -1f;
+    }
 
     private void DisposeBuffers()
     {
@@ -52,6 +70,12 @@ public class CropManager : MonoBehaviour
         if (tempMults.IsCreated) tempMults.Dispose();
         if (outNitrogen.IsCreated) outNitrogen.Dispose();
         if (outGrowth.IsCreated) outGrowth.Dispose();
+        if (optimalPs.IsCreated) optimalPs.Dispose();
+        if (optimalKs.IsCreated) optimalKs.Dispose();
+        if (sensorPs.IsCreated) sensorPs.Dispose();
+        if (sensorKs.IsCreated) sensorKs.Dispose();
+        if (outPhosphorus.IsCreated) outPhosphorus.Dispose();
+        if (outPotassium.IsCreated) outPotassium.Dispose();
     }
 
     private void EnsureBufferCapacity(int count)
@@ -68,6 +92,12 @@ public class CropManager : MonoBehaviour
         tempMults = new Unity.Collections.NativeArray<float>(newSize, alloc);
         outNitrogen = new Unity.Collections.NativeArray<float>(newSize, alloc);
         outGrowth = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        optimalPs = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        optimalKs = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        sensorPs = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        sensorKs = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        outPhosphorus = new Unity.Collections.NativeArray<float>(newSize, alloc);
+        outPotassium = new Unity.Collections.NativeArray<float>(newSize, alloc);
     }
 
     private void OnCropSelected(Transform robot, CropData crop, float score, 
@@ -168,14 +198,40 @@ public class CropManager : MonoBehaviour
                     optimalNs[i] = crop.GetOptimalNitrogen();
                     sensorNs[i] = crop.ParentSensor != null ? crop.ParentSensor.nitrogen : 0f;
 
-                    // Temperatura cardinala per cultura: CropData.GetTemperatureMultiplier()
-                    tempMults[i] = crop.GetTemperatureMultiplier(currentTemp, db);
+                    // P & K: optimal values from crop data, sensor values from parcel
+                    float optN = optimalNs[i];
+                    var cropData = crop.CachedCropData;
+                    optimalPs[i] = cropData?.requirements?.phosphorus?.optimal ?? (optN * 0.5f);
+                    optimalKs[i] = cropData?.requirements?.potassium?.optimal ?? (optN * 0.3f);
+                    sensorPs[i] = crop.ParentSensor != null ? crop.ParentSensor.phosphorus : 0f;
+                    sensorKs[i] = crop.ParentSensor != null ? crop.ParentSensor.potassium : 0f;
+
+                    // Combined environment multiplier: temperature × moisture × pH
+                    float envMult = crop.GetTemperatureMultiplier(currentTemp, db);
+
+                    if (crop.ParentSensor != null && cropData != null)
+                    {
+                        float optMoist = cropData.requirements?.humidity?.optimal ?? 60f;
+                        float maxMoist = cropData.requirements?.humidity?.max ?? 90f;
+                        envMult *= RangeMult(crop.ParentSensor.soilMoisture, optMoist * 0.4f, optMoist, maxMoist);
+
+                        float optPH = cropData.requirements?.pH?.optimal ?? 6.5f;
+                        float minPH = cropData.requirements?.pH?.min ?? 5.0f;
+                        float maxPH = cropData.requirements?.pH?.max ?? 8.0f;
+                        envMult *= RangeMult(crop.ParentSensor.soilPH, minPH, optPH, maxPH);
+                    }
+
+                    tempMults[i] = envMult;
                 }
                 else
                 {
                     consumeRates[i] = 0f;
                     optimalNs[i] = 0f;
                     sensorNs[i] = 0f;
+                    optimalPs[i] = 0f;
+                    optimalKs[i] = 0f;
+                    sensorPs[i] = 0f;
+                    sensorKs[i] = 0f;
                     tempMults[i] = 1f;
                 }
             }
@@ -188,18 +244,24 @@ public class CropManager : MonoBehaviour
                 consumeRates = consumeRates,
                 optimalNs = optimalNs,
                 sensorNitrogens = sensorNs,
+                optimalPs = optimalPs,
+                optimalKs = optimalKs,
+                sensorPhosphorus = sensorPs,
+                sensorPotassium = sensorKs,
                 tempMultipliers = tempMults,
                 outConsumedNitrogen = outNitrogen,
+                outConsumedPhosphorus = outPhosphorus,
+                outConsumedPotassium = outPotassium,
                 outGrowthDelta = outGrowth
             };
 
             job.Schedule(count, 64).Complete();
 
-            // 4. Aplicam rezultatele vizual
+            // 4. Aplicam rezultatele vizual + consumul NPK
             for (int i = 0; i < count; i++)
             {
                 if (activeCrops[i] != null && (outGrowth[i] > 0 || outNitrogen[i] > 0))
-                    activeCrops[i].ApplyJobResults(outGrowth[i], outNitrogen[i]);
+                    activeCrops[i].ApplyJobResults(outGrowth[i], outNitrogen[i], outPhosphorus[i], outPotassium[i]);
             }
         }
         else
@@ -211,5 +273,14 @@ public class CropManager : MonoBehaviour
                     activeCrops[i].ProcessGrowth(deltaHours, weatherMult);
             }
         }
+    }
+
+    /// <summary>Cardinal piecewise multiplier matching CropGrowth.CalculateRangeMultiplier.</summary>
+    private static float RangeMult(float value, float min, float optimal, float max)
+    {
+        if (value <= min || value >= max) return 0.1f;
+        if (value <= optimal)
+            return Mathf.Lerp(0.1f, 1f, (value - min) / (optimal - min));
+        return Mathf.Lerp(1f, 0.1f, (value - optimal) / (max - optimal));
     }
 }
