@@ -78,14 +78,22 @@ namespace Robots.Capabilities.Flight
 
             if (target != lastLoggedParcel)
             {
-                LogDecision(target);
+                LogDecision(target, optN, optP, optK);
                 lastLoggedParcel = target;
+            }
+
+            // Accumulate applied amounts in the active record
+            if (activeRecord != null)
+            {
+                activeRecord.appliedN += nToAdd;
+                activeRecord.appliedP += pToAdd;
+                activeRecord.appliedK += kToAdd;
             }
 
             UpdateLiveFactors(target);
         }
 
-        private void LogDecision(EnvironmentalSensor target)
+        private void LogDecision(EnvironmentalSensor target, float optN, float optP, float optK)
         {
             if (DecisionTracker.Instance == null) return;
 
@@ -106,7 +114,15 @@ namespace Robots.Capabilities.Flight
                 chosenScore = satisfaction,
                 schedulingValue = priority,
                 netValue = satisfaction - energyCost,
-                factors = new DecisionFactors()
+                factors = new DecisionFactors(),
+
+                // Fertilization details
+                cropVariety = target.plantedVarietyName ?? "",
+                initialN = target.nitrogen,
+                initialP = target.phosphorus,
+                initialK = target.potassium,
+                appliedN = 0f, appliedP = 0f, appliedK = 0f,
+                optimalN = optN, optimalP = optP, optimalK = optK
             };
 
             if (navigation != null)
@@ -137,3 +153,4 @@ namespace Robots.Capabilities.Flight
         }
     }
 }
+

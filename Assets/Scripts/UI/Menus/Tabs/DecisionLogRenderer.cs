@@ -79,7 +79,10 @@ namespace UI.Menus.Tabs
 
             // ── Scrollable entries ──
             float remainingH = Mathf.Max(h - (py - y) - 36f, 50f);
-            float contentH = Mathf.Max(decisions.Count, 1) * RowHeight;
+            int treatCount = 0;
+            foreach (var d in decisions)
+                if (d.decisionType == "Soil Treatment" && d.optimalN > 0) treatCount++;
+            float contentH = Mathf.Max(decisions.Count, 1) * RowHeight + treatCount * 20f;
 
             Rect scrollRect = new Rect(px - 2, py, w - 20, remainingH);
             Rect scrollContent = new Rect(0, 0, w - 40, contentH);
@@ -158,6 +161,65 @@ namespace UI.Menus.Tabs
             GUI.Label(new Rect(ColOffsets[6] + 4, ey, 95, RowHeight), $"{sign}{d.netValue:F3}", nvStyle);
 
             ey += RowHeight;
+
+            // ── Fertilization detail sub-row for Treat Soil entries ──
+            if (d.decisionType == "Soil Treatment" && d.optimalN > 0)
+            {
+                DrawFertilizationDetail(d, w, ref ey);
+            }
+        }
+
+        private void DrawFertilizationDetail(DecisionRecord d, float w, ref float ey)
+        {
+            float detailH = 22f;
+            float rowW = w - 36;
+
+            // Subtle dark background with left accent stripe
+            MapHelper.DrawBox(new Rect(-2, ey, rowW, detailH), new Color(0.04f, 0.08f, 0.14f, 0.9f));
+            MapHelper.DrawBox(new Rect(-2, ey, 2, detailH), new Color(0.25f, 0.6f, 0.95f, 0.6f));
+
+            // Crop variety
+            string crop = string.IsNullOrEmpty(d.cropVariety) ? "—" : d.cropVariety;
+            GUI.Label(new Rect(8, ey, 85, detailH), Truncate(crop, 11), dimStyle);
+
+            // N, P, K compact bars aligned to table columns
+            float[] vals  = { d.initialN, d.initialP, d.initialK };
+            float[] added = { d.appliedN, d.appliedP, d.appliedK };
+            float[] opts  = { d.optimalN, d.optimalP, d.optimalK };
+            string[] labels = { "N", "P", "K" };
+            float segX = 95f;
+            float segW = 200f;
+
+            for (int i = 0; i < 3; i++)
+            {
+                float opt = opts[i] > 0 ? opts[i] : 1f;
+                float final_ = vals[i] + added[i];
+                float ratio = Mathf.Clamp01(final_ / opt);
+                float bx = segX + i * segW;
+
+                // "N: 71→82/80"
+                string txt = $"{labels[i]}: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
+                GUI.Label(new Rect(bx, ey, 110, detailH), txt, dimStyle);
+
+                // Progress bar
+                float barX = bx + 112f;
+                float barW = 75f;
+                float barH = 7f;
+                float barY = ey + (detailH - barH) * 0.5f;
+
+                MapHelper.DrawBox(new Rect(barX, barY, barW, barH), new Color(1f, 1f, 1f, 0.05f));
+
+                Color c = ratio >= 0.8f ? new Color(0.15f, 0.8f, 0.4f, 0.75f) :
+                          ratio >= 0.5f ? new Color(0.9f, 0.7f, 0.1f, 0.7f) :
+                                          new Color(0.9f, 0.2f, 0.15f, 0.7f);
+                MapHelper.DrawBox(new Rect(barX, barY, barW * ratio, barH), c);
+
+                // Optimal marker line
+                MapHelper.DrawBox(new Rect(barX + barW - 1, barY - 1, 1, barH + 2),
+                    new Color(1f, 1f, 1f, 0.2f));
+            }
+
+            ey += detailH;
         }
 
         // ═══════════════════════════════════════

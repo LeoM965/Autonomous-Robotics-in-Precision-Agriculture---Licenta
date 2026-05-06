@@ -126,9 +126,9 @@ public class CropGrowth : MonoBehaviour
             float optN = GetOptimalNitrogen();
             float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optN * 0.5f);
             float optK = cachedCropData?.requirements?.potassium?.optimal ?? (optN * 0.3f);
-            float nS = optN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / optN) : 1f;
-            float pS = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / optP) : 1f;
-            float kS = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / optK) : 1f;
+            float nS = optN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / (optN * 0.8f)) : 1f;
+            float pS = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / (optP * 0.8f)) : 1f;
+            float kS = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / (optK * 0.8f)) : 1f;
             accumulatedHealth += Mathf.Min(nS, Mathf.Min(pS, kS));
             healthSamples++;
         }
@@ -175,9 +175,9 @@ public class CropGrowth : MonoBehaviour
             float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optimalN * 0.5f);
             float optK = cachedCropData?.requirements?.potassium?.optimal ?? (optimalN * 0.3f);
 
-            float nSat = optimalN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / optimalN) : 1f;
-            float pSat = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / optP) : 1f;
-            float kSat = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / optK) : 1f;
+            float nSat = optimalN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / (optimalN * 0.8f)) : 1f;
+            float pSat = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / (optP * 0.8f)) : 1f;
+            float kSat = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / (optK * 0.8f)) : 1f;
 
             nutrientMultiplier = Mathf.Min(nSat, Mathf.Min(pSat, kSat));
 

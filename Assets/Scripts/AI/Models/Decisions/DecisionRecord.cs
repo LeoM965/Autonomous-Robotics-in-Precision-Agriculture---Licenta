@@ -16,6 +16,12 @@ namespace AI.Analytics
         public int globalIndex;
         public List<DecisionAlternative> alternatives;
         public DecisionFactors factors;
+
+        // ── Fertilization details (populated only for Treat Soil) ──
+        public string cropVariety;        // name of the planted crop
+        public float initialN, initialP, initialK;   // nutrient levels BEFORE treatment
+        public float appliedN, appliedP, appliedK;    // total amount applied during treatment
+        public float optimalN, optimalP, optimalK;    // crop-specific optimal targets
         
         public DecisionRecord()
         {
