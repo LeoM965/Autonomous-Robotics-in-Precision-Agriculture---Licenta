@@ -19,6 +19,13 @@ namespace Robots.Capabilities.Flight
             navigation = nav;
         }
 
+        public void ResetSession()
+        {
+            lastLoggedParcel = null;
+            activeRecord = null;
+        }
+
+
         /// <summary>
         /// Processes soil treatment on the target parcel.
         /// Treats ALL deficient nutrients (N, P, K) — not just nitrogen.
@@ -33,10 +40,10 @@ namespace Robots.Capabilities.Flight
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
 
-            // Check if ANY nutrient needs treatment (consistent 0.80 threshold)
-            bool needsN = target.nitrogen < optN * 0.80f;
-            bool needsP = target.phosphorus < optP * 0.80f;
-            bool needsK = target.potassium < optK * 0.80f;
+            // Once at the parcel, treat until ALL nutrients reach 100% of their optimal value.
+            bool needsN = target.nitrogen < optN;
+            bool needsP = target.phosphorus < optP;
+            bool needsK = target.potassium < optK;
 
             if (needsN || needsP || needsK)
             {
@@ -45,7 +52,7 @@ namespace Robots.Capabilities.Flight
             }
             else
             {
-                // All nutrients are at or above 80% optimal — treatment complete
+                // All nutrients are fully restored to optimal — treatment complete
                 timer = 0;
             }
         }
@@ -74,20 +81,25 @@ namespace Robots.Capabilities.Flight
                 nToAdd = 0; pToAdd = 0; kToAdd = 0;
             }
 
-            target.AdjustNutrients(nToAdd, pToAdd, kToAdd);
-
             if (target != lastLoggedParcel)
             {
                 LogDecision(target, optN, optP, optK);
                 lastLoggedParcel = target;
             }
 
+            // Clamp values to prevent overshooting the optimal values during high-speed simulation
+            float finalN = Mathf.Min(nToAdd, Mathf.Max(0, optN - target.nitrogen));
+            float finalP = Mathf.Min(pToAdd, Mathf.Max(0, optP - target.phosphorus));
+            float finalK = Mathf.Min(kToAdd, Mathf.Max(0, optK - target.potassium));
+
+            target.AdjustNutrients(finalN, finalP, finalK);
+
             // Accumulate applied amounts in the active record
             if (activeRecord != null)
             {
-                activeRecord.appliedN += nToAdd;
-                activeRecord.appliedP += pToAdd;
-                activeRecord.appliedK += kToAdd;
+                activeRecord.appliedN += finalN;
+                activeRecord.appliedP += finalP;
+                activeRecord.appliedK += finalK;
             }
 
             UpdateLiveFactors(target);

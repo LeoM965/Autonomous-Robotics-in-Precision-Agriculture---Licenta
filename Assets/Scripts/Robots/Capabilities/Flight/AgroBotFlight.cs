@@ -158,6 +158,7 @@ namespace Robots.Capabilities.Flight
             zigzagPath = PlantingPositionGenerator.GenerateZigzag(b, settings.zigzagSpacing, settings.zigzagMargin, settings.altitude);
             zigzagIndex = 0;
             treatmentTimer = settings.waitTimePerParcel;
+            treatment.ResetSession();
         }
 
         private void HandleTreatmentState()
