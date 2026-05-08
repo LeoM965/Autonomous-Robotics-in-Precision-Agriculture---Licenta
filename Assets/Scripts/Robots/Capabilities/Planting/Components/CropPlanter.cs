@@ -95,7 +95,7 @@ public class CropPlanter : RobotOperator
             if (p.activeCrops.Count > 0) continue;
             
             // Only add parcels that can actually be planted right now (avoids infinite looping)
-            var crop = CropSelector.SelectBestCrop(db, p.composition, transform, p.name, 1, 0f, false);
+            var crop = CropSelector.SelectBestCrop(db, p, transform, 1, 0f, false);
             if (crop != null) parcels.Add(p);
         }
 

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Sensors.Models;
+using Sensors.Components;
 using AI.Models.Decisions;
 using Settings;
 
