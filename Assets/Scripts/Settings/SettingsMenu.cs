@@ -49,8 +49,7 @@ namespace Settings
                 new GeneralTab(cropNames),
                 new EconomicsTab(cropDB),
                 new NutrientsTab(cropDB),
-                new RobotStatsTab(),
-                new SaveTab()
+                new RobotStatsTab()
             };
         }
 

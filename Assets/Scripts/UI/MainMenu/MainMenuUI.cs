@@ -11,134 +11,228 @@ namespace UI.MainMenu
     {
         [SerializeField] private string simulationScene = "CampFertil";
 
-        // Paleta de culori — tonuri naturale, nu neon
-        private static readonly Color BG_TOP      = new Color(0.05f, 0.07f, 0.12f);
-        private static readonly Color BG_BOT      = new Color(0.02f, 0.03f, 0.06f);
-        private static readonly Color CARD        = new Color(0.08f, 0.10f, 0.15f, 0.92f);
-        private static readonly Color CARD_EDGE   = new Color(0.18f, 0.22f, 0.30f, 0.35f);
-        private static readonly Color ACCENT      = new Color(0.30f, 0.65f, 0.50f);    // verde natural
-        private static readonly Color ACCENT_LIT  = new Color(0.35f, 0.75f, 0.55f);
-        private static readonly Color TXT_MAIN    = new Color(0.90f, 0.91f, 0.93f);
-        private static readonly Color TXT_DIM     = new Color(0.50f, 0.54f, 0.62f);
-        private static readonly Color TXT_MID     = new Color(0.68f, 0.72f, 0.78f);
-        private static readonly Color BTN_SEC     = new Color(0.14f, 0.16f, 0.22f);
-        private static readonly Color BTN_SEC_H   = new Color(0.20f, 0.22f, 0.30f);
-        private static readonly Color BTN_QUIT_BG = new Color(0.18f, 0.10f, 0.10f);
-        private static readonly Color BTN_QUIT_H  = new Color(0.30f, 0.12f, 0.12f);
-        private static readonly Color SEPARATOR   = new Color(1f, 1f, 1f, 0.06f);
-        private static readonly Color OVERLAY_BG  = new Color(0.02f, 0.03f, 0.06f, 0.85f);
-        private static readonly Color DEL_BG      = new Color(0.45f, 0.15f, 0.15f);
-        private static readonly Color DEL_H       = new Color(0.60f, 0.18f, 0.18f);
+        // Palette — deep indigo + teal + warm gold
+        static readonly Color BG        = new Color(0.025f, 0.028f, 0.055f);
+        static readonly Color LEFT_BG   = new Color(0.04f, 0.045f, 0.085f, 0.97f);
+        static readonly Color RIGHT_BG  = new Color(0.055f, 0.06f, 0.10f, 0.93f);
+        static readonly Color ACCENT    = new Color(0.16f, 0.72f, 0.64f);      // teal
+        static readonly Color ACCENT_LT = new Color(0.22f, 0.82f, 0.72f);
+        static readonly Color GOLD      = new Color(0.85f, 0.68f, 0.32f);      // warm gold
+        static readonly Color GOLD_DIM  = new Color(0.55f, 0.44f, 0.22f);
+        static readonly Color TXT       = new Color(0.92f, 0.93f, 0.96f);
+        static readonly Color TXT_DIM   = new Color(0.40f, 0.43f, 0.52f);
+        static readonly Color TXT_MID   = new Color(0.62f, 0.66f, 0.74f);
+        static readonly Color BTN_SEC   = new Color(0.08f, 0.09f, 0.15f);
+        static readonly Color BTN_SEC_H = new Color(0.13f, 0.15f, 0.22f);
+        static readonly Color BTN_Q     = new Color(0.15f, 0.07f, 0.07f);
+        static readonly Color BTN_Q_H   = new Color(0.25f, 0.10f, 0.10f);
+        static readonly Color SEP       = new Color(1f, 1f, 1f, 0.04f);
+        static readonly Color BORDER    = new Color(0.16f, 0.72f, 0.64f, 0.06f);
+        static readonly Color OVERLAY   = new Color(0.015f, 0.02f, 0.04f, 0.92f);
+        static readonly Color DEL_BG    = new Color(0.50f, 0.16f, 0.16f);
+        static readonly Color DEL_H     = new Color(0.65f, 0.20f, 0.20f);
+        static readonly Color STAT_BG   = new Color(0.04f, 0.05f, 0.08f, 0.70f);
 
-        private Transform rootTransform;
-        private GameObject rootCanvas;
-        private GameObject savesPanel;
+        Transform _root;
+        GameObject _rootCanvas, _savesPanel;
 
         void Start()
         {
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
             Time.timeScale = 1f;
-
             if (FindFirstObjectByType<EventSystem>() == null)
             {
                 var es = new GameObject("EventSystem");
                 es.AddComponent<EventSystem>();
                 es.AddComponent<StandaloneInputModule>();
             }
-
             Build();
         }
 
-        private void Build()
+        void Build()
         {
-            // ── Canvas ──
             var root = new GameObject("MenuCanvas");
-            var c = root.AddComponent<UnityEngine.Canvas>();
-            c.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = root.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
+            var cv = root.AddComponent<UnityEngine.Canvas>();
+            cv.renderMode = RenderMode.ScreenSpaceOverlay;
+            var sc = root.AddComponent<CanvasScaler>();
+            sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            sc.referenceResolution = new Vector2(1920, 1080);
             root.AddComponent<GraphicRaycaster>();
-            rootCanvas = root;
-            rootTransform = root.transform;
+            _rootCanvas = root;
+            _root = root.transform;
 
-            // ── Background ──
-            Stretch(root.transform, "BG", BG_TOP);
+            // Full BG
+            StretchImg(root.transform, "BG", BG);
 
-            // ── Card ──
-            var card = new GameObject("Card");
-            card.transform.SetParent(root.transform, false);
-            var cRt = card.AddComponent<RectTransform>();
-            cRt.anchorMin = cRt.anchorMax = new Vector2(0.5f, 0.5f);
-            cRt.sizeDelta = new Vector2(580, 750);
-            cRt.anchoredPosition = new Vector2(0, 20);
-            card.AddComponent<Image>().color = CARD;
-            var ol = card.AddComponent<Outline>();
-            ol.effectColor = CARD_EDGE;
-            ol.effectDistance = new Vector2(1, 1);
+            // ════════════════════════════════
+            //  Main container — centered horizontal split
+            // ════════════════════════════════
+            var container = Go("Container", root.transform);
+            var contRt = container.AddComponent<RectTransform>();
+            contRt.anchorMin = contRt.anchorMax = new Vector2(0.5f, 0.5f);
+            contRt.sizeDelta = new Vector2(960, 620);
+            contRt.anchoredPosition = new Vector2(0, 10);
 
-            float y = -35f;
 
-            // ── Logo ──
+            // ── LEFT PANEL (Branding) ──
+            var left = Go("Left", container.transform);
+            var leftRt = left.AddComponent<RectTransform>();
+            leftRt.anchorMin = new Vector2(0, 0);
+            leftRt.anchorMax = new Vector2(0.42f, 1);
+            leftRt.sizeDelta = Vector2.zero;
+            leftRt.offsetMin = Vector2.zero;
+            leftRt.offsetMax = Vector2.zero;
+            left.AddComponent<Image>().color = LEFT_BG;
+            var lOl = left.AddComponent<Outline>();
+            lOl.effectColor = BORDER; lOl.effectDistance = new Vector2(1, 1);
+
+            // Vertical accent stripe on left edge of left panel
+            var stripe = Go("Stripe", left.transform);
+            var strRt = stripe.AddComponent<RectTransform>();
+            strRt.anchorMin = new Vector2(0, 0.05f); strRt.anchorMax = new Vector2(0, 0.95f);
+            strRt.pivot = new Vector2(0, 0.5f); strRt.sizeDelta = new Vector2(3, 0);
+            strRt.anchoredPosition = new Vector2(0, 0);
+            stripe.AddComponent<Image>().color = ACCENT;
+
+            // Vertical divider accent between panels
+            var divider = Go("Divider", container.transform);
+            var divRt = divider.AddComponent<RectTransform>();
+            divRt.anchorMin = new Vector2(0.42f, 0.08f); divRt.anchorMax = new Vector2(0.42f, 0.92f);
+            divRt.pivot = new Vector2(0.5f, 0.5f); divRt.sizeDelta = new Vector2(1, 0);
+            divider.AddComponent<Image>().color = new Color(0.16f, 0.72f, 0.64f, 0.25f);
+
+            // Logo
+            float ly = -35f;
+
+            // Logo
             var logoTex = Resources.Load<Texture2D>("ASE_Logo");
             if (logoTex != null)
             {
-                var logo = new GameObject("Logo");
-                logo.transform.SetParent(card.transform, false);
-                var lRt = Anchor(logo, 0.5f, 1f, 140, 108);
-                lRt.anchoredPosition = new Vector2(0, y);
+                var logo = Go("Logo", left.transform);
+                var logoRt = logo.AddComponent<RectTransform>();
+                logoRt.anchorMin = logoRt.anchorMax = new Vector2(0.5f, 1f);
+                logoRt.pivot = new Vector2(0.5f, 1f);
+                logoRt.sizeDelta = new Vector2(120, 94);
+                logoRt.anchoredPosition = new Vector2(0, ly);
                 var lImg = logo.AddComponent<Image>();
-                lImg.sprite = Sprite.Create(logoTex,
-                    new Rect(0, 0, logoTex.width, logoTex.height), Vector2.one * 0.5f);
+                lImg.sprite = Sprite.Create(logoTex, new Rect(0, 0, logoTex.width, logoTex.height), Vector2.one * 0.5f);
                 lImg.preserveAspect = true;
                 lImg.raycastTarget = false;
-                y -= 125;
+                ly -= 108;
             }
 
-            // ── Titlu ──
-            var title = Label(card.transform, "AgroBot", 48, FontStyles.Bold, TXT_MAIN, y, 54);
-            title.characterSpacing = 6;
-            y -= 60;
+            // Title
+            var ttl = Lbl(left.transform, "AgroBot", 46, FontStyles.Bold, TXT, ly, 54, 340);
+            ttl.characterSpacing = 6;
+            ly -= 50;
 
-            Label(card.transform, "Simulator agricol multi-agent", 16, FontStyles.Normal, ACCENT, y, 24);
-            y -= 28;
+            Lbl(left.transform, "Simulator agricol\nmulti-agent", 16, FontStyles.Italic, ACCENT, ly, 42, 300);
+            ly -= 50;
 
-            Label(card.transform, "Lucrare de licență  ·  ASE București  ·  2026", 12, FontStyles.Normal, TXT_DIM, y, 18);
-            y -= 35;
+            // Gold decorative line
+            var goldLine = Go("GoldLine", left.transform);
+            var glRt = goldLine.AddComponent<RectTransform>();
+            glRt.anchorMin = glRt.anchorMax = new Vector2(0.5f, 1f);
+            glRt.pivot = new Vector2(0.5f, 0.5f);
+            glRt.sizeDelta = new Vector2(60, 2);
+            glRt.anchoredPosition = new Vector2(0, ly);
+            goldLine.AddComponent<Image>().color = GOLD;
+            ly -= 22;
 
-            // ── Separator ──
-            HLine(card.transform, 200, y);
-            y -= 30;
+            // Info lines
+            Lbl(left.transform, "Lucrare de licență", 13, FontStyles.Normal, TXT_MID, ly, 18, 280);
+            ly -= 20;
+            Lbl(left.transform, "ASE București · CSIE · 2026", 12, FontStyles.Normal, GOLD_DIM, ly, 18, 280);
+            ly -= 30;
 
-            // ── Nume simulare (auto-increment) ──
+            // Stats mini-boxes
+            var saves = SimSaveManager.GetSaveNames();
             string nextRun = GetNextRunName();
-            Label(card.transform, $"Simulare nouă:  {nextRun}", 14, FontStyles.Normal, TXT_MID, y, 22);
-            y -= 35;
 
-            // ── Start simulare nouă ──
-            MakeButton(card.transform, $"Pornește  ·  {nextRun}", ACCENT, ACCENT_LIT, Color.black, y, 50, 16, () =>
+            var statsRow = Go("Stats", left.transform);
+            var statsRt = statsRow.AddComponent<RectTransform>();
+            statsRt.anchorMin = statsRt.anchorMax = new Vector2(0.5f, 1f);
+            statsRt.pivot = new Vector2(0.5f, 1f);
+            statsRt.sizeDelta = new Vector2(300, 56);
+            statsRt.anchoredPosition = new Vector2(0, ly);
+
+            StatBox(statsRow.transform, 0f, saves.Length.ToString(), "salvări", 150);
+            StatBox(statsRow.transform, 150f, nextRun.Replace("Run_", "#"), "următoarea", 150);
+
+            ly -= 70;
+
+            // Coordonator
+            Lbl(left.transform, "Coordonator", 11, FontStyles.Bold, GOLD_DIM, ly, 16, 280);
+            ly -= 18;
+            Lbl(left.transform, "Lect. dr. Zurini Mădălina", 13, FontStyles.Normal, TXT_MID, ly, 18, 280);
+
+            // ── RIGHT PANEL (Actions) ──
+            var right = Go("Right", container.transform);
+            var rightRt = right.AddComponent<RectTransform>();
+            rightRt.anchorMin = new Vector2(0.42f, 0);
+            rightRt.anchorMax = new Vector2(1, 1);
+            rightRt.sizeDelta = Vector2.zero;
+            rightRt.offsetMin = Vector2.zero;
+            rightRt.offsetMax = Vector2.zero;
+            right.AddComponent<Image>().color = RIGHT_BG;
+            var rOl = right.AddComponent<Outline>();
+            rOl.effectColor = BORDER; rOl.effectDistance = new Vector2(1, 1);
+
+            float ry = -40f;
+
+            Lbl(right.transform, "Panou de control", 28, FontStyles.Bold, TXT, ry, 36, 460);
+            ry -= 36;
+
+            // Gold accent under title
+            var titleAccent = Go("TitleAccent", right.transform);
+            var taRt = titleAccent.AddComponent<RectTransform>();
+            taRt.anchorMin = taRt.anchorMax = new Vector2(0.5f, 1f);
+            taRt.pivot = new Vector2(0.5f, 0.5f);
+            taRt.sizeDelta = new Vector2(50, 2);
+            taRt.anchoredPosition = new Vector2(0, ry);
+            titleAccent.AddComponent<Image>().color = GOLD;
+            ry -= 14;
+            Sep(right.transform, 400, ry);
+            ry -= 28;
+
+            // Section: New simulation
+            Lbl(right.transform, "SIMULARE NOUĂ", 11, FontStyles.Bold, ACCENT, ry, 16, 460);
+            ry -= 24;
+
+            Lbl(right.transform, $"Următoarea sesiune:  {nextRun}", 14, FontStyles.Normal, TXT_MID, ry, 22, 460);
+            ry -= 32;
+
+            Btn(right.transform, $"Pornește  ·  {nextRun}", ACCENT, ACCENT_LT, new Color(0.02f, 0.04f, 0.03f),
+                ry, 52, 16, 460, () =>
             {
                 SimSaveManager.LastSaveName = nextRun;
                 SimLoader.ShouldLoadSave = false;
                 SceneManager.LoadScene(simulationScene);
             });
-            y -= 60;
+            ry -= 65;
 
-            // ── Buton Simulări Salvate ──
-            var saves = SimSaveManager.GetSaveNames();
-            string savesLabel = saves.Length > 0
-                ? $"Simulări Salvate  ({saves.Length})"
-                : "Simulări Salvate";
 
-            MakeButton(card.transform, savesLabel, BTN_SEC, BTN_SEC_H, ACCENT, y, 44, 14, () =>
-            {
-                ShowSavesPanel();
-            });
-            y -= 58;
 
-            // ── Ieșire ──
-            MakeButton(card.transform, "Ieșire", BTN_QUIT_BG, BTN_QUIT_H, TXT_DIM, y, 40, 13, () =>
+            Sep(right.transform, 380, ry);
+            ry -= 28;
+
+            // Section: Saved simulations
+            Lbl(right.transform, "SESIUNI ANTERIOARE", 11, FontStyles.Bold, GOLD, ry, 16, 460);
+            ry -= 28;
+
+            string savesLbl = saves.Length > 0 ? $"Simulări Salvate  ({saves.Length})" : "Simulări Salvate  (0)";
+            Btn(right.transform, savesLbl, BTN_SEC, BTN_SEC_H, ACCENT, ry, 46, 14, 460, ShowSavesPanel);
+            ry -= 60;
+
+            Sep(right.transform, 380, ry);
+            ry -= 28;
+
+            // Section: System
+            Lbl(right.transform, "SISTEM", 11, FontStyles.Bold, TXT_MID, ry, 16, 460);
+            ry -= 28;
+
+            Btn(right.transform, "Ieșire din aplicație", BTN_Q, BTN_Q_H, TXT_DIM, ry, 42, 13, 460, () =>
             {
 #if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
@@ -148,369 +242,269 @@ namespace UI.MainMenu
             });
 
             // ── Footer ──
-            var fGo = new GameObject("Footer");
-            fGo.transform.SetParent(root.transform, false);
+            // Footer
+            var fGo = Go("Footer", root.transform);
             var fRt = fGo.AddComponent<RectTransform>();
             fRt.anchorMin = new Vector2(0.5f, 0);
             fRt.anchorMax = new Vector2(0.5f, 0);
             fRt.pivot = new Vector2(0.5f, 0);
-            fRt.sizeDelta = new Vector2(800, 55);
-            fRt.anchoredPosition = new Vector2(0, 18);
+            fRt.sizeDelta = new Vector2(880, 30);
+            fRt.anchoredPosition = new Vector2(0, 10);
             var ft = fGo.AddComponent<TextMeshProUGUI>();
-            ft.text = "Academia de Studii Economice din București  ·  Facultatea CSIE\nMircea Ștefăniță-Leonard  ·  Coordonator: Lector. dr. Zurini Mădălina";
-            ft.fontSize = 13;
+            ft.text = "Mircea Ștefăniță-Leonard  ·  Academia de Studii Economice din București  ·  Facultatea CSIE";
+            ft.fontSize = 11;
             ft.alignment = TextAlignmentOptions.Center;
-            ft.color = TXT_MID;
+            ft.color = TXT_DIM;
             ft.raycastTarget = false;
 
-            // ── Versiune ──
-            var vGo = new GameObject("Ver");
-            vGo.transform.SetParent(root.transform, false);
+            // Version
+            var vGo = Go("Ver", root.transform);
             var vRt = vGo.AddComponent<RectTransform>();
             vRt.anchorMin = vRt.anchorMax = new Vector2(1, 0);
             vRt.pivot = new Vector2(1, 0);
-            vRt.sizeDelta = new Vector2(160, 18);
+            vRt.sizeDelta = new Vector2(140, 16);
             vRt.anchoredPosition = new Vector2(-14, 8);
             var vt = vGo.AddComponent<TextMeshProUGUI>();
-            vt.text = "v1.0  ·  Unity 6";
-            vt.fontSize = 11;
+            vt.text = "v1.0 · Unity 6";
+            vt.fontSize = 10;
             vt.alignment = TextAlignmentOptions.Right;
             vt.color = TXT_DIM;
             vt.raycastTarget = false;
         }
 
-        // ────────────────────────────
-        //  Saves Panel
-        // ────────────────────────────
-
-        private void ShowSavesPanel()
+        // ════════════════════════════════
+        //  Stat Box helper
+        // ════════════════════════════════
+        void StatBox(Transform p, float xOff, string val, string label, float w)
         {
-            if (savesPanel != null) Destroy(savesPanel);
+            var box = Go("Stat", p);
+            var rt = box.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0, 1);
+            rt.pivot = new Vector2(0, 1);
+            rt.sizeDelta = new Vector2(w - 6, 46);
+            rt.anchoredPosition = new Vector2(xOff, 0);
+            box.AddComponent<Image>().color = STAT_BG;
 
-            savesPanel = new GameObject("SavesPanel");
-            savesPanel.transform.SetParent(rootTransform, false);
+            // Accent top border on stat box
+            var topBorder = Go("Border", box.transform);
+            var tbRt = topBorder.AddComponent<RectTransform>();
+            tbRt.anchorMin = new Vector2(0, 1); tbRt.anchorMax = new Vector2(1, 1);
+            tbRt.pivot = new Vector2(0.5f, 1); tbRt.sizeDelta = new Vector2(0, 2);
+            topBorder.AddComponent<Image>().color = ACCENT;
 
-            // Overlay fullscreen
-            var overlayRt = savesPanel.AddComponent<RectTransform>();
-            overlayRt.anchorMin = Vector2.zero;
-            overlayRt.anchorMax = Vector2.one;
-            overlayRt.sizeDelta = Vector2.zero;
-            var overlayImg = savesPanel.AddComponent<Image>();
-            overlayImg.color = OVERLAY_BG;
+            var vGo = Go("V", box.transform);
+            var vRt = vGo.AddComponent<RectTransform>();
+            vRt.anchorMin = vRt.anchorMax = new Vector2(0.5f, 1f);
+            vRt.pivot = new Vector2(0.5f, 1f);
+            vRt.sizeDelta = new Vector2(w - 10, 24);
+            vRt.anchoredPosition = new Vector2(0, -6);
+            var vT = vGo.AddComponent<TextMeshProUGUI>();
+            vT.text = val; vT.fontSize = 20; vT.fontStyle = FontStyles.Bold;
+            vT.alignment = TextAlignmentOptions.Center; vT.color = ACCENT; vT.raycastTarget = false;
 
-            // Block clicks behind
-            savesPanel.AddComponent<Button>().onClick.AddListener(() => { /* block */ });
+            var lGo = Go("L", box.transform);
+            var lRt = lGo.AddComponent<RectTransform>();
+            lRt.anchorMin = lRt.anchorMax = new Vector2(0.5f, 0f);
+            lRt.pivot = new Vector2(0.5f, 0f);
+            lRt.sizeDelta = new Vector2(w - 10, 16);
+            lRt.anchoredPosition = new Vector2(0, 3);
+            var lT = lGo.AddComponent<TextMeshProUGUI>();
+            lT.text = label; lT.fontSize = 10; lT.color = TXT_DIM;
+            lT.alignment = TextAlignmentOptions.Center; lT.raycastTarget = false;
+        }
 
-            // Card
-            var panelCard = new GameObject("PanelCard");
-            panelCard.transform.SetParent(savesPanel.transform, false);
-            var pcRt = panelCard.AddComponent<RectTransform>();
+        // ════════════════════════════════
+        //  Saves Panel
+        // ════════════════════════════════
+        void ShowSavesPanel()
+        {
+            if (_savesPanel != null) Destroy(_savesPanel);
+            _savesPanel = Go("SavesPanel", _root);
+            var oRt = _savesPanel.AddComponent<RectTransform>();
+            oRt.anchorMin = Vector2.zero; oRt.anchorMax = Vector2.one; oRt.sizeDelta = Vector2.zero;
+            _savesPanel.AddComponent<Image>().color = OVERLAY;
+            _savesPanel.AddComponent<Button>().onClick.AddListener(() => { });
+
+            var card = Go("Card", _savesPanel.transform);
+            var pcRt = card.AddComponent<RectTransform>();
             pcRt.anchorMin = pcRt.anchorMax = new Vector2(0.5f, 0.5f);
-            pcRt.sizeDelta = new Vector2(620, 580);
-            panelCard.AddComponent<Image>().color = CARD;
-            var pcOl = panelCard.AddComponent<Outline>();
-            pcOl.effectColor = CARD_EDGE;
-            pcOl.effectDistance = new Vector2(1, 1);
+            pcRt.sizeDelta = new Vector2(620, 560);
+            card.AddComponent<Image>().color = RIGHT_BG;
+            var ol = card.AddComponent<Outline>(); ol.effectColor = BORDER; ol.effectDistance = new Vector2(1,1);
 
             float y = -25f;
-
-            // Title
-            Label(panelCard.transform, "Simulări Salvate", 28, FontStyles.Bold, TXT_MAIN, y, 36);
-            y -= 45;
-            HLine(panelCard.transform, 500, y);
-            y -= 20;
+            Lbl(card.transform, "Simulări Salvate", 26, FontStyles.Bold, TXT, y, 34, 540);
+            y -= 42;
+            Sep(card.transform, 500, y);
+            y -= 18;
 
             var saves = SimSaveManager.GetSaveNames();
-
             if (saves.Length == 0)
             {
-                Label(panelCard.transform, "Nu există simulări salvate.", 15, FontStyles.Italic, TXT_DIM, y, 24);
-                y -= 40;
+                Lbl(card.transform, "Nu există simulări salvate.", 14, FontStyles.Italic, TXT_DIM, y, 22, 500);
             }
             else
             {
-                // Scroll area
-                var scrollGo = new GameObject("Scroll");
-                scrollGo.transform.SetParent(panelCard.transform, false);
-                var scrollRt = scrollGo.AddComponent<RectTransform>();
-                scrollRt.anchorMin = new Vector2(0.5f, 1f);
-                scrollRt.anchorMax = new Vector2(0.5f, 1f);
-                scrollRt.pivot = new Vector2(0.5f, 1f);
-                float scrollH = 380f;
-                scrollRt.sizeDelta = new Vector2(560, scrollH);
-                scrollRt.anchoredPosition = new Vector2(0, y);
+                var scrollGo = Go("Scroll", card.transform);
+                var sRt = scrollGo.AddComponent<RectTransform>();
+                sRt.anchorMin = sRt.anchorMax = new Vector2(0.5f, 1f);
+                sRt.pivot = new Vector2(0.5f, 1f);
+                float sH = 370f;
+                sRt.sizeDelta = new Vector2(560, sH);
+                sRt.anchoredPosition = new Vector2(0, y);
+                scrollGo.AddComponent<Image>().color = new Color(0, 0, 0, 0.01f);
+                scrollGo.AddComponent<Mask>().showMaskGraphic = false;
+                var sr = scrollGo.AddComponent<ScrollRect>();
+                sr.horizontal = false; sr.movementType = ScrollRect.MovementType.Clamped; sr.scrollSensitivity = 30f;
 
-                var scrollImg = scrollGo.AddComponent<Image>();
-                scrollImg.color = new Color(0, 0, 0, 0.01f);
-
-                var mask = scrollGo.AddComponent<Mask>();
-                mask.showMaskGraphic = false;
-
-                var scrollRect = scrollGo.AddComponent<ScrollRect>();
-                scrollRect.horizontal = false;
-                scrollRect.movementType = ScrollRect.MovementType.Clamped;
-                scrollRect.scrollSensitivity = 30f;
-
-                // Content
-                var contentGo = new GameObject("Content");
-                contentGo.transform.SetParent(scrollGo.transform, false);
-                var contentRt = contentGo.AddComponent<RectTransform>();
-                contentRt.anchorMin = new Vector2(0, 1);
-                contentRt.anchorMax = new Vector2(1, 1);
-                contentRt.pivot = new Vector2(0.5f, 1f);
-
-                float itemH = 80f;
-                contentRt.sizeDelta = new Vector2(0, saves.Length * itemH);
-                scrollRect.content = contentRt;
+                var content = Go("Content", scrollGo.transform);
+                var cRt = content.AddComponent<RectTransform>();
+                cRt.anchorMin = new Vector2(0, 1); cRt.anchorMax = new Vector2(1, 1);
+                cRt.pivot = new Vector2(0.5f, 1f);
+                float iH = 78f;
+                cRt.sizeDelta = new Vector2(0, saves.Length * iH);
+                sr.content = cRt;
 
                 for (int i = 0; i < saves.Length; i++)
                 {
                     string sName = saves[i];
                     var info = SimSaveManager.PeekSave(sName);
-                    float iy = -(i * itemH);
+                    float iy = -(i * iH);
 
-                    // Item row BG
-                    var rowGo = new GameObject("Row");
-                    rowGo.transform.SetParent(contentGo.transform, false);
-                    var rowRt = rowGo.AddComponent<RectTransform>();
-                    rowRt.anchorMin = new Vector2(0, 1);
-                    rowRt.anchorMax = new Vector2(1, 1);
-                    rowRt.pivot = new Vector2(0.5f, 1f);
-                    rowRt.sizeDelta = new Vector2(0, itemH);
-                    rowRt.anchoredPosition = new Vector2(0, iy);
-                    rowGo.AddComponent<Image>().color = (i % 2 == 0)
-                        ? new Color(0.06f, 0.08f, 0.12f, 0.5f)
-                        : new Color(0.08f, 0.10f, 0.15f, 0.3f);
+                    var row = Go("Row", content.transform);
+                    var rRt = row.AddComponent<RectTransform>();
+                    rRt.anchorMin = new Vector2(0, 1); rRt.anchorMax = new Vector2(1, 1);
+                    rRt.pivot = new Vector2(0.5f, 1f); rRt.sizeDelta = new Vector2(0, iH);
+                    rRt.anchoredPosition = new Vector2(0, iy);
+                    row.AddComponent<Image>().color = (i % 2 == 0) ? new Color(0.05f, 0.07f, 0.11f, 0.5f) : new Color(0.07f, 0.09f, 0.14f, 0.3f);
 
-                    // Save name
-                    var nameGo = new GameObject("Name");
-                    nameGo.transform.SetParent(rowGo.transform, false);
-                    var nameRt = nameGo.AddComponent<RectTransform>();
-                    nameRt.anchorMin = new Vector2(0, 0.5f);
-                    nameRt.anchorMax = new Vector2(0, 0.5f);
-                    nameRt.pivot = new Vector2(0, 0.5f);
-                    nameRt.sizeDelta = new Vector2(300, 24);
-                    nameRt.anchoredPosition = new Vector2(15, 12);
-                    var nameTxt = nameGo.AddComponent<TextMeshProUGUI>();
-                    nameTxt.text = sName;
-                    nameTxt.fontSize = 16;
-                    nameTxt.fontStyle = FontStyles.Bold;
-                    nameTxt.color = TXT_MAIN;
-                    nameTxt.raycastTarget = false;
-
-                    // Details
+                    TxtAt(row.transform, sName, 15, FontStyles.Bold, TXT, new Vector2(15, 12), new Vector2(280, 22));
                     if (info != null)
                     {
-                        var detGo = new GameObject("Det");
-                        detGo.transform.SetParent(rowGo.transform, false);
-                        var detRt = detGo.AddComponent<RectTransform>();
-                        detRt.anchorMin = new Vector2(0, 0.5f);
-                        detRt.anchorMax = new Vector2(0, 0.5f);
-                        detRt.pivot = new Vector2(0, 0.5f);
-                        detRt.sizeDelta = new Vector2(350, 20);
-                        detRt.anchoredPosition = new Vector2(15, -12);
-                        var detTxt = detGo.AddComponent<TextMeshProUGUI>();
-                        string weatherInfo = !string.IsNullOrEmpty(info.weatherType)
-                            ? $"  ·  {info.temperature:F0}°C {info.weatherType}"
-                            : "";
-                        detTxt.text = $"Ziua {info.dayNumber}  ·  {info.parcels.Count} parcele{weatherInfo}  ·  {info.savedAt}";
-                        detTxt.fontSize = 12;
-                        detTxt.color = TXT_DIM;
-                        detTxt.raycastTarget = false;
+                        string w = !string.IsNullOrEmpty(info.weatherType) ? $" · {info.temperature:F0}°C {info.weatherType}" : "";
+                        TxtAt(row.transform, $"Ziua {info.dayNumber} · {info.parcels.Count} parcele{w} · {info.savedAt}",
+                            11, FontStyles.Normal, TXT_DIM, new Vector2(15, -10), new Vector2(340, 18));
                     }
 
-                    // Load button
-                    MakeRowButton(rowGo.transform, "Încarcă", ACCENT, ACCENT_LIT, Color.black,
-                        new Vector2(-110, 0), new Vector2(90, 32), 13, () =>
-                    {
-                        SimSaveManager.LastSaveName = sName;
-                        SimLoader.ShouldLoadSave = true;
-                        SceneManager.LoadScene(simulationScene);
-                    });
+                    RowBtn(row.transform, "Încarcă", ACCENT, ACCENT_LT, Color.black, new Vector2(-105, 0), new Vector2(86, 30), 12, () =>
+                    { SimSaveManager.LastSaveName = sName; SimLoader.ShouldLoadSave = true; SceneManager.LoadScene(simulationScene); });
 
-                    // Delete button
-                    MakeRowButton(rowGo.transform, "Șterge", DEL_BG, DEL_H, TXT_MAIN,
-                        new Vector2(-15, 0), new Vector2(80, 32), 13, () =>
-                    {
-                        SimSaveManager.DeleteSave(sName);
-                        Rebuild(); // rebuild entire menu with updated count
-                    });
+                    RowBtn(row.transform, "Șterge", DEL_BG, DEL_H, TXT, new Vector2(-14, 0), new Vector2(78, 30), 12, () =>
+                    { SimSaveManager.DeleteSave(sName); Rebuild(); });
                 }
-
-                y -= scrollH + 10;
             }
 
-            // Close button
-            y = -540f;
-            MakeButton(panelCard.transform, "Închide", BTN_SEC, BTN_SEC_H, TXT_MID, y, 36, 13, () =>
-            {
-                Rebuild(); // rebuild to update save count on main card
-            });
+            Btn(card.transform, "Închide", BTN_SEC, BTN_SEC_H, TXT_MID, -520f, 34, 12, 300, Rebuild);
         }
 
-        // ────────────────────────────
-        //  Rebuild
-        // ────────────────────────────
-
-        private void Rebuild()
+        // ════════════════════════════════
+        //  Core helpers
+        // ════════════════════════════════
+        void Rebuild()
         {
-            if (savesPanel != null) { Destroy(savesPanel); savesPanel = null; }
-            if (rootCanvas != null) Destroy(rootCanvas);
+            if (_savesPanel != null) { Destroy(_savesPanel); _savesPanel = null; }
+            if (_rootCanvas != null) Destroy(_rootCanvas);
             Build();
         }
 
-        // ────────────────────────────
-        //  Auto-increment run name
-        // ────────────────────────────
-
-        private string GetNextRunName()
+        string GetNextRunName()
         {
             var saves = SimSaveManager.GetSaveNames();
             int max = 0;
             foreach (var s in saves)
-            {
-                if (s.StartsWith("Run_") && s.Length == 7)
-                {
-                    if (int.TryParse(s.Substring(4), out int num) && num > max)
-                        max = num;
-                }
-            }
+                if (s.StartsWith("Run_") && s.Length == 7 && int.TryParse(s.Substring(4), out int n) && n > max) max = n;
             return $"Run_{(max + 1):D3}";
         }
 
-        // ────────────────────────────
-        //  Helpers
-        // ────────────────────────────
+        static GameObject Go(string name, Transform parent)
+        { var g = new GameObject(name); g.transform.SetParent(parent, false); return g; }
 
-        private void Stretch(Transform p, string n, Color c)
+        void StretchImg(Transform p, string n, Color c)
         {
-            var go = new GameObject(n);
-            go.transform.SetParent(p, false);
-            var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.sizeDelta = Vector2.zero;
-            go.AddComponent<Image>().color = c;
+            var g = Go(n, p);
+            var rt = g.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.sizeDelta = Vector2.zero;
+            g.AddComponent<Image>().color = c;
         }
 
-        private RectTransform Anchor(GameObject go, float ax, float ay, float w, float h)
+        TextMeshProUGUI Lbl(Transform p, string text, float sz, FontStyles fs, Color c, float yPos, float h, float w)
         {
-            var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = rt.anchorMax = new Vector2(ax, ay);
-            rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(w, h);
-            return rt;
-        }
-
-        private TextMeshProUGUI Label(Transform p, string text, float sz, FontStyles style, Color col, float yPos, float h)
-        {
-            var go = new GameObject("L");
-            go.transform.SetParent(p, false);
-            var rt = go.AddComponent<RectTransform>();
+            var g = Go("L", p);
+            var rt = g.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(500, h);
+            rt.sizeDelta = new Vector2(w, h);
             rt.anchoredPosition = new Vector2(0, yPos);
-            var t = go.AddComponent<TextMeshProUGUI>();
-            t.text = text;
-            t.fontSize = sz;
-            t.fontStyle = style;
-            t.alignment = TextAlignmentOptions.Center;
-            t.color = col;
-            t.raycastTarget = false;
-            t.enableWordWrapping = false;
+            var t = g.AddComponent<TextMeshProUGUI>();
+            t.text = text; t.fontSize = sz; t.fontStyle = fs;
+            t.alignment = TextAlignmentOptions.Center; t.color = c;
+            t.raycastTarget = false; t.enableWordWrapping = true;
             return t;
         }
 
-        private void HLine(Transform p, float width, float yPos)
+        void TxtAt(Transform p, string text, float sz, FontStyles fs, Color c, Vector2 pos, Vector2 size)
         {
-            var go = new GameObject("Sep");
-            go.transform.SetParent(p, false);
-            var rt = go.AddComponent<RectTransform>();
+            var g = Go("T", p);
+            var rt = g.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0, 0.5f);
+            rt.pivot = new Vector2(0, 0.5f);
+            rt.sizeDelta = size; rt.anchoredPosition = pos;
+            var t = g.AddComponent<TextMeshProUGUI>();
+            t.text = text; t.fontSize = sz; t.fontStyle = fs; t.color = c; t.raycastTarget = false;
+        }
+
+        void Sep(Transform p, float w, float yPos)
+        {
+            var g = Go("Sep", p);
+            var rt = g.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(width, 1);
+            rt.sizeDelta = new Vector2(w, 1);
             rt.anchoredPosition = new Vector2(0, yPos);
-            go.AddComponent<Image>().color = SEPARATOR;
+            g.AddComponent<Image>().color = SEP;
         }
 
-        private void MakeButton(Transform p, string text, Color bg, Color hover, Color txtCol, float yPos, float h, float fSize, UnityEngine.Events.UnityAction action)
+        void Btn(Transform p, string text, Color bg, Color hov, Color tc, float yPos, float h, float fSz, float w, UnityEngine.Events.UnityAction act)
         {
-            var go = new GameObject("Btn");
-            go.transform.SetParent(p, false);
-            var rt = go.AddComponent<RectTransform>();
+            var g = Go("Btn", p);
+            var rt = g.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(360, h);
+            rt.sizeDelta = new Vector2(w, h);
             rt.anchoredPosition = new Vector2(0, yPos);
-
-            var img = go.AddComponent<Image>();
-            img.color = bg;
-
-            var btn = go.AddComponent<Button>();
-            btn.targetGraphic = img;
-            var cb = btn.colors;
-            cb.normalColor = bg;
-            cb.highlightedColor = hover;
-            cb.pressedColor = bg * 0.75f;
-            cb.selectedColor = bg;
-            cb.fadeDuration = 0.1f;
+            var img = g.AddComponent<Image>(); img.color = bg;
+            var btn = g.AddComponent<Button>(); btn.targetGraphic = img;
+            var cb = btn.colors; cb.normalColor = bg; cb.highlightedColor = hov;
+            cb.pressedColor = bg * 0.75f; cb.selectedColor = bg; cb.fadeDuration = 0.1f;
             btn.colors = cb;
-            if (action != null) btn.onClick.AddListener(action);
-
-            var lbl = new GameObject("T");
-            lbl.transform.SetParent(go.transform, false);
+            if (act != null) btn.onClick.AddListener(act);
+            var lbl = Go("T", g.transform);
             var lRt = lbl.AddComponent<RectTransform>();
-            lRt.anchorMin = Vector2.zero;
-            lRt.anchorMax = Vector2.one;
-            lRt.sizeDelta = Vector2.zero;
+            lRt.anchorMin = Vector2.zero; lRt.anchorMax = Vector2.one; lRt.sizeDelta = Vector2.zero;
             var t = lbl.AddComponent<TextMeshProUGUI>();
-            t.text = text;
-            t.fontSize = fSize;
-            t.fontStyle = FontStyles.Bold;
-            t.alignment = TextAlignmentOptions.Center;
-            t.color = txtCol;
-            t.raycastTarget = false;
+            t.text = text; t.fontSize = fSz; t.fontStyle = FontStyles.Bold;
+            t.alignment = TextAlignmentOptions.Center; t.color = tc; t.raycastTarget = false;
         }
 
-        private void MakeRowButton(Transform p, string text, Color bg, Color hover, Color txtCol,
-            Vector2 anchoredPos, Vector2 size, float fSize, UnityEngine.Events.UnityAction action)
+        void RowBtn(Transform p, string text, Color bg, Color hov, Color tc, Vector2 pos, Vector2 sz, float fSz, UnityEngine.Events.UnityAction act)
         {
-            var go = new GameObject("RBtn");
-            go.transform.SetParent(p, false);
-            var rt = go.AddComponent<RectTransform>();
+            var g = Go("RBtn", p);
+            var rt = g.AddComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
             rt.pivot = new Vector2(1f, 0.5f);
-            rt.sizeDelta = size;
-            rt.anchoredPosition = anchoredPos;
-
-            var img = go.AddComponent<Image>();
-            img.color = bg;
-
-            var btn = go.AddComponent<Button>();
-            btn.targetGraphic = img;
-            var cb = btn.colors;
-            cb.normalColor = bg;
-            cb.highlightedColor = hover;
-            cb.pressedColor = bg * 0.75f;
-            cb.selectedColor = bg;
-            cb.fadeDuration = 0.1f;
+            rt.sizeDelta = sz; rt.anchoredPosition = pos;
+            var img = g.AddComponent<Image>(); img.color = bg;
+            var btn = g.AddComponent<Button>(); btn.targetGraphic = img;
+            var cb = btn.colors; cb.normalColor = bg; cb.highlightedColor = hov;
+            cb.pressedColor = bg * 0.75f; cb.selectedColor = bg; cb.fadeDuration = 0.1f;
             btn.colors = cb;
-            if (action != null) btn.onClick.AddListener(action);
-
-            var lbl = new GameObject("T");
-            lbl.transform.SetParent(go.transform, false);
+            if (act != null) btn.onClick.AddListener(act);
+            var lbl = Go("T", g.transform);
             var lRt = lbl.AddComponent<RectTransform>();
-            lRt.anchorMin = Vector2.zero;
-            lRt.anchorMax = Vector2.one;
-            lRt.sizeDelta = Vector2.zero;
+            lRt.anchorMin = Vector2.zero; lRt.anchorMax = Vector2.one; lRt.sizeDelta = Vector2.zero;
             var t = lbl.AddComponent<TextMeshProUGUI>();
-            t.text = text;
-            t.fontSize = fSize;
-            t.fontStyle = FontStyles.Bold;
-            t.alignment = TextAlignmentOptions.Center;
-            t.color = txtCol;
-            t.raycastTarget = false;
+            t.text = text; t.fontSize = fSz; t.fontStyle = FontStyles.Bold;
+            t.alignment = TextAlignmentOptions.Center; t.color = tc; t.raycastTarget = false;
         }
     }
 }

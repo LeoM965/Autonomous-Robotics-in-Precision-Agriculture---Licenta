@@ -30,10 +30,27 @@ namespace UI.Canvas
             if (idTxt) idTxt.text = sel.name;
             if (qualityTxt) qualityTxt.text = $"{sel.soilQuality:F1}%";
             if (moistureTxt) moistureTxt.text = $"{sel.soilMoisture:F1}%";
-            if (phTxt) phTxt.text = $"{sel.soilPH:F1}";
-
             bool isEmpty = string.IsNullOrEmpty(sel.plantedVarietyName) || sel.plantedVarietyName == "None";
             var cropData = isEmpty ? null : CropLoader.Load()?.Get(sel.plantedVarietyName);
+
+            if (phTxt) 
+            {
+                if (isEmpty || cropData?.requirements?.pH == null)
+                {
+                    phTxt.text = $"{sel.soilPH:F1}";
+                }
+                else
+                {
+                    float optPH = cropData.requirements.pH.optimal;
+                    float diff = Mathf.Abs(sel.soilPH - optPH);
+                    if (diff <= 0.2f)
+                        phTxt.text = $"<color=#5FD878>{sel.soilPH:F1}</color> / {optPH:F1}";
+                    else if (diff <= 0.5f)
+                        phTxt.text = $"<color=#E8C44A>{sel.soilPH:F1}</color> / {optPH:F1}";
+                    else
+                        phTxt.text = $"<color=#E85555>{sel.soilPH:F1}</color> / {optPH:F1}";
+                }
+            }
 
             // NPK: show current value + deficit vs optimal
             FormatNutrient(nTxt, sel.nitrogen, cropData?.requirements?.nitrogen?.optimal ?? 0f, isEmpty);

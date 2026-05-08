@@ -27,7 +27,7 @@ namespace AI.Core.Scanners
                 if (zoneIdx >= 0)
                 {
                     // Pre-check if any crop is suitable right now (weather/season permitting)
-                    var bestCrop = CropSelector.SelectBestCrop(db, parcel.composition, null, parcel.name, 1, 0f, false);
+                    var bestCrop = CropSelector.SelectBestCrop(db, parcel, null, 1, 0f, false);
                     if (bestCrop != null)
                     {
                         float suitability = parcel.soilQuality / 100f;

@@ -106,7 +106,7 @@ public class PlanterOperation
         }
         else
         {
-            crop = CropSelector.SelectBestCrop(cropDB, parcel.composition, transform, parcel.name, plantCount, currentTaskValue);
+            crop = CropSelector.SelectBestCrop(cropDB, parcel, transform, plantCount, currentTaskValue);
             if (crop != null && cropDB != null)
                 idx = cropDB.GetIndex(crop.name);
         }

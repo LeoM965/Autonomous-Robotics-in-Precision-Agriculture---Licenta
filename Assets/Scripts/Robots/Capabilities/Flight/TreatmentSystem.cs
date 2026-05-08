@@ -39,15 +39,17 @@ namespace Robots.Capabilities.Flight
             float optN = data?.requirements?.nitrogen?.optimal ?? 100f;
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
+            float optPH = data?.requirements?.pH?.optimal ?? 6.5f;
 
             // Once at the parcel, treat until ALL nutrients reach 100% of their optimal value.
             bool needsN = target.nitrogen < optN;
             bool needsP = target.phosphorus < optP;
             bool needsK = target.potassium < optK;
+            bool needsPH = Mathf.Abs(target.soilPH - optPH) > 0.05f;
 
-            if (needsN || needsP || needsK)
+            if (needsN || needsP || needsK || needsPH)
             {
-                ApplyTreatment(target, data, optN, optP, optK);
+                ApplyTreatment(target, data, optN, optP, optK, optPH);
                 timer -= Time.deltaTime;
             }
             else
@@ -58,7 +60,7 @@ namespace Robots.Capabilities.Flight
         }
 
         private void ApplyTreatment(EnvironmentalSensor target, CropData data,
-                                     float optN, float optP, float optK)
+                                     float optN, float optP, float optK, float optPH)
         {
             float speed = TREATMENT_SPEED * Time.deltaTime;
 
@@ -66,19 +68,23 @@ namespace Robots.Capabilities.Flight
             float mN = Mathf.Max(0, optN - target.nitrogen);
             float mP = Mathf.Max(0, optP - target.phosphorus);
             float mK = Mathf.Max(0, optK - target.potassium);
-            float total = mN + mP + mK;
+            float mPH = Mathf.Abs(optPH - target.soilPH) * 20f; // Scale pH diff to be comparable
+            float total = mN + mP + mK + mPH;
 
-            float nToAdd, pToAdd, kToAdd;
+            float nToAdd, pToAdd, kToAdd, phToAdd;
             if (total > 0)
             {
                 // Distribute treatment proportionally to each nutrient's deficit
                 nToAdd = speed * (mN / total);
                 pToAdd = speed * (mP / total);
                 kToAdd = speed * (mK / total);
+                phToAdd = speed * (mPH / total) * 0.05f; // Rescale back to pH scale
+                
+                if (target.soilPH > optPH) phToAdd = -phToAdd;
             }
             else
             {
-                nToAdd = 0; pToAdd = 0; kToAdd = 0;
+                nToAdd = 0; pToAdd = 0; kToAdd = 0; phToAdd = 0;
             }
 
             if (target != lastLoggedParcel)
@@ -91,8 +97,13 @@ namespace Robots.Capabilities.Flight
             float finalN = Mathf.Min(nToAdd, Mathf.Max(0, optN - target.nitrogen));
             float finalP = Mathf.Min(pToAdd, Mathf.Max(0, optP - target.phosphorus));
             float finalK = Mathf.Min(kToAdd, Mathf.Max(0, optK - target.potassium));
+            
+            float finalPH = phToAdd;
+            if (phToAdd > 0) finalPH = Mathf.Min(phToAdd, optPH - target.soilPH);
+            else if (phToAdd < 0) finalPH = Mathf.Max(phToAdd, optPH - target.soilPH);
 
             target.AdjustNutrients(finalN, finalP, finalK);
+            if (Mathf.Abs(finalPH) > 0.001f) target.AdjustPH(finalPH);
 
             // Accumulate applied amounts in the active record
             if (activeRecord != null)

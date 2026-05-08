@@ -34,8 +34,8 @@ public class PlantingExecutor
 
         if (plantsPlaced == 0)
         {
-            parcel.plantedVarietyName = crop.name;
             parcel.ResetHarvestStats();
+            parcel.plantedVarietyName = crop.name;
         }
 
         var costs = Settings.SimulationSettings.SeedCosts;

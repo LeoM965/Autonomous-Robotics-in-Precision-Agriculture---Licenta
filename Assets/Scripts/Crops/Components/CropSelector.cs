@@ -9,7 +9,7 @@ public static class CropSelector
     public delegate void OnCropSelected(Transform robot, CropData crop, float score, List<DecisionAlternative> alternatives, SoilComposition soil, string parcelName, int plantCount, float schedulingValue);
     public static event OnCropSelected CropSelected;
 
-    public static CropData SelectBestCrop(CropDatabase db, SoilComposition soil, Transform robot, string parcelName, int plantCount, float schedulingValue, bool logDecision = true)
+    public static CropData SelectBestCrop(CropDatabase db, EnvironmentalSensor parcel, Transform robot, int plantCount, float schedulingValue, bool logDecision = true)
     {
         if (db == null || db.crops == null || db.crops.Length == 0)
             return null;
@@ -53,7 +53,7 @@ public static class CropSelector
             if (canPlant && crop.requirements != null)
             {
                 // Use dynamic settings from the 'S' menu (including the 40% soft buffer)
-                suitability = crop.requirements.CalculateTotalScore(soil, 
+                suitability = crop.requirements.CalculateTotalScore(parcel.composition, 
                     SimulationSettings.N_Min[i], SimulationSettings.N_Opt[i], SimulationSettings.N_Max[i],
                     SimulationSettings.P_Min[i], SimulationSettings.P_Opt[i], SimulationSettings.P_Max[i],
                     SimulationSettings.K_Min[i], SimulationSettings.K_Opt[i], SimulationSettings.K_Max[i]);
@@ -69,6 +69,12 @@ public static class CropSelector
                 else
                 {
                     suitability *= tempFitness;
+                }
+
+                // Crop Rotation Penalty
+                if (suitability > 0 && parcel.lastHarvestedVarietyName == crop.name)
+                {
+                    suitability *= 0.5f; // 50% malus for planting the same crop twice in a row
                 }
             }
 
@@ -87,7 +93,7 @@ public static class CropSelector
         
         if (logDecision)
         {
-            CropSelected?.Invoke(robot, bestCrop, bestScore, alternatives, soil, parcelName, plantCount, schedulingValue);
+            CropSelected?.Invoke(robot, bestCrop, bestScore, alternatives, parcel.composition, parcel.name, plantCount, schedulingValue);
         }
         return bestCrop;
     }

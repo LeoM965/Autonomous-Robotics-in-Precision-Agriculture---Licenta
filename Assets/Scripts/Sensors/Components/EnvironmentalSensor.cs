@@ -19,6 +19,7 @@ namespace Sensors.Components
         [Header("Crop Context")]
         public HashSet<CropGrowth> activeCrops = new HashSet<CropGrowth>();
         public string plantedVarietyName;
+        public string lastHarvestedVarietyName;
 
         [Header("Cache & Management")]
         public int zoneIndex = -1;
@@ -145,6 +146,8 @@ namespace Sensors.Components
                 record.totalRevenue += harvestedRevenue;
                 record.totalWeightKg += harvestedWeightKg;
                 record.totalSeedCost += harvestedSeedCost;
+                
+                lastHarvestedVarietyName = plantedVarietyName;
             }
 
             // Reseteaza complet pentru noua cultura
@@ -167,6 +170,13 @@ namespace Sensors.Components
         {
             if (composition == null) return;
             composition.moisture = Mathf.Clamp(composition.moisture + amount, 0f, 100f);
+            Analyze();
+        }
+
+        public void AdjustPH(float amount)
+        {
+            if (composition == null) return;
+            composition.pH = Mathf.Clamp(composition.pH + amount, 0f, 14f);
             Analyze();
         }
 
