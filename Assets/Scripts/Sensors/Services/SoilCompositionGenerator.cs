@@ -1,6 +1,9 @@
 using UnityEngine;
 using Sensors.Models;
 
+using UnityEngine;
+using Sensors.Models;
+
 namespace Sensors.Services
 {
     public static class SoilCompositionGenerator

@@ -89,7 +89,7 @@ namespace Robots.Capabilities.Flight
 
             if (target != lastLoggedParcel)
             {
-                LogDecision(target, optN, optP, optK);
+                LogDecision(target, optN, optP, optK, optPH);
                 lastLoggedParcel = target;
             }
 
@@ -111,12 +111,13 @@ namespace Robots.Capabilities.Flight
                 activeRecord.appliedN += finalN;
                 activeRecord.appliedP += finalP;
                 activeRecord.appliedK += finalK;
+                activeRecord.appliedPH += finalPH;
             }
 
             UpdateLiveFactors(target);
         }
 
-        private void LogDecision(EnvironmentalSensor target, float optN, float optP, float optK)
+        private void LogDecision(EnvironmentalSensor target, float optN, float optP, float optK, float optPH)
         {
             if (DecisionTracker.Instance == null) return;
 
@@ -144,8 +145,9 @@ namespace Robots.Capabilities.Flight
                 initialN = target.nitrogen,
                 initialP = target.phosphorus,
                 initialK = target.potassium,
-                appliedN = 0f, appliedP = 0f, appliedK = 0f,
-                optimalN = optN, optimalP = optP, optimalK = optK
+                initialPH = target.soilPH,
+                appliedN = 0f, appliedP = 0f, appliedK = 0f, appliedPH = 0f,
+                optimalN = optN, optimalP = optP, optimalK = optK, optimalPH = optPH
             };
 
             if (navigation != null)

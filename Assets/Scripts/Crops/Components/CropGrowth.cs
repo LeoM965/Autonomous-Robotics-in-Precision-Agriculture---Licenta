@@ -20,6 +20,10 @@ public class CropGrowth : MonoBehaviour
     private int cropIndex = -1;
     private CropData cachedCropData;
 
+    // Varianta metabolica individuala per planta (±15%)
+    // Simuleaza diferentele biologice naturale intre indivizi
+    private float metabolicVariance = 1f;
+
     // Lifetime nutrient health tracking — affects harvest yield
     private float accumulatedHealth;
     private int healthSamples;
@@ -88,6 +92,7 @@ public class CropGrowth : MonoBehaviour
         state.isBeingHarvested = false;
         accumulatedHealth = 0f;
         healthSamples = 0;
+        metabolicVariance = Random.Range(0.85f, 1.15f);
         if (scaler) transform.localScale = state.baseScale * scaler.GetInitialScale();
     }
 
@@ -105,7 +110,7 @@ public class CropGrowth : MonoBehaviour
         return 1f;
     }
 
-    public float GetNitrogenConsumptionRate() => customNitrogenConsumption >= 0 ? customNitrogenConsumption : settings.nitrogenConsumptionRate;
+    public float GetNitrogenConsumptionRate() => (customNitrogenConsumption >= 0 ? customNitrogenConsumption : settings.nitrogenConsumptionRate) * metabolicVariance;
     
     public float GetOptimalNitrogen()
     {

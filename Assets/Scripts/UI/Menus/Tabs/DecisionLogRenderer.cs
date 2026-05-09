@@ -182,36 +182,54 @@ namespace UI.Menus.Tabs
             string crop = string.IsNullOrEmpty(d.cropVariety) ? "—" : d.cropVariety;
             GUI.Label(new Rect(8, ey, 85, detailH), Truncate(crop, 11), dimStyle);
 
-            // N, P, K compact bars aligned to table columns
-            float[] vals  = { d.initialN, d.initialP, d.initialK };
-            float[] added = { d.appliedN, d.appliedP, d.appliedK };
-            float[] opts  = { d.optimalN, d.optimalP, d.optimalK };
-            string[] labels = { "N", "P", "K" };
-            float segX = 95f;
-            float segW = 200f;
+            // N, P, K, pH compact bars
+            float[] vals  = { d.initialN, d.initialP, d.initialK, d.initialPH };
+            float[] added = { d.appliedN, d.appliedP, d.appliedK, d.appliedPH };
+            float[] opts  = { d.optimalN, d.optimalP, d.optimalK, d.optimalPH };
+            string[] labels = { "N", "P", "K", "pH" };
+            float segX = 90f;
+            float segW = 150f;
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 4; i++)
             {
-                float opt = opts[i] > 0 ? opts[i] : 1f;
+                float opt = opts[i] > 0 ? opts[i] : (i == 3 ? 6.5f : 1f);
                 float final_ = vals[i] + added[i];
-                float ratio = Mathf.Clamp01(final_ / opt);
                 float bx = segX + i * segW;
 
-                // "N: 71→82/80"
-                string txt = $"{labels[i]}: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
-                GUI.Label(new Rect(bx, ey, 110, detailH), txt, dimStyle);
+                string txt;
+                float ratio;
+                Color c;
+
+                if (i == 3) // pH special logic
+                {
+                    txt = $"pH: {vals[i]:F1}\u2192{final_:F1}/{opt:F1}";
+                    // For pH, ratio represents closeness to optimal (1.0 = perfect)
+                    float diff = Mathf.Abs(final_ - opt);
+                    ratio = Mathf.Clamp01(1f - (diff / 2f)); // +/- 2.0 pH diff = 0% bar
+                    
+                    c = diff <= 0.2f ? new Color(0.15f, 0.8f, 0.4f, 0.75f) :
+                        diff <= 0.6f ? new Color(0.9f, 0.7f, 0.1f, 0.7f) :
+                                       new Color(0.9f, 0.2f, 0.15f, 0.7f);
+                }
+                else // NPK logic
+                {
+                    txt = $"{labels[i]}: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
+                    ratio = Mathf.Clamp01(final_ / opt);
+                    
+                    c = ratio >= 0.8f ? new Color(0.15f, 0.8f, 0.4f, 0.75f) :
+                        ratio >= 0.5f ? new Color(0.9f, 0.7f, 0.1f, 0.7f) :
+                                        new Color(0.9f, 0.2f, 0.15f, 0.7f);
+                }
+
+                GUI.Label(new Rect(bx, ey, 95, detailH), txt, dimStyle);
 
                 // Progress bar
-                float barX = bx + 112f;
-                float barW = 75f;
+                float barX = bx + 95f;
+                float barW = 45f;
                 float barH = 7f;
                 float barY = ey + (detailH - barH) * 0.5f;
 
                 MapHelper.DrawBox(new Rect(barX, barY, barW, barH), new Color(1f, 1f, 1f, 0.05f));
-
-                Color c = ratio >= 0.8f ? new Color(0.15f, 0.8f, 0.4f, 0.75f) :
-                          ratio >= 0.5f ? new Color(0.9f, 0.7f, 0.1f, 0.7f) :
-                                          new Color(0.9f, 0.2f, 0.15f, 0.7f);
                 MapHelper.DrawBox(new Rect(barX, barY, barW * ratio, barH), c);
 
                 // Optimal marker line

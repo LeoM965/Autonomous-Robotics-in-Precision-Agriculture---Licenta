@@ -135,19 +135,21 @@ namespace Sensors.Components
 
         public void ResetHarvestStats()
         {
+            string targetCrop = string.IsNullOrEmpty(plantedVarietyName) ? lastHarvestedVarietyName : plantedVarietyName;
+
             // Salveaza datele sezonului anterior in registrul istoric per cultura
-            if (!string.IsNullOrEmpty(plantedVarietyName) && (harvestedCount > 0 || harvestedRevenue > 0))
+            if (!string.IsNullOrEmpty(targetCrop) && (harvestedCount > 0 || harvestedRevenue > 0))
             {
-                if (!CropHistory.ContainsKey(plantedVarietyName))
-                    CropHistory[plantedVarietyName] = new HistoricalCropRecord();
+                if (!CropHistory.ContainsKey(targetCrop))
+                    CropHistory[targetCrop] = new HistoricalCropRecord();
                 
-                var record = CropHistory[plantedVarietyName];
+                var record = CropHistory[targetCrop];
                 record.totalPlants += harvestedCount;
                 record.totalRevenue += harvestedRevenue;
                 record.totalWeightKg += harvestedWeightKg;
                 record.totalSeedCost += harvestedSeedCost;
                 
-                lastHarvestedVarietyName = plantedVarietyName;
+                lastHarvestedVarietyName = targetCrop;
             }
 
             // Reseteaza complet pentru noua cultura
@@ -183,7 +185,14 @@ namespace Sensors.Components
         public void RemoveCrop(CropGrowth crop)
         {
             activeCrops.Remove(crop);
-            if (activeCrops.Count == 0) plantedVarietyName = "";
+            if (activeCrops.Count == 0)
+            {
+                if (!string.IsNullOrEmpty(plantedVarietyName))
+                {
+                    lastHarvestedVarietyName = plantedVarietyName;
+                }
+                plantedVarietyName = "";
+            }
         }
 
         public static void ResetAllScheduling()

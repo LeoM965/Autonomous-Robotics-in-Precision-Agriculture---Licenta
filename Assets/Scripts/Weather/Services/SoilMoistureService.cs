@@ -52,7 +52,11 @@ namespace Weather.Services
                 float evaporation = evapRate * (moisture / 100f);
                 float drainage = 0.3f * Mathf.Max(0f, (moisture - 60f) / 40f);
 
-                float netChange = (absorption - evaporation - drainage) * deltaHours;
+                // Consume accumulated irrigation from sprinklers
+                float irrigation = parcel.composition.irrigationRate;
+                parcel.composition.irrigationRate = 0f;
+
+                float netChange = (absorption - evaporation - drainage) * deltaHours + irrigation;
                 parcel.composition.moisture = Mathf.Clamp(moisture + netChange, 0f, 100f);
             }
         }

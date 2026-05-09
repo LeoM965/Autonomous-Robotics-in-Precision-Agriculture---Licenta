@@ -19,9 +19,9 @@ namespace AI.Analytics
 
         // ── Fertilization details (populated only for Treat Soil) ──
         public string cropVariety;        // name of the planted crop
-        public float initialN, initialP, initialK;   // nutrient levels BEFORE treatment
-        public float appliedN, appliedP, appliedK;    // total amount applied during treatment
-        public float optimalN, optimalP, optimalK;    // crop-specific optimal targets
+        public float initialN, initialP, initialK, initialPH;   // nutrient levels BEFORE treatment
+        public float appliedN, appliedP, appliedK, appliedPH;    // total amount applied during treatment
+        public float optimalN, optimalP, optimalK, optimalPH;    // crop-specific optimal targets
         
         public DecisionRecord()
         {

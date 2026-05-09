@@ -25,6 +25,9 @@ public static class CropSelector
         float bestScore = 0f;
         List<DecisionAlternative> alternatives = new List<DecisionAlternative>();
 
+        // Phase 1: Score ALL crops and collect viable candidates
+        var viableCrops = new List<(CropData crop, float score)>();
+
         for (int i = 0; i < db.crops.Length; i++)
         {
             CropData crop = db.crops[i];
@@ -51,6 +54,12 @@ public static class CropSelector
                 canPlant = false;
             }
 
+            // Strict Crop Rotation (prevent consecutive identical crops)
+            if (parcel.lastHarvestedVarietyName == crop.name)
+            {
+                canPlant = false;
+            }
+
             if (canPlant && crop.requirements != null)
             {
                 // Use dynamic settings from the 'S' menu (including the 40% soft buffer)
@@ -71,21 +80,35 @@ public static class CropSelector
                 {
                     suitability *= tempFitness;
                 }
-
-                // Crop Rotation Penalty
-                if (suitability > 0 && parcel.lastHarvestedVarietyName == crop.name)
-                {
-                    suitability *= 0.5f; // 50% malus for planting the same crop twice in a row
-                }
             }
 
-            if (suitability > bestScore)
-            {
-                bestScore = suitability;
-                bestCrop = crop;
-            }
+            if (suitability > 0f)
+                viableCrops.Add((crop, suitability));
 
             alternatives.Add(new DecisionAlternative(crop.name, suitability));
+        }
+
+        // Phase 2: Weighted Random Selection (Roulette Wheel)
+        // Folosim scor^2 ca greutate → culturile mai bune au sanse mult mai mari,
+        // dar NU monopolizeaza selectia. Diversitate reala.
+        if (viableCrops.Count > 0)
+        {
+            float totalWeight = 0f;
+            foreach (var v in viableCrops)
+                totalWeight += v.score * v.score;
+
+            float roll = UnityEngine.Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            foreach (var v in viableCrops)
+            {
+                cumulative += v.score * v.score;
+                if (roll <= cumulative)
+                {
+                    bestCrop = v.crop;
+                    bestScore = v.score;
+                    break;
+                }
+            }
         }
 
         MarkChosen(alternatives, bestCrop);
