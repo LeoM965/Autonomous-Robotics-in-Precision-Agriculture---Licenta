@@ -22,6 +22,9 @@ namespace AI.Analytics
         public float initialN, initialP, initialK, initialPH;   // nutrient levels BEFORE treatment
         public float appliedN, appliedP, appliedK, appliedPH;    // total amount applied during treatment
         public float optimalN, optimalP, optimalK, optimalPH;    // crop-specific optimal targets
+
+        // ── ML Decision Tree prediction (populated only for Selectie Cultura) ──
+        public string mlPrediction;   // crop variety recommended by the trained ML model
         
         public DecisionRecord()
         {

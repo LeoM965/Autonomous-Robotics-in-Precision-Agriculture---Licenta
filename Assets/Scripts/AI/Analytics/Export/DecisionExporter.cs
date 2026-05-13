@@ -14,7 +14,7 @@ namespace AI.Analytics.Export
         private const string Header =
             "sim_run,day,decision_id,robot_name,decision_type,chosen_option," +
             "parcel,score,net_value,ph_score,nitrogen_score,phosphorus_score," +
-            "potassium_score,humidity_score,scheduling_value,num_alternatives,timestamp";
+            "potassium_score,humidity_score,scheduling_value,num_alternatives,timestamp,ml_prediction";
 
         private readonly Dictionary<Transform, int> lastExportedCount = new Dictionary<Transform, int>();
 
@@ -56,7 +56,7 @@ namespace AI.Analytics.Export
                     $"{d.factors.phScore:F1},{d.factors.nitrogenScore:F1},",
                     $"{d.factors.phosphorusScore:F1},{d.factors.potassiumScore:F1},",
                     $"{d.factors.humidityScore:F1},{d.schedulingValue:F2},",
-                    $"{altCount},{d.timestamp:F2}"
+                    $"{altCount},{d.timestamp:F2},{d.mlPrediction ?? ""}"
                 ));
             }
 

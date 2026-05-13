@@ -76,6 +76,19 @@ namespace SaveSystem
             if (histMgr != null)
                 data.dailyHistory = new System.Collections.Generic.List<Economics.Models.DailySnapshot>(histMgr.History);
 
+            // Crop rotation history (accumulated across seasons)
+            foreach (var kvp in EnvironmentalSensor.CropHistory)
+            {
+                data.cropHistory.Add(new CropHistorySave
+                {
+                    variety = kvp.Key,
+                    totalPlants = kvp.Value.totalPlants,
+                    totalRevenue = kvp.Value.totalRevenue,
+                    totalWeightKg = kvp.Value.totalWeightKg,
+                    totalSeedCost = kvp.Value.totalSeedCost
+                });
+            }
+
             // Parcels + Crops (exact positions)
             foreach (var s in FindObjectsByType<EnvironmentalSensor>(FindObjectsSortMode.None))
             {
@@ -202,6 +215,22 @@ namespace SaveSystem
             var histMgr = Economics.Managers.EconomicsHistoryManager.Instance;
             if (histMgr != null)
                 histMgr.RestoreHistory(data.dailyHistory);
+
+            // Crop rotation history
+            EnvironmentalSensor.CropHistory.Clear();
+            if (data.cropHistory != null)
+            {
+                foreach (var ch in data.cropHistory)
+                {
+                    EnvironmentalSensor.CropHistory[ch.variety] = new Sensors.Components.HistoricalCropRecord
+                    {
+                        totalPlants = ch.totalPlants,
+                        totalRevenue = ch.totalRevenue,
+                        totalWeightKg = ch.totalWeightKg,
+                        totalSeedCost = ch.totalSeedCost
+                    };
+                }
+            }
 
             // Parcels — soil + harvest stats + crops at exact positions
             var map = new Dictionary<string, ParcelSave>();

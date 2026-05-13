@@ -27,8 +27,21 @@ namespace SaveSystem
         // Daily history snapshots
         public List<Economics.Models.DailySnapshot> dailyHistory = new List<Economics.Models.DailySnapshot>();
 
+        // Crop rotation history (accumulated per variety across seasons)
+        public List<CropHistorySave> cropHistory = new List<CropHistorySave>();
+
         public List<ParcelSave> parcels = new List<ParcelSave>();
         public List<RobotSave> robots = new List<RobotSave>();
+    }
+
+    [Serializable]
+    public class CropHistorySave
+    {
+        public string variety;
+        public int totalPlants;
+        public float totalRevenue;
+        public float totalWeightKg;
+        public float totalSeedCost;
     }
 
     [Serializable]

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using Sensors.Models;
 using Sensors.Components;
 using AI.Models.Decisions;
+using AI.ML;
 using Settings;
 
 public static class CropSelector
 {
-    public delegate void OnCropSelected(Transform robot, CropData crop, float score, List<DecisionAlternative> alternatives, SoilComposition soil, string parcelName, int plantCount, float schedulingValue);
+    public delegate void OnCropSelected(Transform robot, CropData crop, float score, List<DecisionAlternative> alternatives, SoilComposition soil, string parcelName, int plantCount, float schedulingValue, string mlPrediction);
     public static event OnCropSelected CropSelected;
 
     public static CropData SelectBestCrop(CropDatabase db, EnvironmentalSensor parcel, Transform robot, int plantCount, float schedulingValue, bool logDecision = true)
@@ -88,10 +89,29 @@ public static class CropSelector
             alternatives.Add(new DecisionAlternative(crop.name, suitability));
         }
 
-        // Phase 2: Weighted Random Selection (Roulette Wheel)
-        // Folosim scor^2 ca greutate → culturile mai bune au sanse mult mai mari,
-        // dar NU monopolizeaza selectia. Diversitate reala.
-        if (viableCrops.Count > 0)
+        // Phase 2: ML Decision Tree — daca exista un model antrenat pe date anterioare,
+        // folosim direct recomandarea sa (daca cultura e viabila pe aceasta parcela).
+        string mlPrediction = null;
+        var prediction = CropMLPredictor.Predict(parcel);
+        if (prediction != null)
+        {
+            mlPrediction = prediction.variety;
+
+            // Cauta cultura ML in lista de candidate viabile
+            foreach (var v in viableCrops)
+            {
+                if (v.crop.name == mlPrediction)
+                {
+                    bestCrop = v.crop;
+                    bestScore = v.score;
+                    break;
+                }
+            }
+        }
+
+        // Phase 3: Roulette Wheel — fallback daca ML-ul nu e disponibil
+        // sau daca cultura recomandata nu e viabila pe aceasta parcela.
+        if (bestCrop == null && viableCrops.Count > 0)
         {
             float totalWeight = 0f;
             foreach (var v in viableCrops)
@@ -117,7 +137,7 @@ public static class CropSelector
         
         if (logDecision)
         {
-            CropSelected?.Invoke(robot, bestCrop, bestScore, alternatives, parcel.composition, parcel.name, plantCount, schedulingValue);
+            CropSelected?.Invoke(robot, bestCrop, bestScore, alternatives, parcel.composition, parcel.name, plantCount, schedulingValue, mlPrediction);
         }
         return bestCrop;
     }

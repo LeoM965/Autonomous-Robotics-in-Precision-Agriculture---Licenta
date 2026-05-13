@@ -21,6 +21,7 @@ namespace AI.Analytics
         private EconomyExporter economy;
         private HistoryExporter history;
         private WeatherExporter weather;
+        private CropHistoryExporter cropHistory;
 
         private const string RunCounterFile = "sim_run_counter.txt";
 
@@ -89,13 +90,14 @@ namespace AI.Analytics
 
         private void CreateExporters()
         {
-            metadata  = new MetadataExporter();
-            robots    = new RobotExporter();
-            parcels   = new ParcelExporter();
-            decisions = new DecisionExporter();
-            economy   = new EconomyExporter();
-            history   = new HistoryExporter();
-            weather   = new WeatherExporter();
+            metadata    = new MetadataExporter();
+            robots      = new RobotExporter();
+            parcels     = new ParcelExporter();
+            decisions   = new DecisionExporter();
+            economy     = new EconomyExporter();
+            history     = new HistoryExporter();
+            weather     = new WeatherExporter();
+            cropHistory = new CropHistoryExporter();
         }
 
         // ──────────────────────────────────────────────
@@ -118,8 +120,9 @@ namespace AI.Analytics
             economy.Export(ctx);
             weather.Export(ctx);
             history.Export(ctx);
+            cropHistory.Export(ctx);
 
-            Debug.Log($"<color=cyan><b>[DataExporter]</b> Run #{runId} | 6 CSV-uri exportate pentru Ziua {day}.</color>");
+            Debug.Log($"<color=cyan><b>[DataExporter]</b> Run #{runId} | 7 CSV-uri exportate pentru Ziua {day}.</color>");
         }
 
         // ──────────────────────────────────────────────

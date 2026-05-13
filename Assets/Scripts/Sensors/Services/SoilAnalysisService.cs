@@ -8,6 +8,11 @@ namespace Sensors.Services
         public static SoilAnalysis Analyze(SoilComposition composition, SoilSettings settings)
         {
             float quality = CalculateQuality(composition, settings);
+
+            float nDeficit = Mathf.Max(0f, settings.nOptimal - composition.nitrogen);
+            float pDeficit = Mathf.Max(0f, settings.pOptimal - composition.phosphorus);
+            float kDeficit = Mathf.Max(0f, settings.kOptimal - composition.potassium);
+            float mDeficit = Mathf.Max(0f, settings.moistureOptimal - composition.moisture);
             
             return new SoilAnalysis
             {
@@ -18,7 +23,11 @@ namespace Sensors.Services
                                      || composition.phosphorus < settings.pCritical 
                                      || composition.potassium < settings.kCritical,
                 requiresLiming = composition.pH < settings.phMin,
-                requiresAcidification = composition.pH > settings.phMax
+                requiresAcidification = composition.pH > settings.phMax,
+                nitrogenDeficit = nDeficit,
+                phosphorusDeficit = pDeficit,
+                potassiumDeficit = kDeficit,
+                moistureDeficit = mDeficit
             };
         }
 

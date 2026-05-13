@@ -102,7 +102,7 @@ public class CropManager : MonoBehaviour
 
     private void OnCropSelected(Transform robot, CropData crop, float score, 
         List<AI.Models.Decisions.DecisionAlternative> alternatives, 
-        Sensors.Models.SoilComposition soil, string parcelName, int plantCount, float schedulingValue)
+        Sensors.Models.SoilComposition soil, string parcelName, int plantCount, float schedulingValue, string mlPrediction)
     {
         if (AI.Analytics.DecisionTracker.Instance == null) return;
 
@@ -119,7 +119,8 @@ public class CropManager : MonoBehaviour
             schedulingValue = schedulingValue,
             alternatives = alternatives,
             factors = crop?.requirements?.BuildFactors(soil) ?? new AI.Models.Decisions.DecisionFactors(),
-            parcelName = parcelName
+            parcelName = parcelName,
+            mlPrediction = mlPrediction ?? ""
         };
 
         AI.Analytics.DecisionTracker.Instance.RecordDecision(robot, record);
