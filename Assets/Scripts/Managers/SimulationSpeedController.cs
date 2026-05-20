@@ -107,7 +107,23 @@ public class SimulationSpeedController : MonoBehaviour
         ApplyTimeScale();
     }
 
-    public void SkipDay() => SkipTimeGradual(24f, 2.5f);
+    public void SkipDay() 
+    {
+        if (TimeManager.Instance == null) return;
+        
+        float currentTotal = TimeManager.Instance.totalSimulatedHours;
+        float currentDayStart = Mathf.Floor(currentTotal / 24f) * 24f;
+        float targetTotal = currentDayStart + 8f;
+        
+        // Dacă suntem deja la 8:00 (sau foarte aproape, cum ar fi 7:59)
+        if (targetTotal <= currentTotal + 0.05f) 
+        {
+            targetTotal += 24f;
+        }
+        
+        float hoursToNextMorning = targetTotal - currentTotal;
+        SkipTimeGradual(hoursToNextMorning, 2.5f);
+    }
 
     public void SkipTimeGradual(float hours, float realTimeDuration)
     {

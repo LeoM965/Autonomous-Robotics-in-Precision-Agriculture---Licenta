@@ -55,6 +55,7 @@ namespace SaveSystem
         public float potassium;
         public float irrigationRate;
         public string plantedVariety;
+        public string lastHarvestedVariety;
         public int harvestedCount;
         public float harvestedWeightKg;
         public float harvestedRevenue;

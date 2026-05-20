@@ -57,9 +57,27 @@ namespace UI.Canvas
             FormatNutrient(pTxt, sel.phosphorus, cropData?.requirements?.phosphorus?.optimal ?? 0f, isEmpty);
             FormatNutrient(kTxt, sel.potassium, cropData?.requirements?.potassium?.optimal ?? 0f, isEmpty);
 
-            if (cropTxt) cropTxt.text = isEmpty ? "Niciuna" : sel.plantedVarietyName;
-            if (stageTxt) stageTxt.text = isEmpty ? "-" : GetStage(sel.currentGrowthStage);
-            if (progressTxt) progressTxt.text = isEmpty ? "-" : $"{sel.growthProgress:F1}%";
+            if (isEmpty)
+            {
+                var prediction = AI.ML.CropMLPredictor.Predict(sel);
+                if (prediction != null)
+                {
+                    if (cropTxt) cropTxt.text = $"<color=#E8C44A>ML: {prediction.variety}</color>";
+                    if (stageTxt) stageTxt.text = $"<color=#E8C44A>Încredere: {(prediction.confidence * 100f):F0}%</color>";
+                }
+                else
+                {
+                    if (cropTxt) cropTxt.text = "Niciuna";
+                    if (stageTxt) stageTxt.text = "-";
+                }
+                if (progressTxt) progressTxt.text = "-";
+            }
+            else
+            {
+                if (cropTxt) cropTxt.text = sel.plantedVarietyName;
+                if (stageTxt) stageTxt.text = GetStage(sel.currentGrowthStage);
+                if (progressTxt) progressTxt.text = $"{sel.growthProgress:F1}%";
+            }
         }
 
         private void FormatNutrient(TextMeshProUGUI txt, float current, float optimal, bool noCrop)

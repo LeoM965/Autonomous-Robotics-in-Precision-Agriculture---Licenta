@@ -56,14 +56,14 @@ namespace AI.ML
             if (loadAttempted) return false;
 
             loadAttempted = true;
-            TextAsset json = Resources.Load<TextAsset>("MLCropModel");
-            if (json == null)
+            TextAsset jsonAsset = Resources.Load<TextAsset>("MLCropModel");
+            if (jsonAsset == null)
             {
                 Debug.LogWarning("[CropMLPredictor] MLCropModel.json nu a fost gasit in Resources/. Ruleaza train_crop_model.py.");
                 return false;
             }
 
-            model = JsonUtility.FromJson<TreeModel>(json.text);
+            model = ParseModelManual(jsonAsset.text);
             if (model?.tree == null)
             {
                 Debug.LogWarning("[CropMLPredictor] Parsarea modelului ML a esuat.");
@@ -73,6 +73,132 @@ namespace AI.ML
 
             Debug.Log($"[CropMLPredictor] Model ML incarcat: {model.classes.Length} clase, {model.features.Length} features.");
             return true;
+        }
+
+        private static TreeModel ParseModelManual(string json)
+        {
+            try
+            {
+                var m = new TreeModel();
+                m.features = ExtractStringArray(json, "\"features\": [", "]");
+                m.classes = ExtractStringArray(json, "\"classes\": [", "]");
+                
+                m.categorical_mappings = new CategoricalMappings();
+                m.categorical_mappings.soil_type = ExtractStringArray(json, "\"soil_type\": [", "]");
+                m.categorical_mappings.season = ExtractStringArray(json, "\"season\": [", "]");
+                m.categorical_mappings.weather = ExtractStringArray(json, "\"weather\": [", "]");
+
+                int treeStart = json.IndexOf("\"tree\": {");
+                if (treeStart >= 0)
+                {
+                    int pos = treeStart + 8;
+                    m.tree = ParseNode(json, ref pos);
+                }
+                return m;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[CropMLPredictor] Eroare la parsare manuala: " + e.Message);
+                return null;
+            }
+        }
+
+        private static string[] ExtractStringArray(string json, string startMarker, string endMarker)
+        {
+            int start = json.IndexOf(startMarker);
+            if (start < 0) return new string[0];
+            start += startMarker.Length;
+            int end = json.IndexOf(endMarker, start);
+            if (end < 0) return new string[0];
+            string content = json.Substring(start, end - start);
+            var parts = content.Split(',');
+            var list = new List<string>();
+            foreach (var p in parts)
+            {
+                string clean = p.Trim().Trim('"', '\n', '\r');
+                if (!string.IsNullOrEmpty(clean)) list.Add(clean);
+            }
+            return list.ToArray();
+        }
+
+        private static TreeNode ParseNode(string json, ref int pos)
+        {
+            // Avanseaza pana la '{'
+            while (pos < json.Length && json[pos] != '{') pos++;
+            pos++; // sarim peste '{'
+
+            TreeNode node = new TreeNode();
+            int openBraces = 1;
+
+            while (pos < json.Length && openBraces > 0)
+            {
+                SkipWhitespace(json, ref pos);
+                if (json[pos] == '}') { openBraces--; pos++; continue; }
+                if (json[pos] == ',') { pos++; continue; }
+
+                string key = ReadString(json, ref pos);
+                SkipWhitespace(json, ref pos);
+                if (json[pos] == ':') pos++;
+                SkipWhitespace(json, ref pos);
+
+                if (key == "type") node.type = ReadString(json, ref pos);
+                else if (key == "feature") node.feature = ReadString(json, ref pos);
+                else if (key == "class") node.@class = ReadString(json, ref pos);
+                else if (key == "threshold") node.threshold = ReadFloat(json, ref pos);
+                else if (key == "conf") node.conf = ReadFloat(json, ref pos);
+                else if (key == "left") node.left = ParseNode(json, ref pos);
+                else if (key == "right") node.right = ParseNode(json, ref pos);
+                else SkipValue(json, ref pos);
+            }
+            return node;
+        }
+
+        private static void SkipWhitespace(string json, ref int pos)
+        {
+            while (pos < json.Length && char.IsWhiteSpace(json[pos])) pos++;
+        }
+
+        private static string ReadString(string json, ref int pos)
+        {
+            if (json[pos] == '"') pos++;
+            int start = pos;
+            while (pos < json.Length && json[pos] != '"') pos++;
+            string val = json.Substring(start, pos - start);
+            if (pos < json.Length && json[pos] == '"') pos++;
+            return val;
+        }
+
+        private static float ReadFloat(string json, ref int pos)
+        {
+            int start = pos;
+            while (pos < json.Length && (char.IsDigit(json[pos]) || json[pos] == '.' || json[pos] == '-' || json[pos] == 'e' || json[pos] == 'E' || json[pos] == '+')) pos++;
+            string val = json.Substring(start, pos - start);
+            float.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float result);
+            return result;
+        }
+
+        private static void SkipValue(string json, ref int pos)
+        {
+            if (json[pos] == '{')
+            {
+                int braces = 0;
+                do {
+                    if (json[pos] == '{') braces++;
+                    else if (json[pos] == '}') braces--;
+                    pos++;
+                } while (pos < json.Length && braces > 0);
+            }
+            else if (json[pos] == '[')
+            {
+                int brackets = 0;
+                do {
+                    if (json[pos] == '[') brackets++;
+                    else if (json[pos] == ']') brackets--;
+                    pos++;
+                } while (pos < json.Length && brackets > 0);
+            }
+            else if (json[pos] == '"') { ReadString(json, ref pos); }
+            else { while (pos < json.Length && json[pos] != ',' && json[pos] != '}' && json[pos] != ']') pos++; }
         }
 
         /// <summary>

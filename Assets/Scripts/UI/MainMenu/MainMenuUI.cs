@@ -65,6 +65,19 @@ namespace UI.MainMenu
             // Full BG
             StretchImg(root.transform, "BG", BG);
 
+            // Subtle decorative horizontal lines across full width
+            var hLine1 = Go("HLine1", root.transform);
+            var hl1Rt = hLine1.AddComponent<RectTransform>();
+            hl1Rt.anchorMin = new Vector2(0, 0.34f); hl1Rt.anchorMax = new Vector2(1, 0.34f);
+            hl1Rt.sizeDelta = new Vector2(0, 1);
+            hLine1.AddComponent<Image>().color = new Color(0.16f, 0.72f, 0.64f, 0.045f);
+
+            var hLine2 = Go("HLine2", root.transform);
+            var hl2Rt = hLine2.AddComponent<RectTransform>();
+            hl2Rt.anchorMin = new Vector2(0, 0.66f); hl2Rt.anchorMax = new Vector2(1, 0.66f);
+            hl2Rt.sizeDelta = new Vector2(0, 1);
+            hLine2.AddComponent<Image>().color = new Color(0.16f, 0.72f, 0.64f, 0.045f);
+
             // ════════════════════════════════
             //  Main container — centered horizontal split
             // ════════════════════════════════
@@ -166,6 +179,25 @@ namespace UI.MainMenu
             Lbl(left.transform, "Coordonator", 11, FontStyles.Bold, GOLD_DIM, ly, 16, 280);
             ly -= 18;
             Lbl(left.transform, "Lect. dr. Zurini Mădălina", 13, FontStyles.Normal, TXT_MID, ly, 18, 280);
+            ly -= 28;
+
+            // Absolvent
+            Lbl(left.transform, "Absolvent", 11, FontStyles.Bold, GOLD_DIM, ly, 16, 280);
+            ly -= 18;
+            Lbl(left.transform, "Mircea Ștefăniță-Leonard", 13, FontStyles.Normal, TXT_MID, ly, 18, 280);
+            ly -= 28;
+
+            // Second stats row — ML & Farm capacity
+            var statsRow2 = Go("Stats2", left.transform);
+            var stats2Rt = statsRow2.AddComponent<RectTransform>();
+            stats2Rt.anchorMin = stats2Rt.anchorMax = new Vector2(0.5f, 1f);
+            stats2Rt.pivot = new Vector2(0.5f, 1f);
+            stats2Rt.sizeDelta = new Vector2(300, 56);
+            stats2Rt.anchoredPosition = new Vector2(0, ly);
+
+            StatBox(statsRow2.transform, 0f, "9", "culturi ML", 150);
+            StatBox(statsRow2.transform, 150f, "4K", "celule fermă", 150);
+
 
             // ── RIGHT PANEL (Actions) ──
             var right = Go("Right", container.transform);
@@ -240,6 +272,43 @@ namespace UI.MainMenu
                 Application.Quit();
 #endif
             });
+
+            // Status indicators — anchored to bottom of right panel
+            var statusGo = Go("Status", right.transform);
+            var stRt = statusGo.AddComponent<RectTransform>();
+            stRt.anchorMin = new Vector2(0.5f, 0f);
+            stRt.anchorMax = new Vector2(0.5f, 0f);
+            stRt.pivot = new Vector2(0.5f, 0f);
+            stRt.sizeDelta = new Vector2(430, 16);
+            stRt.anchoredPosition = new Vector2(0, 16);
+            var stTxt = statusGo.AddComponent<TextMeshProUGUI>();
+            stTxt.text = "<color=#29B8A3>●</color>  ML Activ     <color=#29B8A3>●</color>  Bază de date conectată     <color=#29B8A3>●</color>  Senzori calibrați";
+            stTxt.fontSize = 10;
+            stTxt.richText = true;
+            stTxt.color = TXT_DIM;
+            stTxt.alignment = TextAlignmentOptions.Center;
+            stTxt.raycastTarget = false;
+            ry -= 65;
+
+            // Arhitectura Box
+            var archRt = Go("ArchBox", right.transform).AddComponent<RectTransform>();
+            archRt.anchorMin = archRt.anchorMax = new Vector2(0.5f, 1f);
+            archRt.pivot = new Vector2(0.5f, 1f);
+            archRt.sizeDelta = new Vector2(460, 90);
+            archRt.anchoredPosition = new Vector2(0, ry);
+            archRt.gameObject.AddComponent<Image>().color = new Color(0.04f, 0.045f, 0.085f, 0.6f);
+            
+            var archOl = archRt.gameObject.AddComponent<Outline>(); 
+            archOl.effectColor = BORDER; 
+            archOl.effectDistance = new Vector2(1,1);
+
+            TxtAt(archRt.transform, "ARHITECTURĂ SISTEM MULTI-AGENT", 10, FontStyles.Bold, GOLD_DIM, new Vector2(15, 25), new Vector2(400, 15));
+
+            TxtAt(archRt.transform, "•  Navigație: <color=#EBEBED>A* Pathfinding</color>", 11, FontStyles.Normal, TXT_DIM, new Vector2(15, 0), new Vector2(200, 20));
+            TxtAt(archRt.transform, "•  Decizie: <color=#EBEBED>Arbore ML (Scikit)</color>", 11, FontStyles.Normal, TXT_DIM, new Vector2(15, -18), new Vector2(200, 20));
+            
+            TxtAt(archRt.transform, "•  Procesare: <color=#EBEBED>C# Job System</color>", 11, FontStyles.Normal, TXT_DIM, new Vector2(220, 0), new Vector2(200, 20));
+            TxtAt(archRt.transform, "•  Evaluare: <color=#EBEBED>Model Economic ROI</color>", 11, FontStyles.Normal, TXT_DIM, new Vector2(220, -18), new Vector2(220, 20));
 
             // ── Footer ──
             // Footer

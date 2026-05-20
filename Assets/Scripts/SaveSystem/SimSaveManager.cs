@@ -97,6 +97,7 @@ namespace SaveSystem
                 {
                     name = s.name,
                     plantedVariety = s.plantedVarietyName ?? "",
+                    lastHarvestedVariety = s.lastHarvestedVarietyName ?? "",
                     harvestedCount = s.harvestedCount,
                     harvestedWeightKg = s.harvestedWeightKg,
                     harvestedRevenue = s.harvestedRevenue,
@@ -256,6 +257,7 @@ namespace SaveSystem
                 }
 
                 s.plantedVarietyName = ps.plantedVariety;
+                s.lastHarvestedVarietyName = ps.lastHarvestedVariety;
                 s.RestoreHarvestStats(ps.harvestedCount, ps.harvestedWeightKg, ps.harvestedRevenue, ps.harvestedSeedCost);
                 s.Analyze();
 
