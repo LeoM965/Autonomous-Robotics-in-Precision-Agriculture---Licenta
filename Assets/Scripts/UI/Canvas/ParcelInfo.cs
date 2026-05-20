@@ -76,7 +76,12 @@ namespace UI.Canvas
             {
                 if (cropTxt) cropTxt.text = sel.plantedVarietyName;
                 if (stageTxt) stageTxt.text = GetStage(sel.currentGrowthStage);
-                if (progressTxt) progressTxt.text = $"{sel.growthProgress:F1}%";
+                if (progressTxt)
+                {
+                    float eff = sel.growthEfficiency;
+                    string colorStr = eff >= 75f ? "#5FD878" : (eff >= 40f ? "#E8C44A" : "#E85555");
+                    progressTxt.text = $"{sel.growthProgress:F1}% <color={colorStr}>({eff:F0}% pot.)</color>";
+                }
             }
         }
 

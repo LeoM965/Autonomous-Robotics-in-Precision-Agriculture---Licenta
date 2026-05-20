@@ -92,14 +92,16 @@ namespace Robots.Capabilities.Flight
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
             float optPH = data?.requirements?.pH?.optimal ?? 6.5f;
+            float optM = data?.requirements?.humidity?.optimal ?? 60f;
 
             float defN = Mathf.Max(0, optN - parcel.nitrogen) / Mathf.Max(optN, 1f);
             float defP = Mathf.Max(0, optP - parcel.phosphorus) / Mathf.Max(optP, 1f);
             float defK = Mathf.Max(0, optK - parcel.potassium) / Mathf.Max(optK, 1f);
             float defPH = Mathf.Min(Mathf.Abs(optPH - parcel.soilPH) / 1.5f, 1f);
+            float defM = Mathf.Max(0, optM - parcel.soilMoisture) / Mathf.Max(optM, 1f);
 
-            // Weighted average: N=40%, P=20%, K=10%, PH=30%
-            return (defN * 0.4f + defP * 0.2f + defK * 0.1f + defPH * 0.3f) * 100f;
+            // Weighted average: N=35%, P=15%, K=10%, PH=20%, Moisture=20%
+            return (defN * 0.35f + defP * 0.15f + defK * 0.1f + defPH * 0.2f + defM * 0.2f) * 100f;
         }
 
         /// <summary>
@@ -116,11 +118,13 @@ namespace Robots.Capabilities.Flight
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
             float optPH = data?.requirements?.pH?.optimal ?? 6.5f;
+            float optM = data?.requirements?.humidity?.optimal ?? 60f;
 
             return parcel.nitrogen < optN * 0.80f
                 || parcel.phosphorus < optP * 0.80f
                 || parcel.potassium < optK * 0.80f
-                || Mathf.Abs(parcel.soilPH - optPH) > 0.4f;
+                || Mathf.Abs(parcel.soilPH - optPH) > 0.4f
+                || parcel.soilMoisture < optM * 0.80f;
         }
 
         public bool HasTargets => trackedParcels.Count > 0;

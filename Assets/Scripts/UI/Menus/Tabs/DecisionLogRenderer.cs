@@ -182,17 +182,17 @@ namespace UI.Menus.Tabs
             string crop = string.IsNullOrEmpty(d.cropVariety) ? "—" : d.cropVariety;
             GUI.Label(new Rect(8, ey, 85, detailH), Truncate(crop, 11), dimStyle);
 
-            // N, P, K, pH compact bars
-            float[] vals  = { d.initialN, d.initialP, d.initialK, d.initialPH };
-            float[] added = { d.appliedN, d.appliedP, d.appliedK, d.appliedPH };
-            float[] opts  = { d.optimalN, d.optimalP, d.optimalK, d.optimalPH };
-            string[] labels = { "N", "P", "K", "pH" };
-            float segX = 90f;
-            float segW = 150f;
+            // N, P, K, pH, moisture compact bars
+            float[] vals  = { d.initialN, d.initialP, d.initialK, d.initialPH, d.initialMoisture };
+            float[] added = { d.appliedN, d.appliedP, d.appliedK, d.appliedPH, d.appliedMoisture };
+            float[] opts  = { d.optimalN, d.optimalP, d.optimalK, d.optimalPH, d.optimalMoisture };
+            string[] labels = { "N", "P", "K", "pH", "Umid" };
+            float segX = 85f;
+            float segW = 120f;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
-                float opt = opts[i] > 0 ? opts[i] : (i == 3 ? 6.5f : 1f);
+                float opt = opts[i] > 0 ? opts[i] : (i == 3 ? 6.5f : (i == 4 ? 60f : 1f));
                 float final_ = vals[i] + added[i];
                 float bx = segX + i * segW;
 
@@ -211,6 +211,15 @@ namespace UI.Menus.Tabs
                         diff <= 0.6f ? new Color(0.9f, 0.7f, 0.1f, 0.7f) :
                                        new Color(0.9f, 0.2f, 0.15f, 0.7f);
                 }
+                else if (i == 4) // Moisture (Umid) logic
+                {
+                    txt = $"Umid: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
+                    ratio = Mathf.Clamp01(final_ / opt);
+                    
+                    c = ratio >= 0.8f ? new Color(0.15f, 0.8f, 0.4f, 0.75f) :
+                        ratio >= 0.5f ? new Color(0.9f, 0.7f, 0.1f, 0.7f) :
+                                        new Color(0.9f, 0.2f, 0.15f, 0.7f);
+                }
                 else // NPK logic
                 {
                     txt = $"{labels[i]}: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
@@ -221,11 +230,11 @@ namespace UI.Menus.Tabs
                                         new Color(0.9f, 0.2f, 0.15f, 0.7f);
                 }
 
-                GUI.Label(new Rect(bx, ey, 95, detailH), txt, dimStyle);
+                GUI.Label(new Rect(bx, ey, 78, detailH), txt, dimStyle);
 
                 // Progress bar
-                float barX = bx + 95f;
-                float barW = 45f;
+                float barX = bx + 78f;
+                float barW = 35f;
                 float barH = 7f;
                 float barY = ey + (detailH - barH) * 0.5f;
 

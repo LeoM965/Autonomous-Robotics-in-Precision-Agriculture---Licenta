@@ -5,6 +5,8 @@ namespace Robots.Capabilities.Flight
 {
     public class DroneMotor : MonoBehaviour
     {
+        private const float MAX_SUBSTEP = 0.02f; // seconds per physics-like substep
+
         private Transform flightBody;
         private FlightSettings settings;
         private OperationRegion region;
@@ -18,15 +20,28 @@ namespace Robots.Capabilities.Flight
 
         public void UpdateMovement(Vector3 target, bool isMoving)
         {
-            if (isMoving)
+            float dt = Time.deltaTime;
+            if (dt <= 0f) return;
+
+            // Split large delta into small sub-steps for smooth movement at high timeScale
+            int steps = Mathf.CeilToInt(dt / MAX_SUBSTEP);
+            float stepDt = dt / steps;
+
+            for (int i = 0; i < steps; i++)
             {
-                Vector3 dir = target - flightBody.position;
-                dir.y = 0;
-                if (dir.magnitude > 0.1f)
+                if (isMoving)
                 {
-                    Vector3 moveDir = dir.normalized;
-                    flightBody.position += moveDir * settings.speed * Time.deltaTime;
-                    flightBody.rotation = Quaternion.Slerp(flightBody.rotation, Quaternion.LookRotation(moveDir), Time.deltaTime * 3f);
+                    Vector3 dir = target - flightBody.position;
+                    dir.y = 0;
+                    if (dir.magnitude > 0.1f)
+                    {
+                        Vector3 moveDir = dir.normalized;
+                        flightBody.position += moveDir * settings.speed * stepDt;
+                        flightBody.rotation = Quaternion.Slerp(
+                            flightBody.rotation,
+                            Quaternion.LookRotation(moveDir),
+                            stepDt * 3f);
+                    }
                 }
             }
             ApplyHoverAndClamping();

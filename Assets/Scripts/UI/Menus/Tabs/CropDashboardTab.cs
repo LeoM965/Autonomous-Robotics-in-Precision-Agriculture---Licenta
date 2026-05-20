@@ -13,12 +13,6 @@ namespace UI.Menus.Tabs
 
         public void DrawTab(float x, float y, EconomicReport activeReport, CropData[] crops, UITheme theme)
         {
-            if (GUI.Button(new Rect(x + 570, y - 35, 140, 25), "EXPORT CROP DATA"))
-            {
-                if (EconomicsHistoryManager.Instance != null)
-                    EconomicsHistoryManager.Instance.ExportCropsToCSV();
-            }
-
             MapHelper.DrawBox(new Rect(x - 5, y - 2, 720, 20), new Color(1f, 1f, 1f, 0.05f));
             DrawTableHeader(x, y, theme);
             y += 22;

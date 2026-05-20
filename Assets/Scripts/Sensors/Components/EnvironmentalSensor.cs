@@ -51,6 +51,13 @@ namespace Sensors.Components
                 return 0f;
             }
         }
+        public float growthEfficiency {
+            get {
+                foreach(var c in activeCrops)
+                 if(c != null && !c.IsBeingHarvested) return c.CurrentGrowthEfficiency * 100f;
+                return 0f;
+            }
+        }
 
         // Statistici curente per cultura activa
         public int harvestedCount { get; private set; }

@@ -159,53 +159,18 @@ public class CropGrowth : MonoBehaviour
         if (state.isBeingHarvested || state.progress >= 1f || deltaHours <= 0) return;
         
         if (!parentSensor) parentSensor = GetComponentInParent<Sensors.Components.EnvironmentalSensor>();
-        float nutrientMultiplier = 1f;
-        float moistureMultiplier = 1f;
-        float phMultiplier = 1f;
-
+        
         float consumedN = 0f, consumedP = 0f, consumedK = 0f;
 
         if (parentSensor)
         {
             float nConsumeRate = GetNitrogenConsumptionRate();
-            float pConsumeRate = nConsumeRate * 0.5f;  // P consumed at 50% of N rate
-            float kConsumeRate = nConsumeRate * 0.3f;  // K consumed at 30% of N rate
-
             consumedN = nConsumeRate * deltaHours;
-            consumedP = pConsumeRate * deltaHours;
-            consumedK = kConsumeRate * deltaHours;
-
-            // Nutrient satisfaction = worst of N, P, K satisfaction
-            float optimalN = GetOptimalNitrogen();
-            float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optimalN * 0.5f);
-            float optK = cachedCropData?.requirements?.potassium?.optimal ?? (optimalN * 0.3f);
-
-            float nSat = optimalN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / (optimalN * 0.8f)) : 1f;
-            float pSat = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / (optP * 0.8f)) : 1f;
-            float kSat = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / (optK * 0.8f)) : 1f;
-
-            nutrientMultiplier = Mathf.Min(nSat, Mathf.Min(pSat, kSat));
-
-            // Moisture multiplier — based on crop-specific optimal humidity range
-            float optMoist = cachedCropData?.requirements?.humidity?.optimal ?? 60f;
-            float maxMoist = cachedCropData?.requirements?.humidity?.max ?? 90f;
-            moistureMultiplier = CalculateRangeMultiplier(parentSensor.soilMoisture, optMoist * 0.4f, optMoist, maxMoist);
-
-            // pH multiplier — based on crop-specific optimal pH range
-            float optPH = cachedCropData?.requirements?.pH?.optimal ?? 6.5f;
-            float minPH = cachedCropData?.requirements?.pH?.min ?? 5.0f;
-            float maxPH = cachedCropData?.requirements?.pH?.max ?? 8.0f;
-            phMultiplier = CalculateRangeMultiplier(parentSensor.soilPH, minPH, optPH, maxPH);
+            consumedP = nConsumeRate * 0.5f * deltaHours;
+            consumedK = nConsumeRate * 0.3f * deltaHours;
         }
 
-        float tempMultiplier = 1f;
-        if (cachedCropData != null && Weather.Components.WeatherSystem.Instance != null)
-        {
-            float currentTemp = Weather.Components.WeatherSystem.Instance.CurrentTemperature;
-            tempMultiplier = cachedCropData.GetTemperatureMultiplier(currentTemp);
-        }
-
-        float totalMult = weatherMultiplier * nutrientMultiplier * moistureMultiplier * phMultiplier * tempMultiplier;
+        float totalMult = CalculateCurrentGrowthEfficiency();
         ApplyJobResults(deltaHours * totalMult, consumedN, consumedP, consumedK);
     }
 
@@ -216,6 +181,49 @@ public class CropGrowth : MonoBehaviour
         if (value <= optimal)
             return Mathf.Lerp(0.1f, 1f, (value - min) / (optimal - min));
         return Mathf.Lerp(1f, 0.1f, (value - optimal) / (max - optimal));
+    }
+
+    public float CurrentGrowthEfficiency => CalculateCurrentGrowthEfficiency();
+
+    public float CalculateCurrentGrowthEfficiency()
+    {
+        if (state.isBeingHarvested || state.progress >= 1f) return 0f;
+        if (!parentSensor) parentSensor = GetComponentInParent<Sensors.Components.EnvironmentalSensor>();
+        if (!parentSensor) return 0f;
+
+        float weatherMultiplier = Weather.Components.WeatherSystem.Instance != null 
+            ? Weather.Components.WeatherSystem.Instance.GetCropGrowthMultiplier() : 1f;
+
+        float nutrientMultiplier = 1f;
+        float optimalN = GetOptimalNitrogen();
+        float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optimalN * 0.5f);
+        float optK = cachedCropData?.requirements?.potassium?.optimal ?? (optimalN * 0.3f);
+
+        float nSat = optimalN > 0 ? Mathf.Clamp01(parentSensor.nitrogen / optimalN) : 1f;
+        float pSat = optP > 0 ? Mathf.Clamp01(parentSensor.phosphorus / optP) : 1f;
+        float kSat = optK > 0 ? Mathf.Clamp01(parentSensor.potassium / optK) : 1f;
+
+        nutrientMultiplier = Mathf.Min(nSat, Mathf.Min(pSat, kSat));
+
+        float moistureMultiplier = 1f;
+        float optMoist = cachedCropData?.requirements?.humidity?.optimal ?? 60f;
+        float maxMoist = cachedCropData?.requirements?.humidity?.max ?? 90f;
+        moistureMultiplier = CalculateRangeMultiplier(parentSensor.soilMoisture, optMoist * 0.4f, optMoist, maxMoist);
+
+        float phMultiplier = 1f;
+        float optPH = cachedCropData?.requirements?.pH?.optimal ?? 6.5f;
+        float minPH = cachedCropData?.requirements?.pH?.min ?? 5.0f;
+        float maxPH = cachedCropData?.requirements?.pH?.max ?? 8.0f;
+        phMultiplier = CalculateRangeMultiplier(parentSensor.soilPH, minPH, optPH, maxPH);
+
+        float tempMultiplier = 1f;
+        if (cachedCropData != null && Weather.Components.WeatherSystem.Instance != null)
+        {
+            float currentTemp = Weather.Components.WeatherSystem.Instance.CurrentTemperature;
+            tempMultiplier = cachedCropData.GetTemperatureMultiplier(currentTemp);
+        }
+
+        return weatherMultiplier * nutrientMultiplier * moistureMultiplier * phMultiplier * tempMultiplier;
     }
 
     public Sensors.Components.EnvironmentalSensor ParentSensor => parentSensor;

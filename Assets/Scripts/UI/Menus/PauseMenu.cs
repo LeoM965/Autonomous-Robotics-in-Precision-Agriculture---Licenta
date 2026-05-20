@@ -11,12 +11,13 @@ namespace UI.Menus
         
         public bool IsOpen { get; private set; }
         
-        private enum DashboardTab { Crops, Robots, History }
+        private enum DashboardTab { Crops, Robots, History, Parcels }
         private DashboardTab currentTab = DashboardTab.Crops;
         
         private Tabs.CropDashboardTab cropTab = new Tabs.CropDashboardTab();
         private Tabs.RobotDashboardTab robotTab = new Tabs.RobotDashboardTab();
         private Tabs.HistoryDashboardTab historyTab = new Tabs.HistoryDashboardTab();
+        private Tabs.ParcelDashboardTab parcelTab = new Tabs.ParcelDashboardTab();
 
         private CropDatabase cachedDB;
         private EconomicReport activeReport;
@@ -28,7 +29,7 @@ namespace UI.Menus
                 TogglePause();
         }
 
-        private void TogglePause()
+        public void TogglePause()
         {
             IsOpen = !IsOpen;
             
@@ -64,6 +65,8 @@ namespace UI.Menus
             float height = Mathf.Min(Screen.height * 0.85f, 120f + (cachedDB.crops.Length * 22f) + 280f);
             if (currentTab == DashboardTab.Robots)
                 height = Mathf.Min(Screen.height * 0.85f, 170f + cachedRobotCount * 22f + 140f + robotTab.ExtraHeight);
+            if (currentTab == DashboardTab.Parcels)
+                height = Mathf.Min(Screen.height * 0.85f, 550f);
             Rect panel = new Rect((Screen.width - width) / 2, (Screen.height - height) / 2, width, height);
 
             theme.DrawPanel(panel);
@@ -85,6 +88,8 @@ namespace UI.Menus
                 cropTab.DrawTab(x, y, activeReport, cachedDB.crops, theme);
             else if (currentTab == DashboardTab.Robots)
                 robotTab.DrawTab(x, y, theme, contentBottom);
+            else if (currentTab == DashboardTab.Parcels)
+                parcelTab.DrawTab(x, y, theme);
             else
                 historyTab.DrawTab(x, y, theme);
             
@@ -96,10 +101,10 @@ namespace UI.Menus
             float tabWidth = 120;
             float tabHeight = 26;
             float gap = 2;
-            string[] labels = { "CULTURI", "ROBOȚI", "ISTORIC" };
-            DashboardTab[] tabs = { DashboardTab.Crops, DashboardTab.Robots, DashboardTab.History };
+            string[] labels = { "CULTURI", "ROBOȚI", "ISTORIC", "PARCELE" };
+            DashboardTab[] tabs = { DashboardTab.Crops, DashboardTab.Robots, DashboardTab.History, DashboardTab.Parcels };
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < labels.Length; i++)
             {
                 Rect tabRect = new Rect(x + i * (tabWidth + gap), y, tabWidth, tabHeight);
                 bool isActive = currentTab == tabs[i];

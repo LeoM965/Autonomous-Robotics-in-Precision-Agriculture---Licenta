@@ -8,6 +8,7 @@ namespace Robots.Capabilities.Flight
     public class TreatmentSystem
     {
         private const float TREATMENT_SPEED = 25f;
+        private const float MAX_SUBSTEP = 0.02f;
         private Transform droneTransform;
         private EnvironmentalSensor lastLoggedParcel;
         private DecisionRecord activeRecord;
@@ -40,63 +41,77 @@ namespace Robots.Capabilities.Flight
             float optP = data?.requirements?.phosphorus?.optimal ?? 50f;
             float optK = data?.requirements?.potassium?.optimal ?? 50f;
             float optPH = data?.requirements?.pH?.optimal ?? 6.5f;
+            float optM = data?.requirements?.humidity?.optimal ?? 60f;
 
-            // Once at the parcel, treat until ALL nutrients reach 100% of their optimal value.
-            bool needsN = target.nitrogen < optN;
-            bool needsP = target.phosphorus < optP;
-            bool needsK = target.potassium < optK;
-            bool needsPH = Mathf.Abs(target.soilPH - optPH) > 0.05f;
+            float dt = Time.deltaTime;
+            if (dt <= 0f) return;
 
-            if (needsN || needsP || needsK || needsPH)
+            int steps = Mathf.CeilToInt(dt / MAX_SUBSTEP);
+            float stepDt = dt / steps;
+
+            for (int s = 0; s < steps; s++)
             {
-                ApplyTreatment(target, data, optN, optP, optK, optPH);
-                timer -= Time.deltaTime;
-            }
-            else
-            {
-                // All nutrients are fully restored to optimal — treatment complete
-                timer = 0;
+                bool needsN = target.nitrogen < optN;
+                bool needsP = target.phosphorus < optP;
+                bool needsK = target.potassium < optK;
+                bool needsPH = Mathf.Abs(target.soilPH - optPH) > 0.05f;
+                bool needsM = target.soilMoisture < optM;
+
+                if (needsN || needsP || needsK || needsPH || needsM)
+                {
+                    ApplyTreatment(target, data, optN, optP, optK, optPH, optM, stepDt);
+                    timer -= stepDt;
+                }
+                else
+                {
+                    timer = 0;
+                    break;
+                }
             }
         }
 
         private void ApplyTreatment(EnvironmentalSensor target, CropData data,
-                                     float optN, float optP, float optK, float optPH)
+                                     float optN, float optP, float optK, float optPH, float optM,
+                                     float stepDt)
         {
-            float speed = TREATMENT_SPEED * Time.deltaTime;
+            float speed = TREATMENT_SPEED * stepDt;
 
-            // Calculate deficit for each nutrient
+            // Calculate deficit for each nutrient + moisture
             float mN = Mathf.Max(0, optN - target.nitrogen);
             float mP = Mathf.Max(0, optP - target.phosphorus);
             float mK = Mathf.Max(0, optK - target.potassium);
             float mPH = Mathf.Abs(optPH - target.soilPH) * 20f; // Scale pH diff to be comparable
-            float total = mN + mP + mK + mPH;
+            float mMoist = Mathf.Max(0, optM - target.soilMoisture);
+            float total = mN + mP + mK + mPH + mMoist;
 
-            float nToAdd, pToAdd, kToAdd, phToAdd;
+            float nToAdd, pToAdd, kToAdd, phToAdd, moistToAdd;
             if (total > 0)
             {
-                // Distribute treatment proportionally to each nutrient's deficit
+                // Distribute treatment proportionally to each deficit
                 nToAdd = speed * (mN / total);
                 pToAdd = speed * (mP / total);
                 kToAdd = speed * (mK / total);
                 phToAdd = speed * (mPH / total) * 0.05f; // Rescale back to pH scale
+                moistToAdd = speed * (mMoist / total);
                 
                 if (target.soilPH > optPH) phToAdd = -phToAdd;
             }
             else
             {
-                nToAdd = 0; pToAdd = 0; kToAdd = 0; phToAdd = 0;
+                nToAdd = 0; pToAdd = 0; kToAdd = 0; phToAdd = 0; moistToAdd = 0;
             }
 
             if (target != lastLoggedParcel)
             {
-                LogDecision(target, optN, optP, optK, optPH);
+                LogDecision(target, optN, optP, optK, optPH, optM);
                 lastLoggedParcel = target;
             }
 
-            // Clamp values to prevent overshooting the optimal values during high-speed simulation
+            // Clamp values to prevent overshooting the optimal values
             float finalN = Mathf.Min(nToAdd, Mathf.Max(0, optN - target.nitrogen));
             float finalP = Mathf.Min(pToAdd, Mathf.Max(0, optP - target.phosphorus));
             float finalK = Mathf.Min(kToAdd, Mathf.Max(0, optK - target.potassium));
+            float finalM = Mathf.Min(moistToAdd, Mathf.Max(0, optM - target.soilMoisture));
             
             float finalPH = phToAdd;
             if (phToAdd > 0) finalPH = Mathf.Min(phToAdd, optPH - target.soilPH);
@@ -104,6 +119,7 @@ namespace Robots.Capabilities.Flight
 
             target.AdjustNutrients(finalN, finalP, finalK);
             if (Mathf.Abs(finalPH) > 0.001f) target.AdjustPH(finalPH);
+            if (finalM > 0.001f) target.AdjustMoisture(finalM);
 
             // Accumulate applied amounts in the active record
             if (activeRecord != null)
@@ -112,12 +128,13 @@ namespace Robots.Capabilities.Flight
                 activeRecord.appliedP += finalP;
                 activeRecord.appliedK += finalK;
                 activeRecord.appliedPH += finalPH;
+                activeRecord.appliedMoisture += finalM;
             }
 
             UpdateLiveFactors(target);
         }
 
-        private void LogDecision(EnvironmentalSensor target, float optN, float optP, float optK, float optPH)
+        private void LogDecision(EnvironmentalSensor target, float optN, float optP, float optK, float optPH, float optM)
         {
             if (DecisionTracker.Instance == null) return;
 
@@ -146,8 +163,9 @@ namespace Robots.Capabilities.Flight
                 initialP = target.phosphorus,
                 initialK = target.potassium,
                 initialPH = target.soilPH,
-                appliedN = 0f, appliedP = 0f, appliedK = 0f, appliedPH = 0f,
-                optimalN = optN, optimalP = optP, optimalK = optK, optimalPH = optPH
+                initialMoisture = target.soilMoisture,
+                appliedN = 0f, appliedP = 0f, appliedK = 0f, appliedPH = 0f, appliedMoisture = 0f,
+                optimalN = optN, optimalP = optP, optimalK = optK, optimalPH = optPH, optimalMoisture = optM
             };
 
             if (navigation != null)

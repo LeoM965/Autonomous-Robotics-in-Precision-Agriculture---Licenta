@@ -54,9 +54,6 @@ namespace UI.Menus.Tabs
             
             GUI.Label(new Rect(x, y, 400, 18), "ANALIZĂ EVOLUȚIE (IERI vs AZI)", theme.Value);
             
-            if (GUI.Button(new Rect(x + 450, y, 150, 25), "EXPORT EXCEL (CSV)"))
-                EconomicsHistoryManager.Instance.ExportToCSV();
-
             y += 24;
             MapHelper.DrawBox(new Rect(x - 5, y - 3, 400, 40), new Color(1f, 1f, 1f, 0.03f));
 
