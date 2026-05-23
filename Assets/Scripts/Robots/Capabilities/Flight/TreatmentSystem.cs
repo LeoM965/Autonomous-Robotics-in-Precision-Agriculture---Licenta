@@ -54,7 +54,7 @@ namespace Robots.Capabilities.Flight
                 bool needsN = target.nitrogen < optN;
                 bool needsP = target.phosphorus < optP;
                 bool needsK = target.potassium < optK;
-                bool needsPH = Mathf.Abs(target.soilPH - optPH) > 0.05f;
+                bool needsPH = Mathf.Abs(target.soilPH - optPH) > 0.01f;
                 bool needsM = target.soilMoisture < optM;
 
                 if (needsN || needsP || needsK || needsPH || needsM)
@@ -80,7 +80,8 @@ namespace Robots.Capabilities.Flight
             float mN = Mathf.Max(0, optN - target.nitrogen);
             float mP = Mathf.Max(0, optP - target.phosphorus);
             float mK = Mathf.Max(0, optK - target.potassium);
-            float mPH = Mathf.Abs(optPH - target.soilPH) * 20f; // Scale pH diff to be comparable
+            float phDiff = Mathf.Abs(optPH - target.soilPH);
+            float mPH = phDiff > 0.01f ? phDiff * 20f : 0f; // Dead-zone: ignore negligible pH differences
             float mMoist = Mathf.Max(0, optM - target.soilMoisture);
             float total = mN + mP + mK + mPH + mMoist;
 

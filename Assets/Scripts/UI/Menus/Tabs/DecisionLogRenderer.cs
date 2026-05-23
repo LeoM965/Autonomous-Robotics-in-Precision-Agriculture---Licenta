@@ -188,7 +188,7 @@ namespace UI.Menus.Tabs
             float[] opts  = { d.optimalN, d.optimalP, d.optimalK, d.optimalPH, d.optimalMoisture };
             string[] labels = { "N", "P", "K", "pH", "Umid" };
             float segX = 85f;
-            float segW = 120f;
+            float segW = 108f;
 
             for (int i = 0; i < 5; i++)
             {
@@ -213,7 +213,7 @@ namespace UI.Menus.Tabs
                 }
                 else if (i == 4) // Moisture (Umid) logic
                 {
-                    txt = $"Umid: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
+                    txt = $"M: {vals[i]:F0}\u2192{final_:F0}/{opt:F0}";
                     ratio = Mathf.Clamp01(final_ / opt);
                     
                     c = ratio >= 0.8f ? new Color(0.15f, 0.8f, 0.4f, 0.75f) :
@@ -230,11 +230,11 @@ namespace UI.Menus.Tabs
                                         new Color(0.9f, 0.2f, 0.15f, 0.7f);
                 }
 
-                GUI.Label(new Rect(bx, ey, 78, detailH), txt, dimStyle);
+                GUI.Label(new Rect(bx, ey, 82, detailH), txt, dimStyle);
 
                 // Progress bar
-                float barX = bx + 78f;
-                float barW = 35f;
+                float barX = bx + 82f;
+                float barW = 20f;
                 float barH = 7f;
                 float barY = ey + (detailH - barH) * 0.5f;
 

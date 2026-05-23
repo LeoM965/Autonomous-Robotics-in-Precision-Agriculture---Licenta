@@ -187,6 +187,11 @@ namespace SaveSystem
             var data = JsonUtility.FromJson<SimSaveData>(File.ReadAllText(path));
             var db = CropLoader.Load();
 
+            if (db != null && (!Settings.SimulationSettings.IsInitialized || Settings.SimulationSettings.SeedCosts.Length != db.crops.Length))
+            {
+                Settings.SimulationSettings.InitFromDatabase(db);
+            }
+
             // Time + sync all time-dependent systems
             if (TimeManager.Instance != null)
             {

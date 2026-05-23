@@ -146,6 +146,7 @@ namespace Weather.Components
         public void RestoreState(WeatherType type, float temperature)
         {
             if (simulator == null) return;
+            UpdateClimate();
             simulator.ForcedWeather = type;
             simulator.CurrentTemperature = temperature;
             if (TimeManager.Instance != null)
