@@ -50,10 +50,18 @@ namespace AI.ML
         /// <summary>
         /// Loads the model from Resources/MLCropModel.json. Safe to call multiple times.
         /// </summary>
-        public static bool Load()
+        public static bool Load(bool forceReload = false)
         {
-            if (model != null) return true;
-            if (loadAttempted) return false;
+            if (forceReload)
+            {
+                model = null;
+                loadAttempted = false;
+            }
+            else
+            {
+                if (model != null) return true;
+                if (loadAttempted) return false;
+            }
 
             loadAttempted = true;
             TextAsset jsonAsset = Resources.Load<TextAsset>("MLCropModel");

@@ -12,6 +12,7 @@ public class CropData
     public int growthDays;
     public float nitrogenConsumptionRate;
     public bool isFrostResistant;
+    public string source;
 
     /// <summary>
     /// Temperatura minima de crestere (°C). Sub aceasta, planta nu creste.

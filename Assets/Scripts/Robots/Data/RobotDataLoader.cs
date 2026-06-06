@@ -61,4 +61,5 @@ public class RobotDataEntry
     public float consumptionWorkSec;
     public float consumptionStandbySec;
     public float rechargeRate;
+    public string source;
 }

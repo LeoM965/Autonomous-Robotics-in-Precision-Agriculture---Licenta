@@ -18,6 +18,11 @@ public class SimulationSpeedController : MonoBehaviour
     private bool autoSkipEnabled;
     private float skipTimer;
 
+    // Cached robot references — refreshed periodically instead of every frame
+    private RobotOperator[] cachedOperators;
+    private Robots.Capabilities.Flight.AgroBotFlight[] cachedFlights;
+    private float robotCacheTimer;
+
     public float[] Speeds => speeds;
     public int CurrentIndex => currentIndex;
     public bool IsBoostActive => isBoostActive;
@@ -59,22 +64,32 @@ public class SimulationSpeedController : MonoBehaviour
         }
     }
 
+    private void RefreshRobotCache()
+    {
+        robotCacheTimer -= Time.unscaledDeltaTime;
+        if (robotCacheTimer > 0f && cachedOperators != null) return;
+        robotCacheTimer = 2f;
+        cachedOperators = FindObjectsByType<RobotOperator>(FindObjectsSortMode.None);
+        cachedFlights = FindObjectsByType<Robots.Capabilities.Flight.AgroBotFlight>(FindObjectsSortMode.None);
+    }
+
     private bool AllRobotsIdle()
     {
-        var operators = FindObjectsByType<RobotOperator>(FindObjectsSortMode.None);
-        var flights = FindObjectsByType<Robots.Capabilities.Flight.AgroBotFlight>(FindObjectsSortMode.None);
+        RefreshRobotCache();
 
-        if (operators.Length == 0 && flights.Length == 0) return false;
+        if (cachedOperators.Length == 0 && cachedFlights.Length == 0) return false;
 
-        foreach (var op in operators)
+        foreach (var op in cachedOperators)
         {
-            if (op.CurrentState != RobotOperator.OperatorState.Idle)
+            if (op != null && op.CurrentState != RobotOperator.OperatorState.Idle)
                 return false;
         }
 
-        foreach (var flight in flights)
+        foreach (var flight in cachedFlights)
         {
-            if (flight.GetStatus() != "Idle" && flight.GetStatus() != "Idle - Nicio parcelă nu necesită tratament")
+            if (flight == null) continue;
+            string status = flight.GetStatus();
+            if (status != "Idle" && status != "Idle - Nicio parcelă nu necesită tratament")
                 return false;
         }
 

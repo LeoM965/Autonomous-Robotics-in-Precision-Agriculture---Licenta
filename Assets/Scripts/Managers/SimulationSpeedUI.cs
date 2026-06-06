@@ -39,6 +39,11 @@ public class SimulationSpeedUI : MonoBehaviour
     public Color mainTextColor = Color.white;
     public Color warningColor = new Color(0.95f, 0.7f, 0.1f);
 
+    private float uiRefreshTimer;
+    private const float UI_REFRESH_INTERVAL = 0.1f;
+    private System.Collections.Generic.Dictionary<Image, Button> cachedButtons = new System.Collections.Generic.Dictionary<Image, Button>();
+    private System.Collections.Generic.Dictionary<Image, TextMeshProUGUI> cachedTexts = new System.Collections.Generic.Dictionary<Image, TextMeshProUGUI>();
+
     private void Start()
     {
         controller = SimulationSpeedController.Instance;
@@ -127,7 +132,13 @@ public class SimulationSpeedUI : MonoBehaviour
     private void Update()
     {
         if (controller == null) return;
-        UpdateUIState();
+
+        uiRefreshTimer -= Time.unscaledDeltaTime;
+        if (uiRefreshTimer <= 0f)
+        {
+            uiRefreshTimer = UI_REFRESH_INTERVAL;
+            UpdateUIState();
+        }
     }
 
     private void UpdateUIState()
@@ -198,7 +209,13 @@ public class SimulationSpeedUI : MonoBehaviour
         if (img == null) return;
         
         img.color = c;
-        Button b = img.GetComponent<Button>();
+
+        if (!cachedButtons.TryGetValue(img, out Button b))
+        {
+            b = img.GetComponent<Button>();
+            cachedButtons[img] = b;
+        }
+
         if (b != null)
         {
             var cb = b.colors;
@@ -207,8 +224,11 @@ public class SimulationSpeedUI : MonoBehaviour
             cb.pressedColor = c * 0.8f;
             b.colors = cb;
             
-            // Set Text
-            var txt = b.GetComponentInChildren<TextMeshProUGUI>();
+            if (!cachedTexts.TryGetValue(img, out TextMeshProUGUI txt))
+            {
+                txt = b.GetComponentInChildren<TextMeshProUGUI>();
+                cachedTexts[img] = txt;
+            }
             if (txt != null) txt.color = isActive ? Color.black : Color.white;
         }
     }

@@ -102,13 +102,16 @@ public abstract class RobotOperator : MonoBehaviour
         }
     }
 
+    private RobotOperator[] siblingOperators;
+
     // ── Helpers ──
 
     private bool AnotherOperatorIsActive()
     {
-        var ops = GetComponents<RobotOperator>();
-        foreach (var op in ops)
+        if (siblingOperators == null) siblingOperators = GetComponents<RobotOperator>();
+        for (int i = 0; i < siblingOperators.Length; i++)
         {
+            var op = siblingOperators[i];
             if (op != this && op.state != OperatorState.Idle)
                 return true;
         }
@@ -119,11 +122,11 @@ public abstract class RobotOperator : MonoBehaviour
     {
         if (energy == null) return;
 
-        var ops = GetComponents<RobotOperator>();
+        if (siblingOperators == null) siblingOperators = GetComponents<RobotOperator>();
         bool allIdle = true;
-        foreach (var op in ops)
+        for (int i = 0; i < siblingOperators.Length; i++)
         {
-            if (op.state != OperatorState.Idle)
+            if (siblingOperators[i].state != OperatorState.Idle)
             { allIdle = false; break; }
         }
         energy.SetIdle(allIdle);
