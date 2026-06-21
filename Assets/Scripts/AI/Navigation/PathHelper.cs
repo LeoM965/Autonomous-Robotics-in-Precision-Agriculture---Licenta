@@ -64,7 +64,9 @@ namespace AI.Navigation
         
         public static float Heuristic(PathNode a, PathNode b)
         {
-            return Mathf.Abs(a.worldX - b.worldX) + Mathf.Abs(a.worldZ - b.worldZ);
+            float dx = a.worldX - b.worldX;
+            float dz = a.worldZ - b.worldZ;
+            return Mathf.Sqrt(dx * dx + dz * dz);
         }
     }
 }

@@ -58,7 +58,17 @@ namespace Robots.Components.Movement
 
         private void UpdateFromSettings()
         {
-            var data = RobotDataLoader.FindByName(name);
+            RobotDataEntry data = null;
+            var energy = GetComponent<RobotEnergy>();
+            if (energy != null)
+            {
+                data = energy.RobotData;
+            }
+            else
+            {
+                data = RobotDataLoader.FindByName(name);
+            }
+
             if (data != null)
             {
                 speed = data.maxSpeed * speedRandomFactor;
@@ -92,7 +102,7 @@ namespace Robots.Components.Movement
 
             Vector3 avoidanceDir = Vector3.zero;
             bool isDocking = pathfinder.FinalTarget.HasValue && Vector3.Distance(pos, pathfinder.FinalTarget.Value) < 8f;
-            
+
             if (!isDocking)
             {
                 avoidanceDir = RobotHelper.GetObstacleAvoidance(transform, pos, avoidRadius);
@@ -146,7 +156,7 @@ namespace Robots.Components.Movement
         }
 
         public void SetTerrain(Terrain t) => terrain = t;
-        
+
         private float baseRotationSpeed;
         private float baseTiltSpeed;
         private float baseMaxTilt;

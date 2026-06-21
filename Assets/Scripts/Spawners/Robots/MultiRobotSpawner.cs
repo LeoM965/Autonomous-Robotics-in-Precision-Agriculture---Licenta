@@ -157,6 +157,13 @@ public class MultiRobotSpawner : MonoBehaviour
         if (movement != null)
             movement.SetTerrain(terrain);
 
+        // Adăugăm componenta audio pentru sunetul real al robotului
+        if (robot.GetComponent<RobotRealAudio>() == null)
+        {
+            robot.AddComponent<RobotRealAudio>();
+        }
+
+
         if (Economics.Managers.RobotEconomicsManager.Instance != null)
             Economics.Managers.RobotEconomicsManager.Instance.RegisterRobot(robot.transform);
 

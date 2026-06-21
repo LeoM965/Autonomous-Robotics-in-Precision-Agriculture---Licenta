@@ -4,6 +4,7 @@ using Sensors.Components;
 
 public class PlanterOperation
 {
+    private CropPlanter planter;
     private Transform transform;
     private RobotMovement movement;
     private RobotEnergy energy;
@@ -27,8 +28,9 @@ public class PlanterOperation
 
     public void SetTaskValue(float value) => currentTaskValue = value;
 
-    public PlanterOperation(Transform t, RobotMovement m, RobotEnergy e, PlantingConfig c, CropDatabase db)
+    public PlanterOperation(CropPlanter p, Transform t, RobotMovement m, RobotEnergy e, PlantingConfig c, CropDatabase db)
     {
+        planter = p;
         transform = t;
         movement = m;
         energy = e;
@@ -45,6 +47,22 @@ public class PlanterOperation
         if (col == null)
         {
             FinishParcel();
+            return;
+        }
+
+        // plantPositions is already filtered by SetupCropForParcel (only unplanted spots)
+        // Check if we have enough seeds for the remaining unplanted positions
+        if (planter != null && plantPositions.Count > 0 && planter.currentSeeds <= 0)
+        {
+            if (currentParcel != null)
+            {
+                currentParcel.isScheduledForTask = false;
+            }
+            plantPositions.Clear();
+            isPlanting = false;
+            currentParcel = null;
+            executor.Reset();
+            planter.RefuelSeeds();
             return;
         }
         
@@ -70,9 +88,22 @@ public class PlanterOperation
         
         if (dist < config.plantDistance)
         {
-            executor.PlantAt(target);
-            plantIndex++;
-            MoveToNextPlantPoint();
+            if (planter != null && planter.currentSeeds > 0)
+            {
+                executor.PlantAt(target);
+                planter.currentSeeds--;
+                plantIndex++;
+                MoveToNextPlantPoint();
+            }
+            else
+            {
+                // Fără semințe! Oprim plantarea pe această parcelă și mergem la bază/alimentare
+                FinishParcel();
+                if (planter != null)
+                {
+                    planter.RefuelSeeds();
+                }
+            }
         }
     }
 
@@ -98,7 +129,18 @@ public class PlanterOperation
         {
             plantPositions = PlantingPositionGenerator.Generate(col.bounds, config);
         }
-        int plantCount = plantPositions.Count;
+        int totalPlantCount = plantPositions.Count; // Numărul total de poziții (pentru calcul nutrienți)
+
+        // Dacă parcela are deja o cultură plantată, refolosim aceeași varietate
+        if (!string.IsNullOrEmpty(parcel.plantedVarietyName) && cropDB != null)
+        {
+            crop = cropDB.Get(parcel.plantedVarietyName);
+            if (crop != null)
+            {
+                idx = cropDB.GetIndex(crop.name);
+                forced = true; // Forțăm aceeași cultură
+            }
+        }
 
         if (forced)
         {
@@ -106,14 +148,17 @@ public class PlanterOperation
         }
         else
         {
-            crop = CropSelector.SelectBestCrop(cropDB, parcel, transform, plantCount, currentTaskValue);
+            crop = CropSelector.SelectBestCrop(cropDB, parcel, transform, totalPlantCount, currentTaskValue);
             if (crop != null && cropDB != null)
                 idx = cropDB.GetIndex(crop.name);
         }
 
         if (crop == null) return;
 
-        executor.SetTarget(parcel, crop, CropLoader.LoadPrefab(crop.prefabPath), idx, plantCount);
+        // Filtrăm pozițiile deja ocupate de plante existente
+        plantPositions = PlantingPositionGenerator.FilterUnplantedPositions(plantPositions, parcel);
+
+        executor.SetTarget(parcel, crop, CropLoader.LoadPrefab(crop.prefabPath), idx, totalPlantCount);
     }
 
     private EnvironmentalSensor currentParcel;

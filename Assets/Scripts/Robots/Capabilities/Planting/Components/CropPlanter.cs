@@ -9,11 +9,38 @@ public class CropPlanter : RobotOperator
     [SerializeField] private PlantingConfig config = new PlantingConfig();
     private PlanterOperation operation;
 
+    [Header("Inventory")]
+    public int maxSeeds = 150;
+    public int currentSeeds = 150;
+
     protected override void Start()
     {
         CropDatabase cropDB = CropLoader.Load();
-        operation = new PlanterOperation(transform, movement, energy, config, cropDB);
+        operation = new PlanterOperation(this, transform, movement, energy, config, cropDB);
         Invoke(nameof(Initialize), 3f);
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+
+        // Sincronizăm capacitatea maximă cu setările globale din simulator
+        maxSeeds = SimulationSettings.MaxSeedsCapacity;
+        currentSeeds = Mathf.Min(currentSeeds, maxSeeds);
+
+        // Când se încarcă bateria la bază (andocat), refacem și stocul de semințe
+        if (energy != null && energy.IsCharging)
+        {
+            currentSeeds = maxSeeds;
+        }
+    }
+
+    public void RefuelSeeds()
+    {
+        if (energyManager != null)
+        {
+            energyManager.ForceGoToCharger();
+        }
     }
 
     private void OnEnable()  => SimulationSettings.OnSettingsChanged += OnSettingsChanged;
@@ -69,7 +96,7 @@ public class CropPlanter : RobotOperator
         if (task != null)
         {
             var sensor = task.Target.GetComponent<EnvironmentalSensor>();
-            if (sensor != null && sensor.activeCrops.Count == 0)
+            if (sensor != null && !PlantingPositionGenerator.IsParcelFullyPlanted(sensor, config))
             {
                 operation.SetTaskValue(task.NetValue);
                 parcels.Clear();
@@ -92,7 +119,7 @@ public class CropPlanter : RobotOperator
         
         foreach (var p in rawParcels)
         {
-            if (p.activeCrops.Count > 0) continue;
+            if (PlantingPositionGenerator.IsParcelFullyPlanted(p, config)) continue;
             
             // Only add parcels that can actually be planted right now (avoids infinite looping)
             var crop = CropSelector.SelectBestCrop(db, p, transform, 1, 0f, false);
@@ -122,8 +149,8 @@ public class CropPlanter : RobotOperator
         parcels = subset;
     }
 
-    protected override string GetWorkingStatus() => $"Planting {operation?.PlantIndex}/{operation?.TotalPositions}";
-    protected override string GetIdleStatus() => idleTimer > 0 ? $"Scanning ({idleTimer:F0}s)" : "Scanning...";
+    protected override string GetWorkingStatus() => $"Planting ({currentSeeds}/{maxSeeds} sem.)";
+    protected override string GetIdleStatus() => idleTimer > 0 ? $"Scanning ({idleTimer:F0}s, {currentSeeds} sem.)" : $"Scanning ({currentSeeds} sem.)";
 
     public bool IsPlanting => state == OperatorState.Working;
     public int PlantsPlaced => operation?.TotalPlantsPlaced ?? 0;

@@ -20,6 +20,11 @@ public class RobotEnergyManager
 
     public bool IsHeadingToCharger => isHeadingToCharger;
 
+    public void ForceGoToCharger()
+    {
+        StartNavigationToCharger();
+    }
+
     public bool CheckBattery(float distance, float estimatedWorkSeconds)
     {
         if (energy != null && !energy.HasEnoughEnergy(distance, estimatedWorkSeconds))
@@ -63,7 +68,10 @@ public class RobotEnergyManager
         if (!currentChargerTarget.HasValue) return;
 
         float sqrDist = (transform.position - currentChargerTarget.Value).sqrMagnitude;
-        bool hasReachedStation = sqrDist < 36f || movement.HasArrived || !movement.HasTarget;
+        
+        // Numai dacă suntem aproape de stație (ex: sub 8 metri) acceptăm sosirea sau lipsa țintei
+        bool closeEnough = sqrDist < 64f; 
+        bool hasReachedStation = sqrDist < 36f || (closeEnough && (movement.HasArrived || !movement.HasTarget));
 
         if (hasReachedStation)
         {
@@ -71,6 +79,11 @@ public class RobotEnergyManager
             if (energy != null) energy.StartCharging();
             isHeadingToCharger = false;
             currentChargerTarget = null;
+        }
+        else if (!closeEnough && !movement.HasTarget)
+        {
+            // Dacă s-a pierdut ținta pe drum (curățată de operator), re-inițiem deplasarea spre încărcător
+            movement.SetTarget(currentChargerTarget.Value);
         }
     }
 }

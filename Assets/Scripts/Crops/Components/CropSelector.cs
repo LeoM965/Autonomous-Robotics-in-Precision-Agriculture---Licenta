@@ -80,6 +80,13 @@ public static class CropSelector
                 else
                 {
                     suitability *= tempFitness;
+
+                    // Optimizare Economică: Ponderare în funcție de profitul net zilnic estimat (EUR/zi)
+                    float estimatedNetProfit = (crop.yieldWeightKg * crop.marketPricePerKg) - crop.seedCostEUR;
+                    estimatedNetProfit = Mathf.Max(0.01f, estimatedNetProfit);
+                    float dailyProfitFactor = (estimatedNetProfit / crop.growthDays) * 100f; 
+
+                    suitability *= dailyProfitFactor;
                 }
             }
 
@@ -109,24 +116,42 @@ public static class CropSelector
             }
         }
 
-        // Phase 3: Roulette Wheel — fallback daca ML-ul nu e disponibil
-        // sau daca cultura recomandata nu e viabila pe aceasta parcela.
+        // Phase 3: Fallback decision
         if (bestCrop == null && viableCrops.Count > 0)
         {
-            float totalWeight = 0f;
-            foreach (var v in viableCrops)
-                totalWeight += v.score * v.score;
-
-            float roll = UnityEngine.Random.Range(0f, totalWeight);
-            float cumulative = 0f;
-            foreach (var v in viableCrops)
+            // Dacă avem model ML active (adică s-a făcut o predicție, dar a fost invalidă/blocată de rotație),
+            // aplicăm un fallback deterministic inteligent: selectăm cultura cu cel mai mare scor agronomic.
+            if (prediction != null)
             {
-                cumulative += v.score * v.score;
-                if (roll <= cumulative)
+                float maxScore = -1f;
+                foreach (var v in viableCrops)
                 {
-                    bestCrop = v.crop;
-                    bestScore = v.score;
-                    break;
+                    if (v.score > maxScore)
+                    {
+                        maxScore = v.score;
+                        bestCrop = v.crop;
+                        bestScore = v.score;
+                    }
+                }
+            }
+            else
+            {
+                // Dacă nu avem model ML antrenat/încărcat, folosim ruleta probabilistică standard (baseline)
+                float totalWeight = 0f;
+                foreach (var v in viableCrops)
+                    totalWeight += v.score * v.score;
+
+                float roll = UnityEngine.Random.Range(0f, totalWeight);
+                float cumulative = 0f;
+                foreach (var v in viableCrops)
+                {
+                    cumulative += v.score * v.score;
+                    if (roll <= cumulative)
+                    {
+                        bestCrop = v.crop;
+                        bestScore = v.score;
+                        break;
+                    }
                 }
             }
         }

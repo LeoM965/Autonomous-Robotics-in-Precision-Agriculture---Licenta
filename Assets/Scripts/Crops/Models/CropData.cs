@@ -49,14 +49,18 @@ public class CropData
         // Sub tempMin sau peste tempMax → crestere zero
         if (currentTemp <= tempMin || currentTemp >= tempMax) return 0f;
 
-        // Intre tempMin si tempOptimal → creste liniar de la 0 la 1
+        // Model sinusoidal concav (broad peak) - mult mai realist biologic decat cel liniar,
+        // oferind o zona de toleranta termica in jurul temperaturii optime
         if (currentTemp <= tempOptimal)
         {
-            return (currentTemp - tempMin) / (tempOptimal - tempMin);
+            double t = (currentTemp - tempMin) / (tempOptimal - tempMin);
+            return (float)Math.Sin(t * Math.PI * 0.5);
         }
-
-        // Intre tempOptimal si tempMax → scade liniar de la 1 la 0
-        return (tempMax - currentTemp) / (tempMax - tempOptimal);
+        else
+        {
+            double t = (tempMax - currentTemp) / (tempMax - tempOptimal);
+            return (float)Math.Sin(t * Math.PI * 0.5);
+        }
     }
 }
 

@@ -8,6 +8,7 @@ namespace AI.Core.Scanners
     public class PlantingScanner : BaseScanner
     {
         [SerializeField] private float minSoilQuality = 30f;
+        [SerializeField] private PlantingConfig config = new PlantingConfig();
         
         public override void Scan(List<RobotTask> tasks, FenceZone[] zones)
         {
@@ -20,7 +21,7 @@ namespace AI.Core.Scanners
             foreach (var parcel in ParcelCache.Instance.ParcelsIterator)
             {
                 if (parcel == null || parcel.isScheduledForTask || 
-                    parcel.activeCrops.Count > 0 || parcel.soilQuality < minSoilQuality)
+                    PlantingPositionGenerator.IsParcelFullyPlanted(parcel, config) || parcel.soilQuality < minSoilQuality)
                     continue;
 
                 int zoneIdx = GetOrCreateZoneIndex(parcel, zones);

@@ -23,7 +23,14 @@ namespace Settings.Tabs
             SimulationSettings.PlantsPerRow = (int)GUI.HorizontalSlider(new Rect(x + 160, y + 5, 140, 20), SimulationSettings.PlantsPerRow, 1, 25);
             string pprInput = GUI.TextField(new Rect(x + 310, y, 40, 20), SimulationSettings.PlantsPerRow.ToString(), theme.Input);
             if (int.TryParse(pprInput, out int pprResult)) SimulationSettings.PlantsPerRow = Mathf.Clamp(pprResult, 1, 25);
-            y += 40;
+            y += 35;
+
+            // Capacitate Semințe
+            GUI.Label(new Rect(x, y, 160, 20), "Capacitate Semințe:", theme.Label);
+            SimulationSettings.MaxSeedsCapacity = (int)GUI.HorizontalSlider(new Rect(x + 160, y + 5, 140, 20), SimulationSettings.MaxSeedsCapacity, 10, 500);
+            string capInput = GUI.TextField(new Rect(x + 310, y, 40, 20), SimulationSettings.MaxSeedsCapacity.ToString(), theme.Input);
+            if (int.TryParse(capInput, out int capResult)) SimulationSettings.MaxSeedsCapacity = Mathf.Clamp(capResult, 10, 500);
+            y += 35;
 
             // Crop type
             if (cropNames != null && cropNames.Length > 0)

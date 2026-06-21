@@ -31,7 +31,17 @@ public class RobotStats
 
     public RobotStats(Transform robot)
     {
-        RobotDataEntry data = RobotDataLoader.FindByName(robot.name);
+        RobotDataEntry data = null;
+        var energy = robot.GetComponent<RobotEnergy>();
+        if (energy != null)
+        {
+            data = energy.RobotData;
+        }
+        if (data == null)
+        {
+            data = RobotDataLoader.FindByName(robot.name);
+        }
+
         if (data != null)
         {
             purchasePrice = data.purchasePrice;

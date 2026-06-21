@@ -15,7 +15,7 @@ public class CameraDisplay : MonoBehaviour
             shadowStyle.normal.textColor = new Color(0, 0, 0, 0.5f);
         }
 
-        string info = $"{mode} | {targetName} | {distance:F0}m\n[C] Mode [V] Target [R] Reset";
+        string info = $"{mode} | {targetName} | {distance:F0}m\n[C] Mode [V] Target [R] Reset | [I/O] Zoom | [F9] REC";
         GUI.Label(new Rect(11, 11, 500, 50), info, shadowStyle);
         GUI.Label(new Rect(10, 10, 500, 50), info, labelStyle);
     }

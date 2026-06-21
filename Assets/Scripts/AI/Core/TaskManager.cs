@@ -108,10 +108,14 @@ namespace AI.Core
             {
                 int currentIdx = Array.IndexOf(zones, currentZone);
                 var key = (typeof(T), currentIdx);
-                if (taskHeaps.TryGetValue(key, out var heap) && !heap.IsEmpty)
+                if (taskHeaps.TryGetValue(key, out var heap))
                 {
-                    Debug.Log($"[TaskManager] Task gasit in zona curenta ({currentIdx}) pentru {typeof(T).Name}");
-                    return heap.Dequeue() as T;
+                    T valid = DequeueValidTask<T>(heap);
+                    if (valid != null)
+                    {
+                        Debug.Log($"[TaskManager] Task gasit in zona curenta ({currentIdx}) pentru {typeof(T).Name}");
+                        return valid;
+                    }
                 }
             }
 
@@ -121,13 +125,38 @@ namespace AI.Core
             for (int i = 0; i < zones.Length; i++)
             {
                 var key = (typeof(T), i);
-                if (taskHeaps.TryGetValue(key, out var heap) && !heap.IsEmpty)
+                if (taskHeaps.TryGetValue(key, out var heap))
                 {
-                    Debug.Log($"[TaskManager] Zona curenta goala. Redirectare robot catre Zona {i} pentru {typeof(T).Name}");
-                    return heap.Dequeue() as T;
+                    T valid = DequeueValidTask<T>(heap);
+                    if (valid != null)
+                    {
+                        Debug.Log($"[TaskManager] Zona curenta goala. Redirectare robot catre Zona {i} pentru {typeof(T).Name}");
+                        return valid;
+                    }
                 }
             }
 
+            return null;
+        }
+
+        /// <summary>Dequeue tasks from heap, skipping stale/zombie entries whose target
+        /// was already processed or released by another robot.</summary>
+        private T DequeueValidTask<T>(MinHeap<RobotTask> heap) where T : RobotTask
+        {
+            while (!heap.IsEmpty)
+            {
+                var task = heap.Dequeue() as T;
+                if (task == null) continue;
+
+                // Skip tasks whose target was destroyed
+                if (task.Target == null) continue;
+
+                // Skip tasks whose parcel was already processed or released
+                var parcel = task.Target.GetComponent<EnvironmentalSensor>();
+                if (parcel == null || !parcel.isScheduledForTask) continue;
+
+                return task;
+            }
             return null;
         }
     }

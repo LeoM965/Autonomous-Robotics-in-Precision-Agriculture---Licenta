@@ -114,15 +114,26 @@ namespace UI.Menus.Tabs
 
             if (!File.Exists(pythonScript))
             {
+                // Fallback for built player running inside Demo/ folder
+                pythonScript = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "scripts_python", "train_crop_model.py"));
+            }
+
+            if (!File.Exists(pythonScript))
+            {
                 trainStatus = "Eroare: train_crop_model.py nu a fost găsit.";
                 isTraining = false;
                 UnityEngine.Debug.LogError($"[MLModelDashboardTab] Nu s-a găsit scriptul la calea: {pythonScript}");
                 return;
             }
 
+            string simDataPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Exported_SimData"));
+            string outputFile = Application.isEditor
+                ? Path.GetFullPath(Path.Combine(Application.dataPath, "Resources", "MLCropModel.json"))
+                : Path.GetFullPath(Path.Combine(Application.dataPath, "..", "MLCropModel.json"));
+
             try
             {
-                var result = await Task.Run(() => RunPythonScript(pythonScript));
+                var result = await Task.Run(() => RunPythonScript(pythonScript, simDataPath, outputFile));
                 trainingDuration = Time.realtimeSinceStartup - startTime;
 
                 trainingOutput = result.output;
@@ -143,7 +154,19 @@ namespace UI.Menus.Tabs
                 }
                 else
                 {
-                    trainStatus = $"Eroare! Cod ieșire script: {result.exitCode}. Verifică dependințele.";
+                    if (result.exitCode == 9009 || result.output.Contains("Python was not found") || result.output.Contains("python was not found"))
+                    {
+                        trainStatus = "Eroare: Python nu este instalat pe acest PC!";
+                        trainingOutput = "Pentru a folosi antrenarea, te rugăm să instalezi Python 3 de pe site-ul oficial (python.org) sau din Microsoft Store.\n\n" +
+                                         "IMPORTANT: În timpul instalării, bifează căsuța \"Add Python to PATH\".\n" +
+                                         "După instalare, rulează în CMD/PowerShell:\n" +
+                                         "pip install pandas numpy scikit-learn\n\n" +
+                                         "Detalii eroare:\n" + result.output;
+                    }
+                    else
+                    {
+                        trainStatus = $"Eroare! Cod ieșire script: {result.exitCode}. Verifică dependințele.";
+                    }
                 }
             }
             catch (System.ComponentModel.Win32Exception ex)
@@ -180,11 +203,11 @@ namespace UI.Menus.Tabs
             return "python";
         }
 
-        private (int exitCode, string output) RunPythonScript(string scriptPath)
+        private (int exitCode, string output) RunPythonScript(string scriptPath, string dataDir, string outputFile)
         {
             ProcessStartInfo start = new ProcessStartInfo();
             start.FileName = ResolvePythonPath();
-            start.Arguments = $"\"{scriptPath}\"";
+            start.Arguments = $"\"{scriptPath}\" \"{dataDir}\" \"{outputFile}\"";
             start.UseShellExecute = false;
             start.RedirectStandardOutput = true;
             start.RedirectStandardError = true;
@@ -192,10 +215,12 @@ namespace UI.Menus.Tabs
 
             using (Process process = Process.Start(start))
             {
+                // Citește asincron din stderr pentru a preveni blocarea buffer-ului (deadlock)
+                var errorReader = Task.Run(() => process.StandardError.ReadToEnd());
                 string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
 
+                string error = errorReader.Result;
                 string fullLog = output;
                 if (!string.IsNullOrEmpty(error))
                 {

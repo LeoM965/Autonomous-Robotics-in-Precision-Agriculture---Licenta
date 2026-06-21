@@ -271,7 +271,7 @@ public class CropManager : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 if (activeCrops[i] != null) 
-                    activeCrops[i].ProcessGrowth(deltaHours, weatherMult);
+                    activeCrops[i].ProcessGrowth(deltaHours);
             }
         }
     }

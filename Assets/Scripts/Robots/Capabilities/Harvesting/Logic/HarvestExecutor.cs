@@ -51,7 +51,8 @@ public class HarvestExecutor
         }
 
         float soilQuality = sensor.LatestAnalysis.qualityScore / 100f;
-        float weight = baseWeight * soilQuality * crop.Progress;
+        float nutrientHealth = crop.NutrientHealthScore; // Lifetime nutrient satisfaction (0-1)
+        float weight = baseWeight * soilQuality * crop.Progress * nutrientHealth;
         float revenue = marketPrice * weight;
 
         Economics.Managers.RobotEconomicsManager.Instance.AddRobotRevenue(robot, revenue);

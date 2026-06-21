@@ -51,7 +51,10 @@ namespace Crops.Jobs
             outConsumedNitrogen[i] = nRate * deltaHours;
             outConsumedPhosphorus[i] = nRate * 0.5f * deltaHours;  // P = 50% of N rate
             outConsumedPotassium[i] = nRate * 0.3f * deltaHours;   // K = 30% of N rate
-            outGrowthDelta[i] = deltaHours * weatherMultiplier * nutrientMult * tempMult;
+
+            // Legea Minimului (Liebig): factorul limitativ este minimul dintre nutrienți și temperatură
+            float limitingFactor = Mathf.Min(nutrientMult, tempMult);
+            outGrowthDelta[i] = deltaHours * weatherMultiplier * limitingFactor;
         }
     }
 }

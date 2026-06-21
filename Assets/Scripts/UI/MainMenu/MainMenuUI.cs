@@ -86,6 +86,49 @@ namespace UI.MainMenu
                 mainCam.cullingMask = 0; // Clear screen only
             }
 
+            // Ensure there is an active AudioListener in the Main Menu scene before playing audio
+            AudioListener activeListener = FindFirstObjectByType<AudioListener>(FindObjectsInactive.Exclude);
+            if (activeListener == null)
+            {
+                AudioListener[] allListeners = FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                bool enabledExisting = false;
+                foreach (var listener in allListeners)
+                {
+                    if (!listener.enabled && listener.gameObject.activeInHierarchy)
+                    {
+                        listener.enabled = true;
+                        enabledExisting = true;
+                        break;
+                    }
+                }
+
+                if (!enabledExisting)
+                {
+                    var mainCam = Camera.main;
+                    if (mainCam != null && mainCam.gameObject.activeInHierarchy)
+                    {
+                        var listener = mainCam.GetComponent<AudioListener>();
+                        if (listener == null) mainCam.gameObject.AddComponent<AudioListener>();
+                        else listener.enabled = true;
+                    }
+                    else
+                    {
+                        var anyCam = FindFirstObjectByType<Camera>();
+                        if (anyCam != null && anyCam.gameObject.activeInHierarchy)
+                        {
+                            var listener = anyCam.GetComponent<AudioListener>();
+                            if (listener == null) anyCam.gameObject.AddComponent<AudioListener>();
+                            else listener.enabled = true;
+                        }
+                        else
+                        {
+                            GameObject audioListenerGo = new GameObject("MainMenuAudioListener");
+                            audioListenerGo.AddComponent<AudioListener>();
+                        }
+                    }
+                }
+            }
+
             menuAudio = gameObject.GetComponent<AudioSource>();
             if (menuAudio == null) menuAudio = gameObject.AddComponent<AudioSource>();
             AudioClip clip = Resources.Load<AudioClip>("Audio/menu_music");

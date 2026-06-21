@@ -33,6 +33,7 @@ namespace Robots.Components.Movement
 
         public Vector3? FinalTarget => finalTarget;
         public List<Vector3> CurrentPath => path;
+        public int PathIndex => pathIndex;
         public Vector3 StuckPushDir => stuckPushDir;
 
         public void SetTarget(Vector3 target)

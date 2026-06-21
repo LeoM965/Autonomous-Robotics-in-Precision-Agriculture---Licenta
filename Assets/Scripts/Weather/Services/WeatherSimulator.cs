@@ -9,6 +9,11 @@ namespace Weather.Services
         private ClimateProfile activeClimate;
         private bool initialized;
 
+        // Smoothing: temperatura targetată vs. afișată
+        private float targetTemperature = 20f;
+        private float cachedWeatherOffset;
+        private float cachedJitter;
+
         public WeatherType CurrentWeather { get; private set; } = WeatherType.Sunny;
         public float CurrentTemperature { get; set; } = 20f;
         public WeatherImpact CurrentImpact { get; private set; } = WeatherImpact.Get(WeatherType.Sunny);
@@ -24,10 +29,26 @@ namespace Weather.Services
             {
                 CurrentWeather = RollNewWeather();
                 CurrentImpact = WeatherImpact.Get(CurrentWeather);
+
+                // Recalculăm offset-urile random doar la schimbarea vremii, nu la fiecare oră
+                cachedWeatherOffset = UnityEngine.Random.Range(CurrentImpact.temperatureMin, CurrentImpact.temperatureMax);
+                cachedJitter = UnityEngine.Random.Range(-activeClimate.temperatureVariability,
+                                                        activeClimate.temperatureVariability) * activeClimate.jitterStrength;
                 initialized = true;
             }
 
             UpdateTemperature(timeOfDay);
+        }
+
+        /// <summary>
+        /// Apelat din Update() pentru smoothing continuu între orele simulate.
+        /// </summary>
+        public void SmoothTemperature(float lerpSpeed, bool snap = false)
+        {
+            if (snap)
+                CurrentTemperature = targetTemperature;
+            else
+                CurrentTemperature = Mathf.Lerp(CurrentTemperature, targetTemperature, lerpSpeed);
         }
 
         private WeatherType RollNewWeather()
@@ -45,12 +66,14 @@ namespace Weather.Services
                 cumulative += activeClimate.GetWeight(type);
                 if (roll < cumulative) return type;
             }
- 
+
             return WeatherType.Sunny;
         }
 
-        private void UpdateTemperature(float timeOfDay)
+        public void UpdateTemperature(float timeOfDay)
         {
+            if (activeClimate == null) return;
+
             float minTemp = activeClimate.minTemp;
             float maxTemp = activeClimate.maxTemp;
 
@@ -64,7 +87,7 @@ namespace Weather.Services
 
             float baseTemp = (minTemp + maxTemp) * 0.5f;
             float amplitude = (maxTemp - minTemp) * 0.5f;
-            
+
             // Asymmetric diurnal cycle: minimum at 6:00 AM (sunrise), maximum at 3:00 PM (15:00)
             // Heating phase (6:00 - 15:00): 9 hours, with power curve for slower morning rise
             // Cooling phase (15:00 - 6:00 next day): 15 hours
@@ -81,12 +104,9 @@ namespace Weather.Services
                 diurnalOffset = Mathf.Cos(t * Mathf.PI) * amplitude;
             }
 
-            float weatherOffset = UnityEngine.Random.Range(CurrentImpact.temperatureMin, CurrentImpact.temperatureMax);
-            
-            float jitter = UnityEngine.Random.Range(-activeClimate.temperatureVariability, 
-                                           activeClimate.temperatureVariability) * activeClimate.jitterStrength;
-
-            CurrentTemperature = baseTemp + diurnalOffset + weatherOffset + jitter;
+            // Setăm target-ul — smoothing-ul real se face în SmoothTemperature()
+            targetTemperature = baseTemp + diurnalOffset + cachedWeatherOffset + cachedJitter;
         }
     }
 }
+

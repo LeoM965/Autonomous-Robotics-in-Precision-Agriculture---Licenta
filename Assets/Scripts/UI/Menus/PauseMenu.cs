@@ -9,19 +9,28 @@ namespace UI.Menus
         [Header("Aspect Vizual")]
         [SerializeField] private UITheme theme;
         
+        public static PauseMenu Instance { get; private set; }
+        
         public bool IsOpen { get; private set; }
         
-        private enum DashboardTab { Crops, Robots, History, Parcels }
+        private enum DashboardTab { Crops, Robots, History, Parcels, MLModel, Recordings }
         private DashboardTab currentTab = DashboardTab.Crops;
         
         private Tabs.CropDashboardTab cropTab = new Tabs.CropDashboardTab();
         private Tabs.RobotDashboardTab robotTab = new Tabs.RobotDashboardTab();
         private Tabs.HistoryDashboardTab historyTab = new Tabs.HistoryDashboardTab();
         private Tabs.ParcelDashboardTab parcelTab = new Tabs.ParcelDashboardTab();
+        private Tabs.MLModelDashboardTab mlTab = new Tabs.MLModelDashboardTab();
+        private Tabs.RecordingsDashboardTab recordingsTab = new Tabs.RecordingsDashboardTab();
 
         private CropDatabase cachedDB;
         private EconomicReport activeReport;
         private int cachedRobotCount;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
 
         private void Update()
         {
@@ -38,13 +47,38 @@ namespace UI.Menus
             else
                 Time.timeScale = IsOpen ? 0f : 1f;
 
+            AudioListener.pause = IsOpen;
+
             if (IsOpen)
             {
+                // Capture one final frame before pausing/disabling canvases so the HUD is recorded
+                if (Managers.SimulationRecorder.Instance != null)
+                {
+                    Managers.SimulationRecorder.Instance.CaptureSingleFrameImmediately();
+                }
+
                 cachedDB = CropLoader.Load();
                 activeReport = CropEconomicsCalculator.GetAnalysis(cachedDB);
                 robotTab.CacheRobotData();
                 cachedRobotCount = Economics.Managers.RobotEconomicsManager.Instance != null 
                     ? Economics.Managers.RobotEconomicsManager.Instance.RobotStatsMap.Count : 0;
+                
+                // Reset/initialize recordings tab frame bounds when opening the menu
+                recordingsTab.OnOpenTab();
+            }
+            else
+            {
+                if (Managers.SimulationRecorder.Instance != null)
+                {
+                    Managers.SimulationRecorder.Instance.StopReplayAudio();
+                }
+            }
+
+            // Toggle Canvas components in the scene
+            UnityEngine.Canvas[] allCanvases = FindObjectsByType<UnityEngine.Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var canvas in allCanvases)
+            {
+                canvas.enabled = !IsOpen;
             }
         }
 
@@ -52,6 +86,12 @@ namespace UI.Menus
         {
             if (!IsOpen || cachedDB?.crops == null || activeReport.AnalysisByVariety == null) return;
             
+            if (currentTab == DashboardTab.Recordings && recordingsTab.IsFullscreenMode)
+            {
+                recordingsTab.DrawFullscreen(theme);
+                return;
+            }
+
             if (currentTab == DashboardTab.Robots)
                 robotTab.CacheRobotData();
             
@@ -66,6 +106,10 @@ namespace UI.Menus
             if (currentTab == DashboardTab.Robots)
                 height = Mathf.Min(Screen.height * 0.85f, 170f + cachedRobotCount * 22f + 140f + robotTab.ExtraHeight);
             if (currentTab == DashboardTab.Parcels)
+                height = Mathf.Min(Screen.height * 0.85f, 550f);
+            if (currentTab == DashboardTab.MLModel)
+                height = Mathf.Min(Screen.height * 0.85f, 550f);
+            if (currentTab == DashboardTab.Recordings)
                 height = Mathf.Min(Screen.height * 0.85f, 550f);
             Rect panel = new Rect((Screen.width - width) / 2, (Screen.height - height) / 2, width, height);
 
@@ -90,19 +134,23 @@ namespace UI.Menus
                 robotTab.DrawTab(x, y, theme, contentBottom);
             else if (currentTab == DashboardTab.Parcels)
                 parcelTab.DrawTab(x, y, theme);
-            else
+            else if (currentTab == DashboardTab.MLModel)
+                mlTab.DrawTab(x, y, theme);
+            else if (currentTab == DashboardTab.History)
                 historyTab.DrawTab(x, y, theme);
+            else if (currentTab == DashboardTab.Recordings)
+                recordingsTab.DrawTab(x, y, theme);
             
             GUI.Label(new Rect(panel.x, panel.yMax - 25, width, 20), "Apasă ESC pentru a închide raportul", theme.Footer);
         }
 
         private void DrawTabs(float x, float y, float totalWidth)
         {
-            float tabWidth = 120;
+            float tabWidth = 92;
             float tabHeight = 26;
             float gap = 2;
-            string[] labels = { "CULTURI", "ROBOȚI", "ISTORIC", "PARCELE" };
-            DashboardTab[] tabs = { DashboardTab.Crops, DashboardTab.Robots, DashboardTab.History, DashboardTab.Parcels };
+            string[] labels = { "CULTURI", "ROBOȚI", "ISTORIC", "PARCELE", "ML MODEL", "FILMĂRI" };
+            DashboardTab[] tabs = { DashboardTab.Crops, DashboardTab.Robots, DashboardTab.History, DashboardTab.Parcels, DashboardTab.MLModel, DashboardTab.Recordings };
 
             for (int i = 0; i < labels.Length; i++)
             {
@@ -117,16 +165,30 @@ namespace UI.Menus
                     MapHelper.DrawBox(new Rect(tabRect.x, tabRect.yMax - 2, tabRect.width, 2), theme.panelBorder);
                 
                 if (GUI.Button(tabRect, labels[i], isActive ? theme.Value : theme.Label))
-                    currentTab = tabs[i];
+                {
+                    if (currentTab != tabs[i])
+                    {
+                        currentTab = tabs[i];
+                        if (currentTab == DashboardTab.Recordings)
+                        {
+                            recordingsTab.OnOpenTab();
+                        }
+                    }
+                }
             }
         }
 
         private void OnDestroy()
         {
+            if (Instance == this)
+                Instance = null;
+
             if (SimulationSpeedController.Instance != null)
                 SimulationSpeedController.Instance.SetPaused(false);
             else
                 Time.timeScale = 1f;
+
+            AudioListener.pause = false;
         }
     }
 }

@@ -37,6 +37,9 @@ public class TimeManager : MonoBehaviour
 
         float speedMps = (robotRealSpeedKmh * 1000f) / 3600f;
         secondsPerMeter = 1f / speedMps;
+
+        // Force initialization of SimulationRecorder at start so it starts capturing and ensures an AudioListener exists immediately
+        if (Managers.SimulationRecorder.Instance != null) { }
     }
 
     public void RegisterRobot() => activeRobotCount++;

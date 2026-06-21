@@ -6,18 +6,18 @@ public class RobotCamera : MonoBehaviour
 {
     [Header("Configuration")]
     public CameraSettings settings;
-    
+
     [Header("Targets")]
     public Transform target;
     public List<Transform> targets = new List<Transform>();
 
     [Header("Collision")]
     [SerializeField] private LayerMask collisionMask;
-    
+
     [Header("Debug")]
     [SerializeField] private CameraState state = new CameraState();
     [SerializeField] private bool showHUD = true;
-    
+
     private CameraMode mode = CameraMode.Follow;
     private int targetIndex;
     private CameraDisplay display;
@@ -33,7 +33,7 @@ public class RobotCamera : MonoBehaviour
             Debug.LogError("<b>[CameraSystem]</b> CameraSettings NU este asignat!");
             return;
         }
-        
+
         display = gameObject.AddComponent<CameraDisplay>();
         state.currentDistance = settings.distance;
 
@@ -52,11 +52,11 @@ public class RobotCamera : MonoBehaviour
     {
         if (settings == null) return;
         if (!isFreePan && target == null) return;
-        
+
         float dt = Time.fixedDeltaTime;
         Vector3 focusPoint = GetFocusPoint();
         state.smoothPosition = Vector3.Lerp(state.smoothPosition, focusPoint, dt * settings.smoothSpeed * 2f);
-        
+
         if (!isFreePan && target != null)
         {
             // Locked on robot: use distinct behaviors for each mode
@@ -78,9 +78,9 @@ public class RobotCamera : MonoBehaviour
     {
         if (settings == null) return;
         if (!isFreePan && target == null) return;
-        
+
         ProcessInput();
-        
+
         if (mode == CameraMode.FPS && target != null && !isFreePan)
         {
             transform.position = Vector3.Lerp(transform.position, state.desiredPosition, Time.deltaTime * settings.fpsPositionSmooth);
@@ -98,7 +98,7 @@ public class RobotCamera : MonoBehaviour
         if (EventSystem.current == null) return false;
         var selected = EventSystem.current.currentSelectedGameObject;
         if (selected == null) return false;
-        return selected.GetComponent<TMPro.TMP_InputField>() != null 
+        return selected.GetComponent<TMPro.TMP_InputField>() != null
             || selected.GetComponent<UnityEngine.UI.InputField>() != null;
     }
 
@@ -112,7 +112,7 @@ public class RobotCamera : MonoBehaviour
             mode = (CameraMode)(((int)mode + 1) % 4);
             // Exiting FPS in free-pan uses orbital instead
         }
-        
+
         if (Input.GetKeyDown(settings.switchTargetKey) && targets.Count > 1)
         {
             targetIndex = (targetIndex + 1) % targets.Count;
@@ -129,6 +129,19 @@ public class RobotCamera : MonoBehaviour
             ExitFreePan();
         }
 
+        // --- Keyboard Zoom (I for Zoom In, O for Zoom Out) ---
+        if (Input.GetKey(KeyCode.I))
+        {
+            float zoomSpeed = settings.sensitivity * 5f;
+            state.currentDistance = Mathf.Clamp(state.currentDistance - zoomSpeed * Time.deltaTime, 2f, 120f);
+        }
+        else if (Input.GetKey(KeyCode.O))
+        {
+            float zoomSpeed = settings.sensitivity * 5f;
+            state.currentDistance = Mathf.Clamp(state.currentDistance + zoomSpeed * Time.deltaTime, 2f, 120f);
+        }
+
+        // --- Standard Mouse Scroll Zoom ---
         float scroll = Input.mouseScrollDelta.y;
         if (Mathf.Abs(scroll) > 0.1f)
             state.currentDistance = CameraHelper.GetNextZoom(state.currentDistance, settings.zoomPresets, scroll > 0);
@@ -141,7 +154,7 @@ public class RobotCamera : MonoBehaviour
 
         // --- WASD Free Navigation (independent of robot) ---
         Vector2 navInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        
+
         if (navInput.magnitude > 0.2f)
         {
             if (!isFreePan) EnterFreePan();
@@ -173,6 +186,9 @@ public class RobotCamera : MonoBehaviour
 
     private void OnGUI()
     {
+        if (UI.Menus.PauseMenu.Instance != null && UI.Menus.PauseMenu.Instance.IsOpen)
+            return;
+
         if (showHUD && display)
         {
             string label = isFreePan ? "Free Camera" : (target != null ? target.name : "No Target");

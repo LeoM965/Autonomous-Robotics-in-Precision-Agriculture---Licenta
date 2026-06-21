@@ -127,6 +127,11 @@ public class CropGrowth : MonoBehaviour
         {
             parentSensor.AdjustNutrients(-consumedNitrogen, -consumedPhosphorus, -consumedPotassium);
 
+            // Acidificarea solului: consumul de azot scade pH-ul treptat
+            // Rata: ~0.01 pH per unitate de N consumată → realist pe durata ciclului de viață
+            float phDrop = consumedNitrogen * 0.01f;
+            if (phDrop > 0f) parentSensor.AdjustPH(-phDrop);
+
             // Sample current nutrient satisfaction for lifetime health score
             float optN = GetOptimalNitrogen();
             float optP = cachedCropData?.requirements?.phosphorus?.optimal ?? (optN * 0.5f);
@@ -154,7 +159,7 @@ public class CropGrowth : MonoBehaviour
         }
     }
 
-    public void ProcessGrowth(float deltaHours, float weatherMultiplier)
+    public void ProcessGrowth(float deltaHours)
     {
         if (state.isBeingHarvested || state.progress >= 1f || deltaHours <= 0) return;
         

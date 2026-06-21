@@ -43,12 +43,21 @@ namespace AI.ML
             public float conf;        // leaf: confidence 0-1
         }
 
+        private static bool isActivatedThisSession = false;
+
         // ── Public API ──
 
         public static bool IsLoaded => model != null;
 
+        public static void Unload()
+        {
+            model = null;
+            loadAttempted = false;
+            isActivatedThisSession = false;
+        }
+
         /// <summary>
-        /// Loads the model from Resources/MLCropModel.json. Safe to call multiple times.
+        /// Loads the model from Resources/MLCropModel.json or external overrides. Safe to call multiple times.
         /// </summary>
         public static bool Load(bool forceReload = false)
         {
@@ -56,22 +65,69 @@ namespace AI.ML
             {
                 model = null;
                 loadAttempted = false;
+                isActivatedThisSession = true;
             }
             else
             {
+                if (!isActivatedThisSession) return false;
                 if (model != null) return true;
                 if (loadAttempted) return false;
             }
 
             loadAttempted = true;
-            TextAsset jsonAsset = Resources.Load<TextAsset>("MLCropModel");
-            if (jsonAsset == null)
+            string jsonText = null;
+
+            // 1. Check external file in the application directory (for built player or general overrides)
+            string externalPath = System.IO.Path.Combine(Application.dataPath, "..", "MLCropModel.json");
+            if (System.IO.File.Exists(externalPath))
             {
-                Debug.LogWarning("[CropMLPredictor] MLCropModel.json nu a fost gasit in Resources/. Ruleaza train_crop_model.py.");
+                try
+                {
+                    jsonText = System.IO.File.ReadAllText(externalPath);
+                    Debug.Log($"[CropMLPredictor] Incarcat model ML din fisier extern: {externalPath}");
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"[CropMLPredictor] Eroare la citirea modelului extern de la {externalPath}: {ex.Message}");
+                }
+            }
+
+            // 2. Check editor Resources folder if we are in Editor
+            if (jsonText == null && Application.isEditor)
+            {
+                string editorPath = System.IO.Path.Combine(Application.dataPath, "Resources", "MLCropModel.json");
+                if (System.IO.File.Exists(editorPath))
+                {
+                    try
+                    {
+                        jsonText = System.IO.File.ReadAllText(editorPath);
+                        Debug.Log($"[CropMLPredictor] Incarcat model ML din resurse editor: {editorPath}");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[CropMLPredictor] Eroare la citirea modelului de editor de la {editorPath}: {ex.Message}");
+                    }
+                }
+            }
+
+            // 3. Fallback to Resources.Load
+            if (jsonText == null)
+            {
+                TextAsset jsonAsset = Resources.Load<TextAsset>("MLCropModel");
+                if (jsonAsset != null)
+                {
+                    jsonText = jsonAsset.text;
+                    Debug.Log("[CropMLPredictor] Incarcat model ML din Resources.Load");
+                }
+            }
+
+            if (jsonText == null)
+            {
+                Debug.LogWarning("[CropMLPredictor] MLCropModel.json nu a fost gasit in nicio locatie. Ruleaza train_crop_model.py.");
                 return false;
             }
 
-            model = ParseModelManual(jsonAsset.text);
+            model = ParseModelManual(jsonText);
             if (model?.tree == null)
             {
                 Debug.LogWarning("[CropMLPredictor] Parsarea modelului ML a esuat.");
@@ -313,6 +369,7 @@ namespace AI.ML
         {
             model = null;
             loadAttempted = false;
+            isActivatedThisSession = false;
         }
     }
 

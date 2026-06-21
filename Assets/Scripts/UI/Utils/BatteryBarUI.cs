@@ -14,6 +14,7 @@ public class BatteryBarUI : MonoBehaviour
     private const float VIS_CHECK_INTERVAL = 0.25f;
     private const float MAX_RENDER_DIST_SQR = 80f * 80f;
     private int lastDrawFrame;
+    private CropPlanter planter;
 
     // Shared across all instances to avoid GC alloc per frame per robot
     private static readonly System.Collections.Generic.List<RaycastResult> sharedRaycastResults = new();
@@ -23,6 +24,7 @@ public class BatteryBarUI : MonoBehaviour
     private void Start()
     {
         if (energy == null) energy = GetComponentInParent<RobotEnergy>();
+        planter = GetComponentInParent<CropPlanter>();
         mainCam = Camera.main;
     }
 
@@ -55,6 +57,9 @@ public class BatteryBarUI : MonoBehaviour
 
     private void OnGUI()
     {
+        if (UI.Menus.PauseMenu.Instance != null && UI.Menus.PauseMenu.Instance.IsOpen)
+            return;
+
         if (energy == null || mainCam == null) return;
         // Only draw every other frame to halve per-robot OnGUI cost
         int frame = Time.frameCount;
@@ -102,6 +107,18 @@ public class BatteryBarUI : MonoBehaviour
             }
             GUI.color = Color.white;
             GUI.Label(barRect, "CHARGING", chargingStyle);
+        }
+
+        if (planter != null)
+        {
+            float seedPct = (float)planter.currentSeeds / planter.maxSeeds;
+            Rect seedRect = new Rect(x, y + barSize.y + 2f, barSize.x, 5f);
+            
+            GUI.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+            GUI.DrawTexture(seedRect, Texture2D.whiteTexture);
+            
+            GUI.color = new Color(1.0f, 0.6f, 0.1f, 0.9f);
+            GUI.DrawTexture(new Rect(x, y + barSize.y + 2f, barSize.x * seedPct, 5f), Texture2D.whiteTexture);
         }
 
         GUI.color = Color.white;

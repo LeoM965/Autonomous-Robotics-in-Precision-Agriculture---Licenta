@@ -67,7 +67,17 @@ namespace Weather.Components
         private void Update()
         {
             UpdateVisuals();
-            
+
+            if (TimeManager.Instance != null && simulator != null)
+            {
+                simulator.UpdateTemperature(TimeManager.Instance.timeOfDay);
+            }
+
+            bool isSkipping = SimulationSpeedController.Instance != null && SimulationSpeedController.Instance.IsSkipping;
+            float dt = (Time.timeScale > 0f) ? Time.deltaTime : Time.unscaledDeltaTime;
+
+            simulator?.SmoothTemperature(dt * 2f, isSkipping);
+
             moistureTimer += Time.deltaTime;
             if (moistureTimer >= MOISTURE_INTERVAL)
             {

@@ -60,9 +60,22 @@ public class RobotEnergy : MonoBehaviour
         OnBatteryChanged?.Invoke(BatteryPercent);
     }
 
+    private RobotDataEntry cachedRobotData;
+    public RobotDataEntry RobotData
+    {
+        get
+        {
+            if (cachedRobotData == null)
+            {
+                cachedRobotData = RobotDataLoader.FindByName(name);
+            }
+            return cachedRobotData;
+        }
+    }
+
     public void UpdateFromStaticData()
     {
-        var data = RobotDataLoader.FindByName(name);
+        var data = RobotData;
         if (data != null)
         {
             battery.maxKWh = data.batteryCapacity / 1000f;

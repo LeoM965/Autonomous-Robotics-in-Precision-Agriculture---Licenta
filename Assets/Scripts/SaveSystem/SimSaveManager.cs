@@ -266,6 +266,15 @@ namespace SaveSystem
                 s.RestoreHarvestStats(ps.harvestedCount, ps.harvestedWeightKg, ps.harvestedRevenue, ps.harvestedSeedCost);
                 s.Analyze();
 
+                // Clear existing crops before respawning saved ones (prevents duplicates)
+                var existingCrops = new List<CropGrowth>(s.activeCrops);
+                foreach (var crop in existingCrops)
+                {
+                    if (crop != null) crop.ReturnToPool();
+                }
+                s.activeCrops.Clear();
+                s.plantedVarietyName = ps.plantedVariety; // Re-set after clear (ReturnToPool resets it)
+
                 // Re-spawn crops at exact saved positions
                 if (db != null && ps.crops.Count > 0 && !string.IsNullOrEmpty(ps.plantedVariety))
                 {
@@ -383,6 +392,15 @@ namespace SaveSystem
 
             string exportPath = Path.Combine(ExportDir, saveName);
             if (Directory.Exists(exportPath)) Directory.Delete(exportPath, true);
+
+            // Ștergem fișierul modelului ML dacă există
+            string mlModelPath = Path.Combine(Application.dataPath, "Resources", "MLCropModel.json");
+            if (File.Exists(mlModelPath)) File.Delete(mlModelPath);
+            string mlModelMetaPath = mlModelPath + ".meta";
+            if (File.Exists(mlModelMetaPath)) File.Delete(mlModelMetaPath);
+
+            // Resetează starea CropMLPredictor în sesiunea curentă
+            AI.ML.CropMLPredictor.Unload();
 
             Debug.Log($"[Save] Șters: \"{saveName}\"");
         }

@@ -77,7 +77,9 @@ namespace Robots.Capabilities.Flight
 
         private void UpdateFromSettings()
         {
-            var data = RobotDataLoader.FindByName(name);
+            var data = (energy != null) ? energy.RobotData : null;
+            if (data == null) data = RobotDataLoader.FindByName(name);
+
             if (data != null)
             {
                 settings.speed = data.maxSpeed;
@@ -109,7 +111,7 @@ namespace Robots.Capabilities.Flight
         {
             energy.SetWorking(state == FlightState.HoveringAtTarget);
             energy.SetIdle(state == FlightState.Idle);
-            
+
             switch (state)
             {
                 case FlightState.Charging: HandleChargingState(); break;
@@ -121,7 +123,7 @@ namespace Robots.Capabilities.Flight
 
         private void HandleChargingState()
         {
-            if (manualTarget.HasValue) 
+            if (manualTarget.HasValue)
             {
                 Vector3 target = manualTarget.Value + new Vector3(0, 0, -3f);
                 motor.UpdateMovement(target, true);

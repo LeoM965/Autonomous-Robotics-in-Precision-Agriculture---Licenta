@@ -6,6 +6,7 @@ namespace Settings
     {
         public static System.Action OnSettingsChanged;
         public static int PlantsPerRow = 4;
+        public static int MaxSeedsCapacity = 150;
         public static int SelectedCropIndex = -1;
         public static float[] SeedCosts;
         public static float[] YieldWeights;
@@ -103,6 +104,7 @@ namespace Settings
         {
             OnSettingsChanged = null;
             PlantsPerRow = 4;
+            MaxSeedsCapacity = 150;
             SelectedCropIndex = -1;
             SeedCosts = null;
             YieldWeights = null;

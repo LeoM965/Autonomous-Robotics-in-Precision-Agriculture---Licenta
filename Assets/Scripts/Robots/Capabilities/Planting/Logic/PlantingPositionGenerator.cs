@@ -81,4 +81,78 @@ public static class PlantingPositionGenerator
 
         return positions;
     }
+
+    /// <summary>
+    /// Verifică dacă parcela are deja plante pe toate pozițiile generate.
+    /// Returnează true dacă parcela este complet plantată, false dacă mai sunt locuri goale.
+    /// </summary>
+    public static bool IsParcelFullyPlanted(Sensors.Components.EnvironmentalSensor parcel, PlantingConfig config)
+    {
+        if (parcel == null) return true;
+        if (parcel.activeCrops.Count == 0) return false;
+
+        Collider col = parcel.GetComponent<Collider>();
+        if (col == null) return true;
+
+        var positions = Generate(col.bounds, config);
+        if (positions.Count == 0) return true;
+
+        // Colectăm pozițiile plantelor active
+        var cropPositions = new List<Vector3>();
+        foreach (var crop in parcel.activeCrops)
+        {
+            if (crop != null) cropPositions.Add(crop.transform.position);
+        }
+
+        // Verificăm câte din pozițiile generate au deja o plantă în apropiere
+        int occupied = 0;
+        float threshold = 0.5f * 0.5f; // 0.5m distanță, comparăm sqr
+        foreach (var pos in positions)
+        {
+            foreach (var cp in cropPositions)
+            {
+                float dx = pos.x - cp.x, dz = pos.z - cp.z;
+                if (dx * dx + dz * dz < threshold)
+                {
+                    occupied++;
+                    break;
+                }
+            }
+        }
+
+        return occupied >= positions.Count;
+    }
+
+    /// <summary>
+    /// Filtrează pozițiile de plantare, returnând doar cele care nu au deja o plantă în apropiere.
+    /// </summary>
+    public static List<Vector3> FilterUnplantedPositions(List<Vector3> positions, Sensors.Components.EnvironmentalSensor parcel)
+    {
+        if (parcel == null || parcel.activeCrops.Count == 0) return positions;
+
+        var cropPositions = new List<Vector3>();
+        foreach (var crop in parcel.activeCrops)
+        {
+            if (crop != null) cropPositions.Add(crop.transform.position);
+        }
+
+        var filtered = new List<Vector3>();
+        float threshold = 0.5f * 0.5f;
+        foreach (var pos in positions)
+        {
+            bool hasNearbyCrop = false;
+            foreach (var cp in cropPositions)
+            {
+                float dx = pos.x - cp.x, dz = pos.z - cp.z;
+                if (dx * dx + dz * dz < threshold)
+                {
+                    hasNearbyCrop = true;
+                    break;
+                }
+            }
+            if (!hasNearbyCrop) filtered.Add(pos);
+        }
+
+        return filtered;
+    }
 }

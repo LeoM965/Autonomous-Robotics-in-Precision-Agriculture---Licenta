@@ -32,7 +32,7 @@ public class PlantingExecutor
 
         if (crop == null) return;
 
-        if (plantsPlaced == 0)
+        if (plantsPlaced == 0 && string.IsNullOrEmpty(parcel.plantedVarietyName))
         {
             parcel.ResetHarvestStats();
             parcel.plantedVarietyName = crop.name;

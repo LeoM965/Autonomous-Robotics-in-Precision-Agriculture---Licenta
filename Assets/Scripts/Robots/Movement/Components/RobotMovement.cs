@@ -32,6 +32,11 @@ public class RobotMovement : MonoBehaviour, IRobotMovement
         motor = GetComponent<RobotMotor>();
         wheelController = GetComponent<RobotWheelController>();
         cachedColliders = GetComponentsInChildren<Collider>(true);
+
+        if (GetComponent<PathRenderer>() == null)
+        {
+            gameObject.AddComponent<PathRenderer>();
+        }
     }
 
     private bool isInitialized = false;

@@ -55,6 +55,9 @@ public class MiniMap : MonoBehaviour
 
     private void OnGUI()
     {
+        if (UI.Menus.PauseMenu.Instance != null && UI.Menus.PauseMenu.Instance.IsOpen)
+            return;
+
         if (terrain == null || data == null)
             return;
         InitializeStyles();
